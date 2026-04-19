@@ -1,0 +1,61 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      maintenance:
+        description: 'Enable maintenance mode before deploy'
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Enable maintenance mode (optional)
+        if: ${{ github.event.inputs.maintenance == 'true' }}
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "curl -s -X POST http://localhost:8080/api/admin/maintenance \
+              -H 'Content-Type: application/json' \
+              -d '{\"token\":\"${{ secrets.ADMIN_TOKEN }}\",\"enabled\":true}'"
+
+      - name: Deploy
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            set -e
+            cd /var/www/justbreath-prod
+            git pull origin main
+            npm install --production --prefer-offline
+            pm2 reload justbreath-prod --update-env
+            echo "✓ Production deployed"
+          EOF
+
+      - name: Disable maintenance mode
+        if: ${{ github.event.inputs.maintenance == 'true' }}
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "curl -s -X POST http://localhost:8080/api/admin/maintenance \
+              -H 'Content-Type: application/json' \
+              -d '{\"token\":\"${{ secrets.ADMIN_TOKEN }}\",\"enabled\":false}'"
+
+      - name: Verify
+        run: |
+          sleep 3
+          STATUS=$(ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "curl -s http://localhost:8080/api/health | grep -c '\"ok\":true'" || echo 0)
+          if [ "$STATUS" -eq 0 ]; then echo "⚠ Health check failed"; exit 1; fi
+          echo "✓ Health check passed"
