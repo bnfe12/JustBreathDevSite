@@ -1133,6 +1133,97 @@ function removeSiteStoredContent(site) {
   if (site.bundleRoot) removeSiteFile(site.bundleRoot);
 }
 
+const SITE_STUDIO_EDITABLE_EXTENSIONS = new Set([
+  '.html', '.htm', '.css', '.js', '.mjs', '.cjs', '.json', '.svg', '.txt', '.md', '.xml', '.webmanifest'
+]);
+
+function siteStudioFileKind(relativePath = '') {
+  const ext = path.posix.extname(String(relativePath || '').toLowerCase());
+  if (['.html', '.htm'].includes(ext)) return 'html';
+  if (ext === '.css') return 'css';
+  if (['.js', '.mjs', '.cjs'].includes(ext)) return 'js';
+  if (ext === '.svg') return 'svg';
+  if (ext === '.json' || ext === '.webmanifest') return 'json';
+  if (ext === '.md') return 'markdown';
+  return 'text';
+}
+
+function siteStudioEditablePath(raw = '') {
+  const relativePath = safeSiteBundlePath(raw);
+  if (!relativePath) return '';
+  if (path.posix.basename(relativePath).toUpperCase() === 'CNAME') return relativePath;
+  const ext = path.posix.extname(relativePath).toLowerCase();
+  return SITE_STUDIO_EDITABLE_EXTENSIONS.has(ext) ? relativePath : '';
+}
+
+function siteStudioFiles(site) {
+  const files = siteUsesBundle(site)
+    ? listBundleFiles(site.bundleRoot, 400)
+    : (site.htmlPath ? ['index.html'] : []);
+  return files.map((relativePath) => ({
+    path: relativePath,
+    kind: siteStudioFileKind(relativePath),
+    editable: Boolean(siteStudioEditablePath(relativePath))
+  }));
+}
+
+function ensureUploadSiteStudio(site) {
+  if (!site || site.mode !== 'upload') {
+    throw new Error('Code studio works only with uploaded static sites. Template sites stay visual-only.');
+  }
+}
+
+function ensureBundleBackedUploadSite(site) {
+  ensureUploadSiteStudio(site);
+  if (siteUsesBundle(site)) return site;
+  const currentHtml = readSiteFile(site.htmlPath) || '<!DOCTYPE html>\n<html><head><meta charset="UTF-8" /><title>Site</title></head><body></body></html>';
+  const extracted = ensureSiteBundle(site.id, [{ path: 'index.html', content: currentHtml }]);
+  if (site.htmlPath && site.htmlPath !== extracted.htmlPath) removeSiteFile(site.htmlPath);
+  site.htmlPath = extracted.htmlPath;
+  site.bundleRoot = extracted.bundleRoot;
+  site.uploadMode = 'archive';
+  return site;
+}
+
+function readSiteStudioText(site, rawPath = 'index.html') {
+  ensureUploadSiteStudio(site);
+  const relativePath = siteStudioEditablePath(rawPath);
+  if (!relativePath) throw new Error('Only text-based files can be edited in studio.');
+  if (siteUsesBundle(site)) {
+    const absPath = siteBundleAbsPath(site, relativePath);
+    if (!absPath || !existsSync(absPath)) throw new Error('File not found.');
+    return readFileSync(absPath, 'utf8');
+  }
+  if (relativePath !== 'index.html') {
+    throw new Error('Add a CSS/JS/SVG file once and this site will switch to bundle mode automatically.');
+  }
+  return readSiteFile(site.htmlPath) || '';
+}
+
+function writeSiteStudioText(site, rawPath = 'index.html', rawContent = '', { create = false } = {}) {
+  ensureUploadSiteStudio(site);
+  const relativePath = siteStudioEditablePath(rawPath);
+  if (!relativePath) throw new Error('Only HTML, CSS, JS, JSON, SVG, markdown, XML and text files are supported.');
+  const content = rawContent === undefined || rawContent === null ? '' : String(rawContent);
+  if (relativePath === 'index.html' && !content.trim()) throw new Error('index.html cannot be empty.');
+  if (Buffer.byteLength(content, 'utf8') > SITE_UPLOAD_LIMIT_BYTES) throw new Error('Studio text files must stay under 1 MB.');
+  if (relativePath !== 'index.html') ensureBundleBackedUploadSite(site);
+  if (siteUsesBundle(site)) {
+    const absPath = siteBundleAbsPath(site, relativePath);
+    if (!absPath) throw new Error('File path is invalid.');
+    if (create && existsSync(absPath)) throw new Error('File already exists.');
+    mkdirSync(path.dirname(absPath), { recursive: true });
+    const nextContent = ['.html', '.htm'].includes(path.posix.extname(relativePath).toLowerCase()) ? ensureDoctype(content) : content;
+    writeFileSync(absPath, nextContent, 'utf8');
+    if (relativePath === 'index.html') site.htmlPath = `${site.bundleRoot}/index.html`;
+    site.uploadMode = 'archive';
+    return;
+  }
+  site.htmlPath = ensureSiteFile(site.id, content);
+  site.bundleRoot = '';
+  site.uploadMode = 'html';
+}
+
 function listBundleFiles(relativeRoot, limit = 32) {
   const absRoot = resolveDataPath(relativeRoot);
   if (!absRoot || !existsSync(absRoot)) return [];
@@ -1858,8 +1949,10 @@ function publicProject(store, project, viewerUserId = null) {
 
 function publicSite(store, site, viewerUserId = null) {
   const owner = store.users.find((item) => Number(item.id) === Number(site.userId));
+  const project = site.projectId ? store.projects.find((item) => Number(item.id) === Number(site.projectId)) : null;
   const isOwner = viewerUserId && Number(viewerUserId) === Number(site.userId);
   const normalizedConfig = sanitizeSiteConfig(site.templateConfig || {});
+  const ownerHandle = owner?.handleCanonical || canonicalHandle(owner?.handle);
   return {
     id: site.id,
     slug: site.slug,
@@ -1875,8 +1968,10 @@ function publicSite(store, site, viewerUserId = null) {
     updatedAt: site.updatedAt,
     owner: publicUser(store, owner, viewerUserId),
     iconUrl: siteIconUrl(store, site, owner),
-    path: `/@${owner?.handleCanonical || canonicalHandle(owner?.handle)}/${site.slug}`,
-    projectId: site.projectId
+    path: `/@${ownerHandle}/${site.slug}`,
+    projectId: site.projectId,
+    project: project ? { id: project.id, slug: project.slug, title: project.title, path: `/project/${project.slug}` } : null,
+    discussionPath: project ? `/project/${project.slug}` : `/@${ownerHandle}`
   };
 }
 
@@ -4213,6 +4308,100 @@ app.get('/api/me/sites/:id', requireAuth, (req, res) => {
   const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
   if (!site) return res.status(404).json({ error: 'Site not found.' });
   res.json({ site: ownerSiteDetails(store, site, req.authUser.id) });
+});
+
+app.get('/api/me/sites/:id/studio', requireAuth, (req, res) => {
+  const store = loadStore();
+  const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
+  if (!site) return res.status(404).json({ error: 'Site not found.' });
+  const files = site.mode === 'upload' ? siteStudioFiles(site) : [];
+  res.json({
+    site: ownerSiteDetails(store, site, req.authUser.id),
+    studioEnabled: site.mode === 'upload',
+    files,
+    defaultFile: files.find((item) => item.path === 'index.html')?.path || files[0]?.path || '',
+    staticRules: {
+      authInsideSite: false,
+      commentsInsideSite: false,
+      discussionPath: publicSite(store, site, req.authUser.id).discussionPath,
+      discussionLabel: site.projectId ? 'Project discussion on justbreath' : 'Profile discussion on justbreath'
+    }
+  });
+});
+
+app.get('/api/me/sites/:id/studio/file', requireAuth, (req, res) => {
+  const store = loadStore();
+  const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
+  if (!site) return res.status(404).json({ error: 'Site not found.' });
+  try {
+    const relativePath = siteStudioEditablePath(req.query.path || 'index.html');
+    if (!relativePath) return res.status(400).json({ error: 'Only text-based files can be opened in studio.' });
+    const content = readSiteStudioText(site, relativePath);
+    res.json({
+      file: {
+        path: relativePath,
+        kind: siteStudioFileKind(relativePath),
+        editable: true,
+        content
+      },
+      files: siteStudioFiles(site),
+      site: ownerSiteDetails(store, site, req.authUser.id)
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message || 'Could not open file.' });
+  }
+});
+
+app.post('/api/me/sites/:id/studio/file', requireAuth, requireMember, (req, res) => {
+  const store = loadStore();
+  const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
+  if (!site) return res.status(404).json({ error: 'Site not found.' });
+  try {
+    const relativePath = siteStudioEditablePath(req.body?.path || '');
+    if (!relativePath) return res.status(400).json({ error: 'Choose a valid text file path like assets/site.css or scripts/app.js.' });
+    writeSiteStudioText(site, relativePath, req.body?.content || '', { create: true });
+    if (site.reviewStatus === 'approved') site.reviewStatus = 'draft';
+    site.updatedAt = nowIso();
+    saveStore(store);
+    res.status(201).json({
+      file: {
+        path: relativePath,
+        kind: siteStudioFileKind(relativePath),
+        editable: true,
+        content: readSiteStudioText(site, relativePath)
+      },
+      files: siteStudioFiles(site),
+      site: ownerSiteDetails(store, site, req.authUser.id)
+    });
+  } catch (error) {
+    res.status(error.message === 'File already exists.' ? 409 : 400).json({ error: error.message || 'Could not create file.' });
+  }
+});
+
+app.patch('/api/me/sites/:id/studio/file', requireAuth, requireMember, (req, res) => {
+  const store = loadStore();
+  const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
+  if (!site) return res.status(404).json({ error: 'Site not found.' });
+  try {
+    const relativePath = siteStudioEditablePath(req.body?.path || 'index.html');
+    if (!relativePath) return res.status(400).json({ error: 'Only text-based files can be saved in studio.' });
+    writeSiteStudioText(site, relativePath, req.body?.content || '', { create: false });
+    if (site.reviewStatus === 'approved') site.reviewStatus = 'draft';
+    site.updatedAt = nowIso();
+    saveStore(store);
+    res.json({
+      file: {
+        path: relativePath,
+        kind: siteStudioFileKind(relativePath),
+        editable: true,
+        content: readSiteStudioText(site, relativePath)
+      },
+      files: siteStudioFiles(site),
+      site: ownerSiteDetails(store, site, req.authUser.id)
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message || 'Could not save file.' });
+  }
 });
 
 app.post('/api/me/sites/template', requireAuth, requireMember, (req, res) => {

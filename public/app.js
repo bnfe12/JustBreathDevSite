@@ -364,7 +364,7 @@ const state = {
     attachments: [],
     forceScrollBottom: false
   },
-  sites: { mine: [], public: [], filter: 'mine' },
+  sites: { mine: [], public: [], filter: 'mine', studio: { siteId: null, site: null, files: [], activePath: '', activeFile: null, content: '', loading: false, fileLoading: false, saving: false, dirty: false, error: '', studioEnabled: false, staticRules: null } },
   mail: { inbox: [], sent: [], unread: 0, folder: 'inbox', selected: null, composing: false },
   guest: false,
   settingsTab: 'profile',
@@ -406,6 +406,7 @@ function parseRoute(pathname) {
   if (pathname === '/messages') return { name: 'messages' };
   if (pathname.startsWith('/messages/')) return { name: 'messages', slug: pathname.split('/').at(-1) };
   if (pathname === '/settings') return { name: 'settings' };
+  if (pathname.startsWith('/sites/studio/')) return { name: 'site-studio', siteId: pathname.split('/').at(-1) };
   if (pathname === '/sites') return { name: 'sites' };
   if (pathname === '/discover') return { name: 'discover' };
   if (pathname === '/admin') return { name: 'admin' };
@@ -984,12 +985,27 @@ async function loadChatBootstrap() {
   if (!currentUser() || isGuestSession()) return;
   const payload = await api('/api/chat/bootstrap');
   state.chat.bootstrap = payload;
-  if (state.route.slug) {
-    state.chat.selectedSlug = state.route.slug;
-  } else if (!state.chat.selectedSlug) {
-    state.chat.selectedSlug = state.route.slug || payload.selectedRoom?.slug || payload.segments.personal?.[0]?.slug || payload.segments.work?.[0]?.slug || payload.segments.groups?.[0]?.slug || null;
+  const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
+  const availableSlugs = new Set(rooms.map((room) => room.slug));
+  const routeSlug = state.route.slug && availableSlugs.has(state.route.slug) ? state.route.slug : null;
+  const rememberedSlug = state.chat.selectedSlug && availableSlugs.has(state.chat.selectedSlug) ? state.chat.selectedSlug : null;
+  const fallbackSlug = payload.selectedRoom?.slug || payload.segments.personal?.[0]?.slug || payload.segments.work?.[0]?.slug || payload.segments.groups?.[0]?.slug || rooms[0]?.slug || null;
+  state.chat.selectedSlug = routeSlug || rememberedSlug || fallbackSlug || null;
+  if (state.route.name === 'messages' && state.route.slug && !routeSlug) {
+    const nextPath = state.chat.selectedSlug ? `/messages/${state.chat.selectedSlug}` : '/messages';
+    history.replaceState({}, '', nextPath);
+    state.currentPath = location.pathname;
+    state.route = parseRoute(location.pathname);
   }
-  if (state.chat.selectedSlug) await loadChatRoom(state.chat.selectedSlug);
+  if (state.chat.selectedSlug) {
+    await loadChatRoom(state.chat.selectedSlug);
+  } else {
+    state.chat.room = null;
+    state.chat.messages = [];
+    state.chat.tasks = [];
+    state.chat.previewOnly = false;
+    render();
+  }
 }
 
 async function loadSitesMine() {
@@ -998,6 +1014,79 @@ async function loadSitesMine() {
   state.sites.mine = own.items || [];
   const pub = await api('/api/public/sites?sort=popularity');
   state.sites.public = pub.items || [];
+}
+
+function createEmptySiteStudioState(siteId = null) {
+  return {
+    siteId: siteId ? Number(siteId) : null,
+    site: null,
+    files: [],
+    activePath: '',
+    activeFile: null,
+    content: '',
+    loading: false,
+    fileLoading: false,
+    saving: false,
+    dirty: false,
+    error: '',
+    studioEnabled: false,
+    staticRules: null
+  };
+}
+
+async function loadSiteStudio(siteId, preferredPath = '') {
+  if (!currentUser() || isGuestSession()) return;
+  const numericId = Number(siteId || 0);
+  if (!numericId) return;
+  const previous = state.sites.studio || createEmptySiteStudioState(numericId);
+  state.sites.studio = { ...previous, siteId: numericId, loading: true, error: '' };
+  render();
+  const payload = await api(`/api/me/sites/${numericId}/studio`);
+  const files = payload.files || [];
+  const rememberedPath = previous.activePath && files.some((item) => item.path === previous.activePath) ? previous.activePath : '';
+  const activePath = preferredPath || rememberedPath || payload.defaultFile || files[0]?.path || '';
+  state.sites.studio = {
+    ...createEmptySiteStudioState(numericId),
+    siteId: numericId,
+    site: payload.site || null,
+    files,
+    loading: false,
+    studioEnabled: Boolean(payload.studioEnabled),
+    staticRules: payload.staticRules || null,
+    activePath
+  };
+  patchVisibleSites(numericId, () => payload.site);
+  if (activePath && payload.studioEnabled) {
+    await loadSiteStudioFile(numericId, activePath);
+    return;
+  }
+  render();
+}
+
+async function loadSiteStudioFile(siteId, filePath) {
+  const numericId = Number(siteId || state.sites.studio?.siteId || 0);
+  const relativePath = String(filePath || '').trim();
+  if (!numericId || !relativePath) return;
+  state.sites.studio = { ...(state.sites.studio || createEmptySiteStudioState(numericId)), siteId: numericId, activePath: relativePath, fileLoading: true, error: '' };
+  render();
+  const payload = await api(`/api/me/sites/${numericId}/studio/file?path=${encodeURIComponent(relativePath)}`);
+  state.sites.studio = {
+    ...(state.sites.studio || createEmptySiteStudioState(numericId)),
+    siteId: numericId,
+    site: payload.site || state.sites.studio.site,
+    files: payload.files || state.sites.studio.files || [],
+    activePath: payload.file?.path || relativePath,
+    activeFile: payload.file || null,
+    content: payload.file?.content || '',
+    loading: false,
+    fileLoading: false,
+    saving: false,
+    dirty: false,
+    error: '',
+    studioEnabled: true
+  };
+  patchVisibleSites(numericId, () => payload.site);
+  render();
 }
 
 // FIX: scrollToBottom=true for user-initiated navigation, false for background polling
@@ -1841,6 +1930,7 @@ async function routeLoad() {
     const canUseAccountAreas = currentUser() && !isGuestSession();
     if (routeSnapshot.name === 'messages' && canUseAccountAreas) postBootstrapTasks.push(loadChatBootstrap());
     if (routeSnapshot.name === 'sites' && canUseAccountAreas) postBootstrapTasks.push(loadSitesMine());
+    if (routeSnapshot.name === 'site-studio' && canUseAccountAreas) postBootstrapTasks.push(loadSitesMine(), loadSiteStudio(routeSnapshot.siteId));
     if (routeSnapshot.name === 'join' && currentUser()) postBootstrapTasks.push(joinInvite(routeSnapshot.code));
     if (routeSnapshot.name === 'mail' && canUseAccountAreas) postBootstrapTasks.push(loadMail());
     if (routeSnapshot.name === 'admin' && canUseAccountAreas) postBootstrapTasks.push(loadAdminData());
@@ -2227,6 +2317,10 @@ function patchVisibleSites(siteId, updater) {
   state.discover.sites = patchList(state.discover.sites, { publicOnly: true });
   if (state.home?.featuredSites) state.home.featuredSites = patchList(state.home.featuredSites, { publicOnly: true });
   if (state.me?.sites) state.me.sites = patchList(state.me.sites);
+  if (Number(state.sites?.studio?.site?.id || 0) === id) {
+    const nextStudioSite = updater(state.sites.studio.site);
+    if (nextStudioSite) state.sites.studio.site = nextStudioSite;
+  }
   if (state.profile?.sites) {
     const isOwnProfile = Number(state.profile?.profile?.id || 0) === Number(currentUser()?.id || 0);
     state.profile.sites = patchList(state.profile.sites, isOwnProfile ? {} : { publicOnly: true, allowInsert: false });
@@ -2248,6 +2342,7 @@ function findModalPost(postId) {
 function findOwnedSite(siteId) {
   const id = Number(siteId);
   if (Number(state.modal?.site?.id) === id) return state.modal.site;
+  if (Number(state.sites?.studio?.site?.id || 0) === id) return state.sites.studio.site;
   return (state.sites.mine || []).find((item) => Number(item.id) === id)
     || (state.me?.sites || []).find((item) => Number(item.id) === id)
     || (state.profile?.sites || []).find((item) => Number(item.id) === id)
@@ -3129,7 +3224,7 @@ function renderSitesPage() {
   const publicSites = state.sites.public || [];
   return `
     <section class="section-shell page-heading-row">
-      <div><span class="eyebrow">sites</span><h1>${t('sites')}</h1><p class="muted">Upload a custom HTML site under 1 MB or build a calmer template-based surface.</p></div>
+      <div><span class="eyebrow">sites</span><h1>${t('sites')}</h1><p class="muted">Upload a static HTML site, unpack an archive, or open Studio to edit internal files and visual polish without adding auth/comments inside the site itself.</p></div>
       <div class="page-tools"><button class="soft-button" data-action="open-modal" data-modal="site-template">${icons.plus}<span>${t('templateSite')}</span></button><button class="primary-button" data-action="open-modal" data-modal="site-upload">${icons.upload}<span>${t('uploadSite')}</span></button></div>
     </section>
     <section class="section-shell split-grid">
@@ -3142,11 +3237,139 @@ function renderOwnedSiteCard(site) {
   const canSubmitReview = site.visibility === 'public' && ['draft', 'rejected'].includes(site.reviewStatus || 'draft');
   const reviewLabel = escapeHtml(String(site.reviewStatus || 'draft'));
   return `<article class="tile tile-site owned-site-card">
-    <div class="tile-top between"><div class="site-title-row">${renderSiteIcon(site)}<div><span class="kicker">${site.mode} · ${reviewLabel}</span><a class="text-link strong" href="${site.path}">${escapeHtml(site.title)}</a></div></div><div class="row-actions">${canEditSite ? `<button class="icon-button compact" data-action="open-edit-site" data-id="${site.id}" title="${t('update')}">${icons.edit}</button>` : ''}<button class="icon-button compact" data-action="copy-site-link" data-path="${site.path}">${icons.share}</button><button class="icon-button compact" data-action="delete-site" data-id="${site.id}">${icons.trash}</button></div></div>
+    <div class="tile-top between"><div class="site-title-row">${renderSiteIcon(site)}<div><span class="kicker">${site.mode} · ${reviewLabel}</span><a class="text-link strong" href="${site.path}">${escapeHtml(site.title)}</a></div></div><div class="row-actions">${canEditSite ? `<button class="icon-button compact" data-action="open-site-studio" data-id="${site.id}" title="Open Studio">${icons.wrench}</button><button class="icon-button compact" data-action="open-edit-site" data-id="${site.id}" title="${t('update')}">${icons.edit}</button>` : ''}<button class="icon-button compact" data-action="copy-site-link" data-path="${site.path}">${icons.share}</button><button class="icon-button compact" data-action="delete-site" data-id="${site.id}">${icons.trash}</button></div></div>
     <p>${escapeHtml(site.summary || '')}</p>
     ${site.reviewNote ? `<p class="muted" style="margin:0;font-size:12px">${escapeHtml(site.reviewNote)}</p>` : ''}
-    <div class="tile-actions">${canEditSite ? `<button class="inline-button" data-action="open-edit-site" data-id="${site.id}">${icons.edit}<span>${t('update')}</span></button>` : ''}${canSubmitReview ? `<button class="inline-button" data-action="submit-site-review" data-id="${site.id}">${icons.check}<span>Submit review</span></button>` : ''}<a class="inline-button" href="${site.path}">${icons.external}<span>${t('launch')}</span></a></div>
+    <div class="tile-actions">${canEditSite ? `<button class="inline-button" data-action="open-site-studio" data-id="${site.id}">${icons.wrench}<span>Studio</span></button><button class="inline-button" data-action="open-edit-site" data-id="${site.id}">${icons.edit}<span>${t('update')}</span></button>` : ''}${canSubmitReview ? `<button class="inline-button" data-action="submit-site-review" data-id="${site.id}">${icons.check}<span>Submit review</span></button>` : ''}<a class="inline-button" href="${site.path}">${icons.external}<span>${t('launch')}</span></a></div>
   </article>`;
+}
+
+function renderSiteStudioDesignForm(site, studio) {
+  const config = site?.templateConfig || {};
+  const discussionPath = studio?.staticRules?.discussionPath || site?.discussionPath || '';
+  const discussionLabel = studio?.staticRules?.discussionLabel || (currentLang() === 'ru' ? 'Обсуждение на justbreath' : 'Discussion on justbreath');
+  return `<form class="settings-form site-studio-design-form" data-form="site-studio-design" data-site-id="${site.id}">
+    <div class="site-studio-rule-card">
+      <strong>${currentLang() === 'ru' ? 'Статический режим' : 'Static-only rule'}</strong>
+      <span>${currentLang() === 'ru'
+        ? 'Не добавляй внутрь сайта логин, регистрацию, paywall-комментарии и отдельную базу пользователей. Всё это живёт на основном justbreath.'
+        : 'Do not add login, signup, comment auth or a separate user system inside the site. That lives on main justbreath only.'}</span>
+      ${discussionPath ? `<a class="inline-button" href="${discussionPath}">${icons.comment}<span>${escapeHtml(discussionLabel)}</span></a>` : ''}
+    </div>
+    <div class="settings-grid-two">
+      <label><span>${t('title')}</span><input name="title" value="${escapeHtml(site.title || '')}" /></label>
+      <label><span>${t('summary')}</span><input name="summary" value="${escapeHtml(site.summary || '')}" /></label>
+      <label><span>Brand name</span><input name="brandName" value="${escapeHtml(config.brandName || '')}" /></label>
+      <label><span>Tagline</span><input name="tagline" value="${escapeHtml(config.tagline || '')}" /></label>
+      <label><span>Logo URL</span><input name="logoUrl" value="${escapeHtml(config.logoUrl || '')}" placeholder="/assets/logo.svg" /></label>
+      <label><span>Favicon URL</span><input name="faviconUrl" value="${escapeHtml(config.faviconUrl || '')}" placeholder="/assets/favicon.svg" /></label>
+      <label><span>Accent</span><input name="accent" type="color" value="${escapeHtml(config.accent || '#7c3aed')}" /></label>
+      <label><span>Background</span><input name="bg" type="color" value="${escapeHtml(config.bg || '#05070d')}" /></label>
+      <label><span>Surface</span><input name="surface" type="color" value="${escapeHtml(config.surface || '#101827')}" /></label>
+      <label><span>Text</span><input name="text" type="color" value="${escapeHtml(config.text || '#f7f8fb')}" /></label>
+      <label><span>Muted text</span><input name="muted" type="color" value="${escapeHtml(config.muted || '#a7afc1')}" /></label>
+      <label><span>Font</span><select name="font"><option value="system" ${(!config.font || config.font === 'system') ? 'selected' : ''}>System sans</option><option value="serif" ${config.font === 'serif' ? 'selected' : ''}>Serif</option><option value="mono" ${config.font === 'mono' ? 'selected' : ''}>Mono</option><option value="rounded" ${config.font === 'rounded' ? 'selected' : ''}>Rounded</option></select></label>
+      <label><span>Corner style</span><select name="radiusStyle"><option value="soft" ${(!config.radiusStyle || config.radiusStyle === 'soft') ? 'selected' : ''}>Soft</option><option value="round" ${config.radiusStyle === 'round' ? 'selected' : ''}>Round</option><option value="sharp" ${config.radiusStyle === 'sharp' ? 'selected' : ''}>Sharp</option></select></label>
+      <label><span>Content width</span><select name="maxWidth"><option value="narrow" ${config.maxWidth === 'narrow' ? 'selected' : ''}>Narrow</option><option value="normal" ${(!config.maxWidth || config.maxWidth === 'normal') ? 'selected' : ''}>Normal</option><option value="wide" ${config.maxWidth === 'wide' ? 'selected' : ''}>Wide</option><option value="full" ${config.maxWidth === 'full' ? 'selected' : ''}>Full</option></select></label>
+      <label><span>CTA label</span><input name="ctaLabel" value="${escapeHtml(config.ctaLabel || '')}" placeholder="Open profile / Buy / Book" /></label>
+      <label><span>CTA URL</span><input name="ctaHref" value="${escapeHtml(config.ctaHref || '')}" placeholder="${discussionPath || '/@handle'}" /></label>
+      <label><span>Support email</span><input name="supportEmail" value="${escapeHtml(config.supportEmail || '')}" placeholder="hello@brand.com" /></label>
+      <label><span>Visibility</span><select name="visibility"><option value="public" ${site.visibility === 'public' ? 'selected' : ''}>${t('public')}</option><option value="unlisted" ${site.visibility === 'unlisted' ? 'selected' : ''}>Unlisted</option><option value="private" ${site.visibility === 'private' ? 'selected' : ''}>${t('private')}</option></select></label>
+    </div>
+    <label><span>Custom CSS</span><textarea name="customCss" rows="8" spellcheck="false" class="site-studio-code-block">${escapeHtml(config.customCss || '')}</textarea></label>
+    <button class="primary-button" type="submit" ${studio?.saving ? 'disabled' : ''}>${icons.sparkles || icons.settings}<span>${studio?.saving ? (currentLang() === 'ru' ? 'Сохраняю…' : 'Saving…') : (currentLang() === 'ru' ? 'Сохранить дизайн' : 'Save design')}</span></button>
+  </form>`;
+}
+
+function renderSiteStudioPage() {
+  if (!currentUser() || isGuestSession()) return renderGate('Create an account to open site studio.');
+  const studio = state.sites.studio || createEmptySiteStudioState(state.route.siteId);
+  const site = studio.site || (state.sites.mine || []).find((item) => Number(item.id) === Number(state.route.siteId)) || null;
+  if (studio.loading && !site) {
+    return `<section class="section-shell"><div class="modal-empty"><div class="spinner-dot"></div><span>Loading site studio…</span></div></section>`;
+  }
+  if (!site) {
+    return `<section class="section-shell">${renderEmpty(studio.error || 'Site studio is not available for this item yet.')}</section>`;
+  }
+  const discussionPath = studio.staticRules?.discussionPath || site.discussionPath || '';
+  const discussionLabel = studio.staticRules?.discussionLabel || (site.project ? 'Project discussion on justbreath' : 'Profile discussion on justbreath');
+  const fileCount = Array.isArray(studio.files) ? studio.files.length : 0;
+  return `
+    <section class="section-shell site-studio-hero">
+      <div>
+        <span class="eyebrow">site studio</span>
+        <h1>${escapeHtml(site.title)}</h1>
+        <p class="muted">${currentLang() === 'ru'
+          ? 'Редактируй внутренние файлы статического сайта, иконки, цвета, фон и CSS в одном рабочем экране.'
+          : 'Edit internal files, icons, color system, background and CSS for your static site in one workspace.'}</p>
+      </div>
+      <div class="site-studio-hero-actions">
+        <button class="soft-button" data-action="nav" data-path="/sites">${icons.arrowLeft}<span>${currentLang() === 'ru' ? 'К списку сайтов' : 'Back to sites'}</span></button>
+        <button class="soft-button" data-action="open-edit-site" data-id="${site.id}">${icons.edit}<span>${t('update')}</span></button>
+        <button class="soft-button" data-action="copy-site-link" data-path="${site.path}">${icons.share}<span>${t('copyLink')}</span></button>
+        <a class="primary-button" href="${site.path}">${icons.external}<span>${t('launch')}</span></a>
+      </div>
+    </section>
+    <section class="section-shell">
+      <div class="site-studio-banner">
+        <div class="site-studio-banner-copy">
+          <strong>${currentLang() === 'ru' ? 'Без встроенной аутентификации' : 'No auth inside the site'}</strong>
+          <span>${currentLang() === 'ru'
+            ? 'Сайт остаётся статическим. Логин, регистрация и комментарии живут на основном justbreath под профилем и проектом автора.'
+            : 'This site stays static. Login, signup and comments live on main justbreath under the creator profile or project.'}</span>
+        </div>
+        ${discussionPath ? `<a class="inline-button" href="${discussionPath}">${icons.comment}<span>${escapeHtml(discussionLabel)}</span></a>` : ''}
+      </div>
+    </section>
+    <section class="section-shell site-studio-grid">
+      <aside class="site-studio-pane site-studio-files">
+        <div class="section-heading"><h2>${currentLang() === 'ru' ? 'Файлы' : 'Files'}</h2><span class="muted">${fileCount ? `${fileCount} ${currentLang() === 'ru' ? 'шт.' : 'files'}` : (currentLang() === 'ru' ? 'Пока пусто' : 'No files yet')}</span></div>
+        ${studio.studioEnabled ? `<div class="site-studio-file-list">
+          ${studio.files.map((file) => `<button class="site-studio-file ${studio.activePath === file.path ? 'active' : ''} ${!file.editable ? 'disabled' : ''}" type="button" data-action="${file.editable ? 'open-site-file' : 'noop'}" data-path="${file.path}">
+            <strong>${escapeHtml(file.path)}</strong>
+            <span>${escapeHtml(file.kind)}${!file.editable ? ` · ${currentLang() === 'ru' ? 'только preview' : 'preview only'}` : ''}</span>
+          </button>`).join('')}
+        </div>
+        <form class="settings-form site-studio-create-form" data-form="site-studio-new-file" data-site-id="${site.id}">
+          <label><span>${currentLang() === 'ru' ? 'Новый файл' : 'New file path'}</span><input name="path" placeholder="assets/site.css" /></label>
+          <label><span>${currentLang() === 'ru' ? 'Стартовый код' : 'Starter content'}</span><textarea name="content" rows="6" spellcheck="false" class="site-studio-code-block" placeholder="body {\\n  background: #05070d;\\n}"></textarea></label>
+          <button class="soft-button" type="submit">${icons.plus}<span>${currentLang() === 'ru' ? 'Создать файл' : 'Create file'}</span></button>
+          <p class="site-editor-note">${currentLang() === 'ru'
+            ? 'Если сайт был загружен одним HTML, первый новый файл автоматически переведёт его в archive/bundle режим.'
+            : 'If this site started as a single HTML file, the first extra file will automatically move it into archive/bundle mode.'}</p>
+        </form>` : `<div class="site-studio-empty">
+          <strong>${currentLang() === 'ru' ? 'Template mode' : 'Template mode'}</strong>
+          <span>${currentLang() === 'ru'
+            ? 'Для внутреннего файлового дерева нужен uploaded static site или archive bundle. Пока здесь доступны только визуальные настройки справа.'
+            : 'Internal file editing needs an uploaded static site or archive bundle. For now, use the visual controls on the right.'}</span>
+        </div>`}
+      </aside>
+      <section class="site-studio-pane site-studio-editor">
+        <div class="site-studio-editor-head">
+          <div><strong>${escapeHtml(studio.activePath || 'index.html')}</strong><span>${studio.dirty ? (currentLang() === 'ru' ? 'Есть несохранённые правки' : 'Unsaved changes') : (currentLang() === 'ru' ? 'Текстовый редактор статического сайта' : 'Static site text editor')}</span></div>
+          ${studio.studioEnabled && studio.activePath ? `<button class="inline-button" type="button" data-action="reload-site-file" data-id="${site.id}" data-path="${studio.activePath}">${icons.refresh || icons.chevronRight}<span>${currentLang() === 'ru' ? 'Перезагрузить файл' : 'Reload file'}</span></button>` : ''}
+        </div>
+        ${studio.error ? `<div class="site-studio-inline-error">${escapeHtml(studio.error)}</div>` : ''}
+        ${!studio.studioEnabled ? `<div class="site-studio-empty">
+          <strong>${currentLang() === 'ru' ? 'Кодинг включается для static upload' : 'Coding is for static uploads'}</strong>
+          <span>${currentLang() === 'ru'
+            ? 'Загрузи HTML/архив как статический сайт, если хочешь править файлы внутри Studio.'
+            : 'Upload HTML/archive as a static site if you want internal file editing in Studio.'}</span>
+        </div>` : studio.fileLoading ? `<div class="modal-empty"><div class="spinner-dot"></div><span>${currentLang() === 'ru' ? 'Открываю файл…' : 'Opening file…'}</span></div>` : studio.activePath ? `<form class="site-studio-editor-form" data-form="site-studio-file" data-site-id="${site.id}" data-path="${studio.activePath}">
+          <textarea name="content" class="site-studio-editor-textarea" data-site-studio-editor="true" spellcheck="false">${escapeHtml(studio.content || '')}</textarea>
+          <div class="site-studio-editor-actions">
+            <span class="muted">${currentLang() === 'ru'
+              ? 'Поддерживаются HTML, CSS, JS, JSON, SVG, markdown, XML и обычный текст.'
+              : 'HTML, CSS, JS, JSON, SVG, markdown, XML and plain text are supported here.'}</span>
+            <button class="primary-button" type="submit" ${studio.saving ? 'disabled' : ''}>${icons.wrench}<span>${studio.saving ? (currentLang() === 'ru' ? 'Сохраняю…' : 'Saving…') : (currentLang() === 'ru' ? 'Сохранить файл' : 'Save file')}</span></button>
+          </div>
+        </form>` : `<div class="site-studio-empty"><strong>${currentLang() === 'ru' ? 'Выбери файл слева' : 'Choose a file on the left'}</strong><span>${currentLang() === 'ru' ? 'Начни с index.html или создай assets/site.css.' : 'Start with index.html or create assets/site.css.'}</span></div>`}
+      </section>
+      <aside class="site-studio-pane site-studio-inspector">
+        <div class="section-heading"><h2>${currentLang() === 'ru' ? 'Дизайн и правила' : 'Design & rules'}</h2><span class="muted">${currentLang() === 'ru' ? 'Быстрый polish поверх статики' : 'Quick polish on top of static files'}</span></div>
+        ${renderSiteStudioDesignForm(site, studio)}
+      </aside>
+    </section>`;
 }
 
 function renderSettingsPage() {
@@ -3870,6 +4093,7 @@ function renderEditSiteModal(modal) {
         </div>
       </div>
       <div class="site-editor-actions">
+        <button class="inline-button" type="button" data-action="open-site-studio" data-id="${site.id}">${icons.wrench}<span>Studio</span></button>
         <a class="inline-button" href="${site.path}">${icons.external}<span>${t('launch')}</span></a>
         <button class="inline-button" type="button" data-action="copy-site-link" data-path="${site.path}">${icons.share}<span>${t('copyLink')}</span></button>
         ${canSubmitReview ? `<button class="inline-button" type="button" data-action="submit-site-review" data-id="${site.id}">${icons.check}<span>Submit review</span></button>` : ''}
@@ -3990,9 +4214,14 @@ function renderEditSiteModal(modal) {
 function renderPlansModal() {
   const plans = state.meta?.subscriptions || [];
   const current = state.me?.user?.billing?.planId;
+  const upgradeRoom = state.modal?.roomSlug
+    ? (state.chat.bootstrap?.rooms || []).find((room) => room.slug === state.modal.roomSlug)
+    : null;
+  const upgradeLabel = upgradeRoom?.subscription?.requiredPlanLabel || planLabel(upgradeRoom?.subscription?.requiredPlanId);
   return `<div class="modal-inner modal-plans-inner">
     <h2 style="margin:0 0 6px">Choose a plan</h2>
     <p class="muted" style="margin:0 0 18px">Upgrade whenever you need more site spaces and priority review. Cancel anytime.</p>
+    ${upgradeRoom ? `<div class="current-plan-banner">Unlock <strong>${escapeHtml(upgradeRoom.title)}</strong> with <strong>${escapeHtml(upgradeLabel)}</strong> or higher.</div>` : ''}
     ${current ? `<div class="current-plan-banner">Active plan: <strong>${escapeHtml(current)}</strong></div>` : ''}
     <div class="plan-grid">${plans.map(renderPlanCard).join('')}</div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">Prices shown match the site's current scale and update over time.</p>
@@ -4431,6 +4660,7 @@ function renderRoute() {
     case 'messages': return renderMessagesPage();
     case 'settings': return renderSettingsPage();
     case 'sites': return renderSitesPage();
+    case 'site-studio': return renderSiteStudioPage();
     case 'discover': return renderDiscover();
     case 'profile': return renderProfilePage();
     case 'project': return renderProjectPage();
@@ -5227,6 +5457,17 @@ document.addEventListener('click', async (event) => {
       }
       case 'close-modal': closeModal(); break;
       case 'open-profile': navigate(`/@${target.dataset.handle}`); break;
+      case 'open-site-studio': {
+        const siteId = Number(target.dataset.id || 0);
+        if (!siteId) break;
+        if (state.sites.studio?.dirty && Number(state.sites.studio.siteId || 0) !== siteId) {
+          const confirmLeave = confirm(currentLang() === 'ru' ? 'Есть несохранённые правки файла. Открыть другой studio и потерять их?' : 'You have unsaved file changes. Open another studio and lose them?');
+          if (!confirmLeave) break;
+        }
+        if (state.modal) closeModal();
+        navigate(`/sites/studio/${siteId}`);
+        break;
+      }
       case 'open-room':
         // Clear unread for this room when user opens it
         if (state.chat.unread[target.dataset.slug]) {
@@ -5235,6 +5476,35 @@ document.addEventListener('click', async (event) => {
         if (state.route.name !== 'messages') navigate(`/messages/${target.dataset.slug}`);
         else await loadChatRoom(target.dataset.slug, true);
         break;
+      case 'join-room': {
+        const slug = target.dataset.slug;
+        if (!slug) break;
+        await api(`/api/chat/rooms/${encodeURIComponent(slug)}/join`, { method: 'POST', body: '{}' });
+        if (state.modal?.type === 'chat-room-settings' && state.modal?.roomSlug === slug) closeModal();
+        if (state.route.name === 'messages') {
+          await loadChatBootstrap();
+          await loadChatRoom(slug, true);
+        } else {
+          navigate(`/messages/${slug}`);
+        }
+        toast(currentLang() === 'ru' ? 'Комната добавлена в ваши чаты.' : 'Room added to your chats.', 'success');
+        break;
+      }
+      case 'leave-room': {
+        const slug = target.dataset.slug;
+        if (!slug) break;
+        if (!confirm(currentLang() === 'ru' ? 'Покинуть эту комнату?' : 'Leave this room?')) break;
+        const fallbackRoomSlug = (state.chat.bootstrap?.rooms || []).find((room) => room.slug !== slug && room.joined)?.slug || null;
+        await api(`/api/chat/rooms/${encodeURIComponent(slug)}/leave`, { method: 'POST', body: '{}' });
+        if (state.modal?.type === 'chat-room-settings' && state.modal?.roomSlug === slug) closeModal();
+        if (state.route.name === 'messages' && (state.route.slug || state.chat.room?.slug) === slug) {
+          navigate(fallbackRoomSlug ? `/messages/${fallbackRoomSlug}` : '/messages');
+        } else if (state.route.name === 'messages') {
+          await loadChatBootstrap();
+        }
+        toast(currentLang() === 'ru' ? 'Вы покинули комнату.' : 'You left the room.', 'success');
+        break;
+      }
       case 'toggle-comments': await ensureComments(target.dataset.id); break;
       case 'reply-post': {
         const postId = target.dataset.id;
@@ -5247,7 +5517,24 @@ document.addEventListener('click', async (event) => {
       }
       case 'select-plan': {
         const planId = target.dataset.plan;
-        toast(`Plan "${planId}" selected. Payment setup is coming soon — contact support to activate.`, 'info');
+        const roomSlug = state.modal?.roomSlug || null;
+        await api('/api/me/billing/plan', { method: 'POST', body: JSON.stringify({ planId }) });
+        closeModal();
+        await loadBootstrap();
+        if (roomSlug) {
+          await api(`/api/chat/rooms/${encodeURIComponent(roomSlug)}/join`, { method: 'POST', body: '{}' });
+          if (state.route.name === 'messages') {
+            await loadChatBootstrap();
+            await loadChatRoom(roomSlug, true);
+          } else {
+            navigate(`/messages/${roomSlug}`);
+          }
+        }
+        toast(`${currentLang() === 'ru' ? 'План активирован' : 'Plan activated'}: ${planLabel(planId)}`, 'success');
+        break;
+      }
+      case 'room-upgrade': {
+        setModal({ type: 'plans', roomSlug: target.dataset.slug || state.chat.room?.slug || null });
         break;
       }
       case 'open-lightbox': {
@@ -5327,6 +5614,12 @@ document.addEventListener('click', async (event) => {
         break;
       }
       case 'read-notification': await api(`/api/me/notifications/${target.dataset.id}/read`, { method: 'POST', body: '{}' }); if (target.dataset.href) navigate(target.dataset.href); await loadBootstrap(); break;
+      case 'read-all-notifications':
+        await api('/api/me/notifications/read-all', { method: 'POST', body: '{}' });
+        await loadBootstrap();
+        render();
+        toast(currentLang() === 'ru' ? 'Все уведомления помечены как прочитанные.' : 'All notifications marked as read.', 'success');
+        break;
       case 'switch-account': await switchAccount(target.dataset.token); break;
       case 'remove-saved-account': {
         const removeId = Number(target.dataset.id);
@@ -5489,6 +5782,33 @@ document.addEventListener('click', async (event) => {
       case 'open-chat-settings':
         setModal({ type: 'chat-room-settings', roomSlug: target.dataset.slug || state.chat.room?.slug });
         break;
+      case 'open-site-file': {
+        const siteId = Number(state.route.siteId || state.sites.studio?.siteId || target.dataset.id || 0);
+        const filePath = target.dataset.path;
+        if (!siteId || !filePath) break;
+        if (state.sites.studio?.dirty && state.sites.studio.activePath !== filePath) {
+          const confirmLeave = confirm(currentLang() === 'ru' ? 'Есть несохранённые правки файла. Открыть другой файл?' : 'You have unsaved changes. Open another file?');
+          if (!confirmLeave) break;
+        }
+        await loadSiteStudioFile(siteId, filePath);
+        break;
+      }
+      case 'reload-site-file': {
+        const siteId = Number(target.dataset.id || state.sites.studio?.siteId || 0);
+        const filePath = target.dataset.path || state.sites.studio?.activePath;
+        if (!siteId || !filePath) break;
+        if (state.sites.studio?.dirty) {
+          const confirmReload = confirm(currentLang() === 'ru' ? 'Сбросить локальные правки и заново открыть файл?' : 'Discard local changes and reload this file?');
+          if (!confirmReload) break;
+        }
+        await loadSiteStudioFile(siteId, filePath);
+        break;
+      }
+      case 'noop':
+        break;
+      case 'open-workspace-settings':
+        setModal({ type: 'workspace-settings', workspaceId: target.dataset.id || state.chat.room?.workspace?.id || null });
+        break;
       case 'clear-room-chat-theme': {
         const roomSlug = target.dataset.roomSlug;
         if (!roomSlug) break;
@@ -5579,6 +5899,21 @@ document.addEventListener('click', async (event) => {
         state.memberList = dataRM.members || [];
         state.memberListRoom = state.memberListRoom === slugRM ? null : slugRM;
         render(); break;
+      }
+      case 'remove-room-member': {
+        const slugRM = target.dataset.roomSlug;
+        const userId = target.dataset.userId;
+        if (!slugRM || !userId) break;
+        if (!confirm(currentLang() === 'ru' ? 'Удалить участника из комнаты?' : 'Remove this member from the room?')) break;
+        await api(`/api/chat/rooms/${encodeURIComponent(slugRM)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE', body: '{}' });
+        if (state.memberListRoom === slugRM) {
+          const dataRM = await api(`/api/chat/rooms/${encodeURIComponent(slugRM)}/members`);
+          state.memberList = dataRM.members || [];
+        }
+        await loadChatBootstrap();
+        if (state.chat.room?.slug === slugRM) await loadChatRoom(slugRM, false);
+        toast(currentLang() === 'ru' ? 'Участник удалён.' : 'Member removed.', 'success');
+        break;
       }
       case 'delete-post':
         if (!confirm('Delete this post?')) break;
@@ -5975,6 +6310,14 @@ document.addEventListener('input', async (event) => {
     input.style.height = Math.min(input.scrollHeight, 180) + 'px';
     emitTyping(); // real-time typing indicator
   }
+  if (input.matches('[data-site-studio-editor="true"]')) {
+    state.sites.studio = {
+      ...(state.sites.studio || createEmptySiteStudioState(state.route.siteId)),
+      content: input.value,
+      dirty: true,
+      error: ''
+    };
+  }
 });
 
 document.addEventListener('submit', async (event) => {
@@ -6133,6 +6476,96 @@ document.addEventListener('submit', async (event) => {
         const response = await api(`/api/me/sites/${form.dataset.siteId}`, { method: 'PATCH', body: JSON.stringify(payload) });
         if (response?.site) patchVisibleSites(form.dataset.siteId, () => response.site);
         closeModal();
+        render();
+        toast(t('settingsUpdated'), 'success');
+        break;
+      }
+      case 'site-studio-file': {
+        const siteId = Number(form.dataset.siteId || state.sites.studio?.siteId || 0);
+        const filePath = form.dataset.path || state.sites.studio?.activePath || '';
+        if (!siteId || !filePath) throw new Error('Studio file is not selected.');
+        const d = new FormData(form);
+        state.sites.studio = { ...(state.sites.studio || createEmptySiteStudioState(siteId)), saving: true, error: '' };
+        render();
+        const response = await api(`/api/me/sites/${siteId}/studio/file`, { method: 'PATCH', body: JSON.stringify({ path: filePath, content: d.get('content') }) });
+        if (response?.site) patchVisibleSites(siteId, () => response.site);
+        state.sites.studio = {
+          ...(state.sites.studio || createEmptySiteStudioState(siteId)),
+          siteId,
+          site: response.site || state.sites.studio.site,
+          files: response.files || state.sites.studio.files || [],
+          activePath: response.file?.path || filePath,
+          activeFile: response.file || state.sites.studio.activeFile,
+          content: response.file?.content || String(d.get('content') || ''),
+          saving: false,
+          dirty: false,
+          error: '',
+          studioEnabled: true
+        };
+        render();
+        toast(currentLang() === 'ru' ? 'Файл сохранён.' : 'File saved.', 'success');
+        break;
+      }
+      case 'site-studio-new-file': {
+        const siteId = Number(form.dataset.siteId || state.sites.studio?.siteId || 0);
+        if (!siteId) throw new Error('Site studio is not open.');
+        const d = new FormData(form);
+        const filePath = String(d.get('path') || '').trim();
+        if (!filePath) throw new Error(currentLang() === 'ru' ? 'Укажи путь файла.' : 'Choose a file path.');
+        state.sites.studio = { ...(state.sites.studio || createEmptySiteStudioState(siteId)), saving: true, error: '' };
+        render();
+        const response = await api(`/api/me/sites/${siteId}/studio/file`, { method: 'POST', body: JSON.stringify({ path: filePath, content: d.get('content') }) });
+        if (response?.site) patchVisibleSites(siteId, () => response.site);
+        state.sites.studio = {
+          ...(state.sites.studio || createEmptySiteStudioState(siteId)),
+          siteId,
+          site: response.site || state.sites.studio.site,
+          files: response.files || state.sites.studio.files || [],
+          activePath: response.file?.path || filePath,
+          activeFile: response.file || null,
+          content: response.file?.content || String(d.get('content') || ''),
+          saving: false,
+          dirty: false,
+          error: '',
+          studioEnabled: true
+        };
+        form.reset();
+        render();
+        toast(currentLang() === 'ru' ? 'Файл создан.' : 'File created.', 'success');
+        break;
+      }
+      case 'site-studio-design': {
+        const site = findOwnedSite(form.dataset.siteId);
+        if (!site) throw new Error('Site not found.');
+        const d = new FormData(form);
+        const payload = {
+          title: d.get('title'),
+          summary: d.get('summary'),
+          visibility: d.get('visibility'),
+          templateConfig: {
+            brandName: d.get('brandName'),
+            tagline: d.get('tagline'),
+            logoUrl: d.get('logoUrl'),
+            faviconUrl: d.get('faviconUrl'),
+            accent: d.get('accent'),
+            bg: d.get('bg'),
+            surface: d.get('surface'),
+            text: d.get('text'),
+            muted: d.get('muted'),
+            font: d.get('font'),
+            radiusStyle: d.get('radiusStyle'),
+            maxWidth: d.get('maxWidth'),
+            ctaLabel: d.get('ctaLabel'),
+            ctaHref: d.get('ctaHref'),
+            supportEmail: d.get('supportEmail'),
+            customCss: d.get('customCss')
+          }
+        };
+        state.sites.studio = { ...(state.sites.studio || createEmptySiteStudioState(site.id)), saving: true, error: '' };
+        render();
+        const response = await api(`/api/me/sites/${form.dataset.siteId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        if (response?.site) patchVisibleSites(form.dataset.siteId, () => response.site);
+        state.sites.studio = { ...(state.sites.studio || createEmptySiteStudioState(site.id)), site: response.site || state.sites.studio.site, saving: false, error: '' };
         render();
         toast(t('settingsUpdated'), 'success');
         break;

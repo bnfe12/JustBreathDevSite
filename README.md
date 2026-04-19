@@ -39,7 +39,7 @@ verification queue, maintenance mode.
 Guest mode is read-only. Chats, mail, publishing, sites, and settings require
 an account.
 
-Site creation workflow is documented in [SITE_CREATION_GUIDE.md](SITE_CREATION_GUIDE.md).
+Site creation workflow, Site Studio, archive handling, and AI/static-site rules are documented in [SITE_CREATION_GUIDE.md](SITE_CREATION_GUIDE.md).
 
 ---
 
