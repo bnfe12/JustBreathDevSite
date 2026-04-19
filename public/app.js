@@ -2001,7 +2001,7 @@ function navLink(path, name, label, unreadOverride) {
 }
 
 function renderHome() {
-  const home = state.home || { popularUsers: [], recentProjects: [], featuredSites: [], openRooms: [], stats: {} };
+  const home = state.home || { recentProjects: [], featuredSites: [], openRooms: [], stats: {} };
   const isGuest = !currentUser() || currentUser()?.roleInternal === 'guest';
   return `
     <section class="hero-card section-shell">
@@ -2027,11 +2027,6 @@ function renderHome() {
         ${metricTile(home.stats.sites || 0, 'Sites')}
         ${metricTile(home.stats.workspaces || 0, 'Workspaces')}
       </div>` : ''}
-    </section>
-
-    <section class="section-shell">
-      <div class="section-heading"><h2>${t('popularUsers')}</h2><button class="inline-button" data-action="nav" data-path="/discover">${t('viewAll')}</button></div>
-      <div class="card-grid card-grid-users">${home.popularUsers.map(renderUserCard).join('') || renderEmpty(t('noProjects'))}</div>
     </section>
 
     ${renderAdBanner()}
@@ -2498,7 +2493,6 @@ function renderDiscover() {
       <div class="page-tools">${searchControl('discover')}</div>
     </section>
     <section class="section-shell discover-grid">
-      <div><div class="section-heading"><h2>${t('popularUsers')}</h2></div><div class="stack-list">${state.discover.users.map(renderUserCard).join('') || renderEmpty('No users.')}</div></div>
       <div><div class="section-heading"><h2>${t('recentProjects')}</h2></div><div class="stack-list">${state.discover.projects.map(renderProjectCard).join('') || renderEmpty('No projects.')}</div></div>
       <div><div class="section-heading"><h2>${t('creatorSites')}</h2></div><div class="stack-list">${state.discover.sites.map(renderSiteCard).join('') || renderEmpty('No sites.')}</div></div>
       <div><div class="section-heading"><h2>${t('openSpaces')}</h2></div><div class="stack-list">${state.discover.rooms.map(renderRoomCard).join('') || renderEmpty('No rooms.')}</div></div>
@@ -4791,7 +4785,6 @@ function openHover(type, id, element) {
   let html = '';
   if (type === 'user') {
     const candidates = [
-      ...(state.home?.popularUsers || []),
       ...(state.discover.users || []),
       ...(state.profile?.profile ? [state.profile.profile] : []),
       ...(state.chat.bootstrap?.social?.friends || []),

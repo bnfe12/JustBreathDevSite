@@ -3351,7 +3351,6 @@ app.get('/api/bootstrap', (req, res) => {
     session: me?.user || null,
     me,
     home: {
-      popularUsers: publicUsers.slice(0, 12),
       recentProjects: publicProjects.slice(0, 8),
       featuredSites: publicSites.slice(0, 8),
       feedPreview: feed.slice(0, 6),
