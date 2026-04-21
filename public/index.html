@@ -60,8 +60,9 @@
   <!-- Icons & manifest -->
   <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/logo.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/logo.png" />
   <link rel="shortcut icon" href="/logo.png" />
-  <link rel="apple-touch-icon" href="/logo.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
   <meta name="application-name" content="justbreath.life" />
   <meta name="apple-mobile-web-app-title" content="justbreath.life" />
   <link rel="manifest" href="/manifest.webmanifest" />
@@ -131,7 +132,7 @@
     #splash-screen { position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#111;transition:opacity .4s ease,visibility .4s ease; }
     html.has-js #splash-screen { display:flex; }
     #splash-screen.hidden { opacity:0;visibility:hidden;pointer-events:none; }
-    .splash-logo { width:140px;height:140px;background:transparent;display:flex;align-items:center;justify-content:center; }
+    .splash-logo { width:172px;height:172px;background:transparent;display:flex;align-items:center;justify-content:center; }
     .splash-logo img { width:100%;height:100%;object-fit:contain;display:block; }
     .splash-wordmark { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:1.3rem;font-weight:700;letter-spacing:-.04em;color:#f0f0f0; }
     .splash-wordmark span { color:#555; }
@@ -173,8 +174,8 @@
       letter-spacing:-.04em;
     }
     .public-brand img {
-      width:36px;
-      height:36px;
+      width:48px;
+      height:48px;
       display:block;
       object-fit:contain;
     }
@@ -484,7 +485,7 @@
 <body>
   <!-- Splash screen — hidden by JS after bootstrap -->
   <div id="splash-screen" role="status" aria-label="Loading justbreath">
-    <div class="splash-logo"><img src="/logo.png" alt="justbreath logo" width="140" height="140" /></div>
+    <div class="splash-logo"><img src="/logo.png" alt="justbreath logo" width="172" height="172" /></div>
     <div class="splash-wordmark">justbreath<span>.life</span></div>
     <div class="splash-bar" aria-hidden="true"><div class="splash-bar-fill"></div></div>
     <div class="splash-status" id="splash-status">Loading…</div>
@@ -500,7 +501,7 @@
       <main class="public-main">
         <header class="public-header">
           <a class="public-brand" href="/">
-            <img src="/logo.png" alt="justbreath logo" width="36" height="36" />
+            <img src="/logo.png" alt="justbreath logo" width="48" height="48" />
             <span>justbreath<span>.life</span></span>
           </a>
           <nav class="public-nav" aria-label="Public">

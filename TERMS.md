@@ -35,7 +35,7 @@ Paid subscriptions unlock quotas (extra site spaces, extra storage, priority rev
 
 ## 5. Creator sites
 
-When you upload a creator site (single HTML or ZIP archive), it is served from `/@your-handle/your-slug` and wrapped in a sandboxed iframe plus a watermark. You keep ownership of the site code. You must not ship malware, cryptominers, or trackers beyond disclosed AdSense. Public sites may be reviewed before being listed.
+When you upload a creator site (single HTML or a supported archive such as ZIP, TAR/TGZ, or 7z when available), it is served from `/@your-handle/your-slug` as a static site. We preserve the uploaded design and file structure as closely as possible, but server-side code inside the upload is never executed and backend-dependent features may be disabled with compatibility warnings. We may also optimize local image files for storage if the resulting file is smaller without changing its path. You keep ownership of the site code. You must not ship malware, cryptominers, or trackers beyond disclosed AdSense. Public sites may be reviewed before being listed.
 
 ## 6. Termination
 
@@ -57,5 +57,7 @@ We may update these Terms from time to time. If the change is material, we will 
 
 ## 10. Contact
 
-Email: **hello@justbreath.life**
+Email: **justbreath.business.mail@gmail.com**
 For legal or DMCA notices, please mark the subject line accordingly (`[LEGAL]`, `[DMCA]`).
+
+GitHub: <https://github.com/bnfe12>

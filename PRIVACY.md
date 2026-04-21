@@ -4,7 +4,7 @@ _Effective date: 2026-04-19 · Last updated: 2026-04-19_
 
 This Privacy Policy explains what **justbreath.life** (operated by the justbreath team, hereafter "justbreath", "we", "us") collects when you use the service, why we collect it, who we share it with, and what rights you have.
 
-If something here is unclear, write to **hello@justbreath.life**.
+If something here is unclear, write to **justbreath.business.mail@gmail.com**.
 
 ## At a glance
 
@@ -84,7 +84,7 @@ If you live in the EU/EEA, the UK, California, or a jurisdiction with similar la
 - **Portability** — the export format is plain JSON.
 - **Complaint** — you may complain to your local data-protection authority.
 
-To exercise any right, email **hello@justbreath.life**. We reply within 30 days.
+To exercise any right, email **justbreath.business.mail@gmail.com**. We reply within 30 days.
 
 ## 6. Security
 
@@ -93,13 +93,13 @@ To exercise any right, email **hello@justbreath.life**. We reply within 30 days.
 - Sessions bound to HttpOnly cookies with SameSite=Lax.
 - Rate limits on authentication endpoints (5/min/IP) and general API (120/min/IP).
 - Content Security Policy restricts which third-party scripts can run.
-- Uploaded creator-site HTML is sandboxed inside an `<iframe sandbox>`.
+- Uploaded creator-site imports are stored and served as static files only; backend handlers inside an imported site do not execute on the hosted copy.
 
-No system is perfectly secure. If you find a vulnerability, please report responsibly to **hello@justbreath.life**. We acknowledge reports within 72 hours.
+No system is perfectly secure. If you find a vulnerability, please report responsibly to **justbreath.business.mail@gmail.com**. We acknowledge reports within 72 hours.
 
 ## 7. Minors
 
-The service is not directed at children under 13. If you are a parent or guardian and believe a child has given us personal data, email **hello@justbreath.life** and we will delete the account. Between 13 and the age of digital consent in your jurisdiction (14–16 in most EU countries), you may only use the service with the verifiable consent of a parent or legal guardian.
+The service is not directed at children under 13. If you are a parent or guardian and believe a child has given us personal data, email **justbreath.business.mail@gmail.com** and we will delete the account. Between 13 and the age of digital consent in your jurisdiction (14–16 in most EU countries), you may only use the service with the verifiable consent of a parent or legal guardian.
 
 ## 8. International transfers
 
@@ -112,7 +112,8 @@ If we materially change this policy we will notify registered users by email and
 ## 10. Contact
 
 **Data controller:** justbreath
-**Email:** hello@justbreath.life
+**Email:** justbreath.business.mail@gmail.com
 **Owner profile:** https://justbreath.life/@justbreath
+**GitHub:** https://github.com/bnfe12
 
 For legal / DMCA / GDPR subject-access requests, please mark the subject line accordingly (`[LEGAL]`, `[DMCA]`, `[PRIVACY]`).

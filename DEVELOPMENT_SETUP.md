@@ -17,6 +17,7 @@ This file is the working development reference for `justbreath.life`.
 - [public/index.html](C:/Users/AndriiKharlai/Downloads/justbreath/public/index.html): main app HTML shell and AdSense verification script
 - [.env](C:/Users/AndriiKharlai/Downloads/justbreath/.env): local secrets and runtime config
 - [.env.example](C:/Users/AndriiKharlai/Downloads/justbreath/.env.example): config template
+- [SEO_DEVELOPMENT_GUIDE.md](C:/Users/AndriiKharlai/Downloads/justbreath/SEO_DEVELOPMENT_GUIDE.md): required SEO / indexing / metadata / crawlability contract for future development
 
 ## Required env vars
 
@@ -116,6 +117,7 @@ Important:
 
 - `data/store.json` is the main flat-file database
 - creator-site modes and archive rules are documented in `SITE_CREATION_GUIDE.md`
+- public-route SEO, canonical, sitemap, robots, structured-data, and performance rules are documented in `SEO_DEVELOPMENT_GUIDE.md`
 - clean startup without demo users requires `DEMO_SEED_MODE=off`
 - demo owner/brand seed data is only created when `DEMO_SEED_MODE=on`
 

@@ -88,7 +88,7 @@ const TELEGRAM_BOT_USERNAME = String(process.env.TELEGRAM_BOT_USERNAME || '');
 const OWNER_HANDLE = String(process.env.OWNER_HANDLE || 'Tcheler');
 const OWNER_DISPLAY_NAME = String(process.env.OWNER_DISPLAY_NAME || 'Tcheler');
 const OWNER_EMAIL = String(process.env.OWNER_EMAIL || 'andrexarlay@gmail.com');
-const OWNER_PASSWORD = String(process.env.OWNER_PASSWORD || '12345678');
+const OWNER_PASSWORD = String(process.env.OWNER_PASSWORD || '');
 const BRAND_HANDLE = String(process.env.BRAND_HANDLE || 'justbreath');
 const BRAND_DISPLAY_NAME = String(process.env.BRAND_DISPLAY_NAME || 'justbreath');
 const BRAND_EMAIL = String(process.env.BRAND_EMAIL || 'justbreath.business.mail@gmail.com');
@@ -96,7 +96,7 @@ const BRAND_GITHUB_URL = String(process.env.BRAND_GITHUB_URL || 'https://github.
 const SITE_CREATION_REPO_URL = String(process.env.SITE_CREATION_REPO_URL || 'https://github.com/bnfe12/JustBreathDevSite');
 const SITE_CREATION_GUIDE_URL = `${SITE_CREATION_REPO_URL}/blob/main/SITE_CREATION_GUIDE.md`;
 const SITE_CREATION_EXAMPLES_URL = `${SITE_CREATION_REPO_URL}/blob/main/SITE_CREATION_EXAMPLES_RU.md`;
-const BRAND_PASSWORD = String(process.env.BRAND_PASSWORD || '12345678');
+const BRAND_PASSWORD = String(process.env.BRAND_PASSWORD || '');
 const DEMO_SEED_MODE = String(process.env.DEMO_SEED_MODE || 'off').toLowerCase();
 
 mkdirSync(dataDir, { recursive: true });
@@ -129,7 +129,7 @@ function hasInternalRole(user, roles = []) {
   return ensureArray(roles).includes(String(user?.roleInternal || ''));
 }
 function isOwnerUser(user) {
-  return hasInternalRole(user, ['owner']);
+  return hasInternalRole(user, ['owner', 'admin']);
 }
 function isOperatorUser(user) {
   return hasInternalRole(user, ['owner', 'admin']);
@@ -1254,6 +1254,23 @@ function clearUploadedSiteResponseHeaders(res) {
   res.removeHeader('X-Frame-Options');
 }
 
+function readUploadedSiteEntryHtml(site) {
+  const assetAbsPath = siteUsesBundle(site) ? siteBundleAbsPath(site, 'index.html') : resolveDataPath(site.htmlPath);
+  if (!assetAbsPath || !existsSync(assetAbsPath)) return '';
+  return readFileSync(assetAbsPath, 'utf8');
+}
+
+function uploadedSiteEntryPath(site) {
+  if (!site?.htmlPath) return 'index.html';
+  const bundleRoot = String(site.bundleRoot || '').trim();
+  const htmlPath = String(site.htmlPath || '').trim();
+  if (bundleRoot && htmlPath.startsWith(`${bundleRoot}/`)) {
+    const relativePath = safeSiteBundlePath(htmlPath.slice(bundleRoot.length + 1));
+    if (relativePath) return relativePath;
+  }
+  return 'index.html';
+}
+
 function looksLike7zArchive(buffer) {
   return Boolean(
     buffer?.length >= 6
@@ -1946,7 +1963,8 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
   const meta = siteMetaPayload(store, site, owner, renderedInner);
   const { config } = meta;
   const profilePath = `/@${owner?.handleCanonical || canonicalHandle(owner?.handle)}`;
-  const encoded = Buffer.from(renderedInner, 'utf8').toString('base64');
+  const launchEntryPath = uploadedSiteEntryPath(site);
+  const launchUrl = sanitizeSiteUrl(`${uploadedSiteBasePath(owner, site)}${launchEntryPath}`, 800);
   const launchIcon = meta.iconUrl
     ? `<span class="launch-site-icon"><img src="${meta.iconUrl}" alt="${escapeHtmlValue(site.title || 'Site')}" /></span>`
     : `<span class="launch-site-icon fallback">${escapeHtmlValue(avatarText(site.title || 'S'))}</span>`;
@@ -1997,9 +2015,9 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
     .launch.hidden{opacity:0;visibility:hidden;pointer-events:none}
     .launch-card{width:min(640px, calc(100vw - 32px));padding:28px;border:1px solid var(--line);border-radius:28px;background:var(--panel);box-shadow:0 24px 80px rgba(0,0,0,.42);display:grid;gap:18px}
     .launch-brand{display:flex;align-items:center;gap:14px}
-    .launch-site-icon{width:116px;height:116px;border-radius:32px;overflow:hidden;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);display:grid;place-items:center;flex:0 0 auto}
+    .launch-site-icon{width:232px;height:232px;border-radius:48px;overflow:hidden;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);display:grid;place-items:center;flex:0 0 auto}
     .launch-site-icon img{width:100%;height:100%;object-fit:cover;display:block}
-    .launch-site-icon.fallback{font-size:42px;font-weight:800}
+    .launch-site-icon.fallback{font-size:84px;font-weight:800}
     .launch-kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
     .launch h1{margin:0;font-size:clamp(30px,6vw,54px);line-height:.95;letter-spacing:-.06em}
     .launch p{margin:0;color:var(--muted);line-height:1.7}
@@ -2014,14 +2032,14 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
     .button.primary{background:linear-gradient(135deg,var(--accent), color-mix(in srgb,var(--accent) 62%, #38bdf8));border:none}
     .watermark{position:fixed;right:18px;bottom:18px;z-index:30;display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:rgba(7,10,16,.78);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.14);color:#f6f8fb;text-decoration:none;font-size:13px;box-shadow:0 12px 34px rgba(0,0,0,.28);transition:opacity .24s ease, transform .24s ease, visibility .24s ease}
     .watermark.hidden{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(8px)}
-    .watermark .mark{width:22px;height:22px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#38bdf8);display:block}
+    .watermark .mark{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#38bdf8);display:block}
     .watermark .mark.image{overflow:hidden;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
     .watermark .mark.image img{width:100%;height:100%;object-fit:cover;display:block}
-    @media (max-width: 720px){.watermark{right:12px;bottom:12px;padding:9px 12px}.launch-card{padding:22px;border-radius:24px}}
+    @media (max-width: 720px){.watermark{right:12px;bottom:12px;padding:9px 12px}.launch-card{padding:22px;border-radius:24px}.launch-site-icon{width:160px;height:160px;border-radius:36px}.launch-site-icon.fallback{font-size:60px}}
   </style>
 </head>
 <body>
-  <iframe id="site-frame" class="frame" sandbox="allow-scripts allow-forms allow-popups" referrerpolicy="strict-origin" loading="eager"></iframe>
+  <iframe id="site-frame" class="frame" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads" referrerpolicy="strict-origin" loading="eager"></iframe>
   <div id="launch" class="launch">
     <div class="launch-card">
       <div class="launch-brand">${launchIcon}<div><div class="launch-kicker">${escapeHtmlValue(config.brandName || BRAND_WORDMARK)}</div><h1>${escapeHtmlValue(site.title || 'Creator site')}</h1></div></div>
@@ -2045,9 +2063,9 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
     const iframe = document.getElementById('site-frame');
     const launch = document.getElementById('launch');
     const watermark = document.querySelector('.watermark');
-    const html = atob('${encoded}');
+    const launchUrl = '${escapeHtmlValue(launchUrl)}';
     const rememberKey = 'jb_site_launch_ack:${meta.ownerHandle}/${site.slug}';
-    iframe.srcdoc = html;
+    if (launchUrl) iframe.src = launchUrl;
     const openSite = () => {
       launch.classList.add('hidden');
       if (watermark) watermark.classList.add('hidden');
@@ -4246,6 +4264,7 @@ app.get('/api/bootstrap', (req, res) => {
   const devlogs = store.posts.filter((item) => item.status === 'published' && item.kind === 'devlog').map((item) => publicPost(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'publishedAt'));
   const openRooms = store.rooms.filter((room) => room.visibility === 'open').map((room) => publicRoom(store, room, viewerId)).sort((a, b) => sortDateDesc(a, b, 'lastActivityAt'));
   const me = req.authUser ? mePayload(store, store.users.find((u) => Number(u.id) === Number(req.authUser.id))) : null;
+  const sessionToken = req.authUser ? readSessionToken(req) : '';
   res.json({
     meta: {
       siteName: SITE_NAME,
@@ -4274,6 +4293,7 @@ app.get('/api/bootstrap', (req, res) => {
         { code: 'STD', label: 'Studio' }
       ]
     },
+    sessionToken,
     session: me?.user || null,
     me,
     home: {
@@ -6059,6 +6079,11 @@ app.get(/^\/@([^/]+)\/([^/]+)\/(.*)$/, (req, res, next) => {
   if (!owner || !site || !canViewSite(site, owner, req.authUser?.id)) return next();
   if (site.mode !== 'upload') return next();
   const rawAssetPath = String(req.params[2] || '');
+  if (!rawAssetPath) {
+    const inner = readUploadedSiteEntryHtml(site);
+    if (!inner) return next();
+    return res.type('html').send(siteWatermarkHtml(store, owner, site, inner));
+  }
   const assetPath = rawAssetPath ? safeSiteBundlePath(rawAssetPath) : 'index.html';
   if (!assetPath) return next();
   if (!siteUsesBundle(site) && assetPath !== 'index.html') return next();
@@ -7649,7 +7674,7 @@ function renderPublicChrome(pathOnly, bodyHtml) {
     <main class="public-main">
       <header class="public-header">
         <a class="public-brand" href="/">
-          <img src="/logo.png" alt="justbreath logo" width="36" height="36" />
+          <img src="/logo.png" alt="justbreath logo" width="48" height="48" />
           <span>justbreath<span>.life</span></span>
         </a>
         <nav class="public-nav" aria-label="Public">
@@ -8375,10 +8400,6 @@ app.get(/^\/project\/([^/]+)$/, (req, res) => {
   const author = project ? store.users.find((u) => Number(u.id) === Number(project.userId)) : null;
   sendSpaShell(req, res, siteMetaForProject(project, author));
 });
-
-if (DEMO_SEED_MODE === 'on') {
-  ensureSeedData();
-}
 
 // ── Automatic backups every 30 minutes (rotating, keep last 48 = 24h) ────────
 function autoBackup() {

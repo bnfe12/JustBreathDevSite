@@ -425,12 +425,16 @@ const state = {
     friendsExpanded: false, roomInfoTab: 'info',
     attachments: [],
     forceScrollBottom: false,
+    pendingScrollRestore: null,
+    activityCount: 0,
+    activityKind: '',
     voiceSpeed: 1
   },
   sites: { mine: [], public: [], filter: 'mine', studio: { siteId: null, site: null, files: [], activePath: '', activeFile: null, content: '', loading: false, fileLoading: false, saving: false, dirty: false, error: '', studioEnabled: false, staticRules: null } },
   mail: { inbox: [], sent: [], unread: 0, folder: 'inbox', selected: null, composing: false },
   guest: false,
-  settingsTab: 'profile',
+  settingsTab: loadRememberedSettingsTab(),
+  settingsSearch: loadRememberedSettingsSearch(),
   drawerOpen: false, modal: null,
   profileScrollByPath: {},
   pendingWindowScroll: null,
@@ -751,7 +755,7 @@ function currentUser() {
   return state.me?.user || state.bootstrap?.session || null;
 }
 function isOwnerSession() {
-  return currentUser()?.roleInternal === 'owner';
+  return ['owner', 'admin'].includes(currentUser()?.roleInternal || '');
 }
 function isOperatorSession() {
   return ['owner', 'admin'].includes(currentUser()?.roleInternal || '');
@@ -864,6 +868,83 @@ function storageKey(name) {
   return user ? `jb:${user.id}:${name}` : `jb:guest:${name}`;
 }
 
+const SETTINGS_TAB_STORAGE_KEY = 'jb_settings_tab';
+const SETTINGS_SEARCH_STORAGE_KEY = 'jb_settings_search';
+const SETTINGS_TAB_IDS = new Set(['profile', 'appearance', 'privacy', 'chat', 'notifications', 'social', 'security', 'bots', 'billing', 'verification', 'support', 'data']);
+
+function normalizeSettingsTab(tab = '') {
+  const value = String(tab || '').trim();
+  return SETTINGS_TAB_IDS.has(value) ? value : 'profile';
+}
+
+function loadRememberedSettingsTab() {
+  try {
+    return normalizeSettingsTab(localStorage.getItem(SETTINGS_TAB_STORAGE_KEY) || 'profile');
+  } catch {
+    return 'profile';
+  }
+}
+
+function persistRememberedSettingsTab(tab = 'profile') {
+  try {
+    localStorage.setItem(SETTINGS_TAB_STORAGE_KEY, normalizeSettingsTab(tab));
+  } catch {}
+}
+
+function loadRememberedSettingsSearch() {
+  try {
+    return String(localStorage.getItem(SETTINGS_SEARCH_STORAGE_KEY) || '').slice(0, 80);
+  } catch {
+    return '';
+  }
+}
+
+function persistRememberedSettingsSearch(value = '') {
+  try {
+    localStorage.setItem(SETTINGS_SEARCH_STORAGE_KEY, String(value || '').slice(0, 80));
+  } catch {}
+}
+
+function chatScrollStorageKey(slug = '') {
+  return slug ? `jb_chat_scroll:${slug}` : '';
+}
+
+function loadRememberedChatScroll(slug = '') {
+  const key = chatScrollStorageKey(slug);
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem(key);
+    const value = raw === null ? null : Number(raw);
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistRememberedChatScroll(slug = '', scrollTop = 0) {
+  const key = chatScrollStorageKey(slug);
+  if (!key) return;
+  try {
+    localStorage.setItem(key, String(Math.max(0, Math.round(Number(scrollTop || 0)))));
+  } catch {}
+}
+
+function clearChatActivityIndicators() {
+  state.chat.unreadCount = 0;
+  state.chat.activityCount = 0;
+  state.chat.activityKind = '';
+}
+
+function noteChatActivity(kind = 'message') {
+  if (kind === 'message') {
+    state.chat.unreadCount = (state.chat.unreadCount || 0) + 1;
+    state.chat.activityKind = 'message';
+    return;
+  }
+  state.chat.activityCount = (state.chat.activityCount || 0) + 1;
+  if (state.chat.activityKind !== 'message') state.chat.activityKind = kind;
+}
+
 function loadSavedAccounts() {
   try {
     const raw = localStorage.getItem('jb_saved_accounts');
@@ -891,9 +972,10 @@ function saveAccountSession(user, sessionToken) {
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
     avatarText: user.avatarText,
+    email: user.email || '',
     sessionToken
   };
-  state.savedAccounts = [next, ...state.savedAccounts.filter((item) => item.id !== next.id)].slice(0, 8);
+  state.savedAccounts = [next, ...state.savedAccounts.filter((item) => item.sessionToken !== next.sessionToken && item.id !== next.id)].slice(0, 8);
   persistSavedAccounts();
 }
 function syncSavedAccountProfile(user) {
@@ -906,13 +988,15 @@ function syncSavedAccountProfile(user) {
       handle: user.handle || item.handle,
       displayName: user.displayName || user.handle || item.displayName,
       avatarUrl: user.avatarUrl || '',
-      avatarText: user.avatarText || item.avatarText || initials(user)
+      avatarText: user.avatarText || item.avatarText || initials(user),
+      email: user.email || item.email || ''
     };
     if (
       next.handle !== item.handle
       || next.displayName !== item.displayName
       || next.avatarUrl !== item.avatarUrl
       || next.avatarText !== item.avatarText
+      || next.email !== item.email
     ) changed = true;
     return next;
   });
@@ -1285,6 +1369,11 @@ async function loadBootstrap() {
   state.me = payload.me;
   state.meLoaded = Boolean(payload.me);
   if (state.me?.user) {
+    if (state.guest || localStorage.getItem('jb_guest_mode') === '1') {
+      localStorage.removeItem('jb_guest_mode');
+      state.guest = false;
+    }
+    if (payload.sessionToken) saveAccountSession(state.me.user, payload.sessionToken);
     syncSavedAccountProfile(state.me.user);
     localStorage.setItem('jb_lang', state.me.user.languagePreference || 'en');
     localStorage.setItem('jb_theme', state.me.user.themePreference || 'dark');
@@ -2809,6 +2898,11 @@ async function routeLoad() {
   const routeSnapshot = { ...state.route };
   const loadSeq = ++state.routeLoadSeq;
   state.loading = true;
+  if (routeSnapshot.name === 'settings') {
+    const params = new URLSearchParams(location.search || '');
+    state.settingsTab = normalizeSettingsTab(params.get('tab') || state.settingsTab || loadRememberedSettingsTab());
+    persistRememberedSettingsTab(state.settingsTab);
+  }
   try {
     const publicTasks = [loadBootstrap()];
     if (routeSnapshot.name === 'feed') publicTasks.push(loadFeed());
@@ -5726,19 +5820,19 @@ function renderSiteUploadModal() {
       ${state.siteUploadMode === 'archive'
         ? `<label class="upload-field site-drop-zone ${_siteFileCache.archive ? 'has-file' : ''}"><span>${_siteFileCache.archive ? `✓ ${archivePackageLabel}: <strong>${escapeHtml(_siteFileCache.archive.name)}</strong> · ${(_siteFileCache.archive.size/1024/1024).toFixed(2)} MB — ${localeLabel({ en: 'click to replace', ru: 'нажми, чтобы заменить', uk: 'натисни, щоб замінити', pt: 'clique para trocar', pl: 'kliknij, aby podmienić', fr: 'cliquez pour remplacer' })}` : `${archivePackageLabel} ${escapeHtml(caps.archiveLabel)} (.zip, .tar, .tar.gz, .tgz, .7z) — ${localeLabel({ en: 'click to choose', ru: 'нажми, чтобы выбрать', uk: 'натисни, щоб вибрати', pt: 'clique para escolher', pl: 'kliknij, aby wybrać', fr: 'cliquez pour choisir' })}`}</span><input type="file" name="archive" accept=".zip,.tar,.tgz,.tar.gz,.7z,application/zip,application/x-tar,application/gzip,application/x-gzip,application/x-7z-compressed" data-action="site-file-pick" data-kind="archive" /></label>`
         : `<label class="upload-field site-drop-zone ${_siteFileCache.html ? 'has-file' : ''}"><span>${_siteFileCache.html ? `✓ ${singleHtmlLabel}: <strong>${escapeHtml(_siteFileCache.html.name)}</strong> · ${(_siteFileCache.html.size/1024).toFixed(1)} KB — ${localeLabel({ en: 'click to replace', ru: 'нажми, чтобы заменить', uk: 'натисни, щоб замінити', pt: 'clique para trocar', pl: 'kliknij, aby podmienić', fr: 'cliquez pour remplacer' })}` : `${singleHtmlLabel} ${escapeHtml(caps.htmlLabel)} — ${localeLabel({ en: 'click to choose', ru: 'нажми, чтобы выбрать', uk: 'натисни, щоб вибрати', pt: 'clique para escolher', pl: 'kliknij, aby wybrać', fr: 'cliquez pour choisir' })}`}</span><input type="file" name="html" accept=".html,.htm,text/html" data-action="site-file-pick" data-kind="html" /></label>`}
-      ${uploadState?.active ? `<div class="site-upload-progress" aria-live="polite">
+      ${uploadState?.active ? `<div class="site-upload-progress ${uploadState.phase === 'processing' ? 'is-processing' : ''}" data-site-upload-progress aria-live="polite">
         <div class="site-upload-progress-head">
-          <strong>${escapeHtml(uploadState.label || (currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive'))}</strong>
-          <span>${Math.max(0, Math.min(100, Math.round(Number(uploadState.percent || 0))))}%</span>
+          <strong data-site-upload-label>${escapeHtml(uploadState.label || (currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive'))}</strong>
+          <span data-site-upload-percent>${Math.max(0, Math.min(100, Math.round(Number(uploadState.percent || 0))))}%</span>
         </div>
-        <div class="site-upload-progress-bar"><span style="width:${Math.max(0, Math.min(100, Number(uploadState.percent || 0)))}%"></span></div>
+        <div class="site-upload-progress-bar"><span data-site-upload-bar style="width:${Math.max(0, Math.min(100, Number(uploadState.percent || 0)))}%"></span></div>
         <div class="site-upload-progress-meta">
-          <span>${escapeHtml(uploadState.detail || '')}</span>
-          ${uploadState.phase === 'processing' ? '<span class="spinner-dot" aria-hidden="true"></span>' : ''}
+          <span data-site-upload-detail>${escapeHtml(uploadState.detail || '')}</span>
+          <span class="${uploadState.phase === 'processing' ? 'spinner-dot' : ''}" data-site-upload-spinner aria-hidden="true"></span>
         </div>
       </div>` : ''}
       <label class="inline-check"><input type="checkbox" name="agree" required /> <span>${agreeRulesLabel}</span></label>
-      <button class="primary-button" type="submit" ${uploadState?.active ? 'disabled' : ''}>${uploadState?.active ? (currentLang() === 'ru' ? 'Загружаю…' : 'Uploading…') : t('create')}</button>
+      <button class="primary-button" data-site-upload-submit type="submit" ${uploadState?.active ? 'disabled' : ''}>${uploadState?.active ? (currentLang() === 'ru' ? 'Загружаю…' : 'Uploading…') : t('create')}</button>
     </form>`;
 }
 function renderWorkspaceModal() {
@@ -6130,6 +6224,7 @@ function setModal(modal) {
   render();
 }
 function closeModal() {
+  clearSiteUploadProgressQueue();
   state.modal = null;
   document.body.classList.remove('modal-open');
   if (_siteFileCache) { _siteFileCache.archive = null; _siteFileCache.html = null; }
@@ -6445,6 +6540,74 @@ function formatUploadProgressLabel(loadedBytes = 0, totalBytes = 0) {
   return `${loaded} / ${total}`;
 }
 
+let _siteUploadProgressTimer = null;
+let _siteUploadProgressPending = null;
+
+function clearSiteUploadProgressQueue() {
+  if (_siteUploadProgressTimer) clearTimeout(_siteUploadProgressTimer);
+  _siteUploadProgressTimer = null;
+  _siteUploadProgressPending = null;
+}
+
+function syncSiteUploadProgressUi(uploadState = {}) {
+  const root = document.querySelector('[data-site-upload-progress]');
+  if (!root) return false;
+  const percent = Math.max(0, Math.min(100, Number(uploadState.percent || 0)));
+  const labelNode = root.querySelector('[data-site-upload-label]');
+  const percentNode = root.querySelector('[data-site-upload-percent]');
+  const barNode = root.querySelector('[data-site-upload-bar]');
+  const detailNode = root.querySelector('[data-site-upload-detail]');
+  const spinnerNode = root.querySelector('[data-site-upload-spinner]');
+  const submitNode = document.querySelector('[data-site-upload-submit]');
+  root.classList.toggle('is-processing', uploadState.phase === 'processing');
+  if (labelNode) labelNode.textContent = uploadState.label || (currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive');
+  if (percentNode) percentNode.textContent = `${Math.round(percent)}%`;
+  if (barNode) barNode.style.width = `${percent}%`;
+  if (detailNode) detailNode.textContent = uploadState.detail || '';
+  if (spinnerNode) spinnerNode.className = uploadState.phase === 'processing' ? 'spinner-dot' : '';
+  if (submitNode) {
+    submitNode.disabled = true;
+    submitNode.textContent = currentLang() === 'ru' ? 'Загружаю…' : 'Uploading…';
+  }
+  return true;
+}
+
+function applySiteUploadProgress(progress = {}) {
+  if (state.modal?.type !== 'site-upload') return;
+  const nextState = {
+    ...(state.modal.siteUpload || {}),
+    active: true,
+    ...progress
+  };
+  state.modal = {
+    ...state.modal,
+    siteUpload: nextState
+  };
+  if (!syncSiteUploadProgressUi(nextState)) render();
+}
+
+function scheduleSiteUploadProgress(progress = {}, force = false) {
+  if (state.modal?.type !== 'site-upload') return;
+  _siteUploadProgressPending = {
+    ...(state.modal.siteUpload || {}),
+    ...(_siteUploadProgressPending || {}),
+    active: true,
+    ...progress
+  };
+  if (force) {
+    clearSiteUploadProgressQueue();
+    applySiteUploadProgress(_siteUploadProgressPending || progress);
+    return;
+  }
+  if (_siteUploadProgressTimer) return;
+  _siteUploadProgressTimer = setTimeout(() => {
+    const next = _siteUploadProgressPending;
+    _siteUploadProgressTimer = null;
+    _siteUploadProgressPending = null;
+    if (next) applySiteUploadProgress(next);
+  }, 120);
+}
+
 async function uploadSiteArchiveBinary(url, meta, file, method = 'POST', options = {}) {
   return await new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -6464,7 +6627,7 @@ async function uploadSiteArchiveBinary(url, meta, file, method = 'POST', options
     xhr.upload.onload = () => {
       if (typeof options.onProgress === 'function') {
         const total = Number(file?.size || 0);
-        options.onProgress({ phase: 'processing', loaded: total, total, percent: 100 });
+        options.onProgress({ phase: 'processing', loaded: total, total, percent: 96 });
       }
     };
     xhr.onerror = () => reject(new Error('Network request failed.'));
@@ -6518,36 +6681,28 @@ async function handleSiteUpload(form) {
     if (!file || !file.size) throw new Error('Choose an archive file.');
     if (Number.isFinite(caps.archiveBytes) && file.size > caps.archiveBytes) throw new Error(`Archive must stay under ${caps.archiveLabel.replace('≤ ', '')}.`);
     if (state.modal?.type === 'site-upload') {
-      state.modal = {
-        ...state.modal,
-        siteUpload: {
-          active: true,
-          phase: 'uploading',
-          percent: 0,
-          label: currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive',
-          detail: formatUploadProgressLabel(0, Number(file.size || 0))
-        }
-      };
-      render();
+      scheduleSiteUploadProgress({
+        phase: 'uploading',
+        percent: 0,
+        label: currentLang() === 'ru' ? 'Подготовка загрузки' : 'Preparing upload',
+        detail: currentLang() === 'ru'
+          ? `Файл: ${file.name || 'archive'} · ${formatByteSize(Number(file.size || 0))}`
+          : `File: ${file.name || 'archive'} · ${formatByteSize(Number(file.size || 0))}`
+      }, true);
     }
     response = await uploadSiteArchiveBinary('/api/me/sites/upload-archive-binary', common, file, 'POST', {
       onProgress: ({ phase, loaded, total, percent }) => {
         if (state.modal?.type !== 'site-upload') return;
-        state.modal = {
-          ...state.modal,
-          siteUpload: {
-            active: true,
-            phase,
-            percent,
-            label: phase === 'processing'
-              ? (currentLang() === 'ru' ? 'Архив загружен, идёт обработка' : 'Archive uploaded, processing')
-              : (currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive'),
-            detail: phase === 'processing'
-              ? (currentLang() === 'ru' ? 'Сервер распаковывает файлы и проверяет структуру сайта…' : 'Server is unpacking files and validating the site structure…')
-              : formatUploadProgressLabel(loaded, total)
-          }
-        };
-        render();
+        scheduleSiteUploadProgress({
+          phase,
+          percent: phase === 'processing' ? 96 : Math.max(0, Math.min(95, Number(percent || 0))),
+          label: phase === 'processing'
+            ? (currentLang() === 'ru' ? 'Архив загружен, идёт обработка' : 'Archive uploaded, processing')
+            : (currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive'),
+          detail: phase === 'processing'
+            ? (currentLang() === 'ru' ? 'Сервер распаковывает файлы, проверяет структуру и подготавливает сайт…' : 'Server is unpacking files, validating structure, and preparing the site…')
+            : formatUploadProgressLabel(loaded, total)
+        }, phase === 'processing');
       }
     });
   } else {
@@ -6558,6 +6713,7 @@ async function handleSiteUpload(form) {
     const htmlContent = await file.text();
     response = await api('/api/me/sites/upload', { method: 'POST', body: JSON.stringify({ ...common, htmlContent }) });
   }
+  clearSiteUploadProgressQueue();
   _siteFileCache.archive = null;
   _siteFileCache.html = null;
   closeModal();
@@ -8413,6 +8569,7 @@ document.addEventListener('submit', async (event) => {
     }
   } catch (error) {
     if (state.modal?.siteUpload?.active) {
+      clearSiteUploadProgressQueue();
       state.modal = {
         ...state.modal,
         siteUpload: {
