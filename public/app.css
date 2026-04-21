@@ -1209,7 +1209,12 @@ html[data-theme="light"] .text-link:hover { color: #0f172a; }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 12px;
+  max-height: min(56vh, 620px);
+  overflow: auto;
+  padding-right: 4px;
 }
+.switch-account-list.wide-accounts { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.switch-account-list.many-accounts { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .switch-account-row {
   display: grid; grid-template-columns: 1fr auto;
   gap: 8px; align-items: center;
@@ -5200,7 +5205,9 @@ html[data-accent="rose"]   { --accent: #db61a2; --accent-rgb: 219,97,162; }
 .modal-plans .modal-card { max-width: 900px; }
 .modal-plans-inner h2 { font-size: 1.25rem; }
 .modal-plans-inner .plan-grid { gap: 10px; }
-.modal-switch-account.modal-card { max-width: 780px; }
+.modal-switch-account.modal-card { width: min(calc(100vw - 24px), 880px); max-width: 880px; }
+.modal-switch-account.modal-card.modal-size-wide { width: min(calc(100vw - 24px), 960px); max-width: 960px; }
+.modal-switch-account.modal-card.modal-size-many { width: min(calc(100vw - 24px), 1080px); max-width: 1080px; }
 .modal-profile-list.modal-card { max-width: 900px; }
 .modal-edit-site.modal-card { width: min(980px, calc(100vw - 24px)); }
 .modal-profile-stack { padding-right: 2px; }

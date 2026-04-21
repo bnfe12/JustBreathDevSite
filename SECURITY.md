@@ -83,6 +83,22 @@ For production, treat the following as mandatory:
 6. Back up `data/` and `backups/` off-host.
 7. Monitor `/api/health`, logs, and store growth.
 
+## Repository and secret hygiene
+
+This repository must stay safe to mirror publicly.
+
+- Do not commit `.env`, private certificates, OAuth secrets, SMTP credentials, `ADMIN_TOKEN`, or session-bearing exports.
+- Do not commit live `data/` runtime content such as `store.json`, uploaded media, extracted creator-site imports, or rotating backups.
+- Keep deployment-only values in server environment variables or external secret storage.
+- Re-check `git status` before every push and assume anything committed to GitHub is effectively public.
+
+Minimal expectation:
+
+1. `.env` stays local to the server.
+2. Runtime state stays outside version control.
+3. Documentation may describe required env vars, but must not contain real values.
+4. GitHub deploy mirrors should contain code, docs, and safe config only.
+
 ## What not to do
 
 These are common but low-value moves:
@@ -107,3 +123,12 @@ When a new feature is added, review these questions before deploy:
 6. Does it introduce a render loop or polling path that can degrade UX or availability?
 
 If any answer is "yes", the change needs a hardening pass before release.
+
+## Current review-sensitive areas
+
+These areas have changed recently and should be re-reviewed when touched again:
+
+- Creator-site archive handling and launch wrapper compatibility
+- Admin control center, especially maintenance, ads, review queue, and role changes
+- Chat replies / message linkage and message rendering performance
+- Account switcher persistence on shared devices

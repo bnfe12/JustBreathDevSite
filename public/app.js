@@ -538,6 +538,129 @@ function localeLabel(source) {
   const lang = currentLang();
   return source[lang] || source.en || source.ru || '';
 }
+const adminLocale = {
+  owner: { en: 'owner', ru: 'владелец', uk: 'власник', pt: 'proprietário', pl: 'właściciel', fr: 'propriétaire' },
+  usersAndSubscriptions: { en: 'Users & subscriptions', ru: 'Пользователи и подписки', uk: 'Користувачі та підписки', pt: 'Usuários e assinaturas', pl: 'Użytkownicy i subskrypcje', fr: 'Utilisateurs et abonnements' },
+  platformOverview: { en: 'Platform overview', ru: 'Обзор платформы', uk: 'Огляд платформи', pt: 'Visão geral da plataforma', pl: 'Przegląd platformy', fr: 'Vue d’ensemble de la plateforme' },
+  totalUsers: { en: 'Total users', ru: 'Всего пользователей', uk: 'Усього користувачів', pt: 'Total de usuários', pl: 'Łączna liczba użytkowników', fr: 'Nombre total d’utilisateurs' },
+  newToday: { en: 'New today', ru: 'Новых сегодня', uk: 'Нових сьогодні', pt: 'Novos hoje', pl: 'Nowych dziś', fr: 'Nouveaux aujourd’hui' },
+  banned: { en: 'Banned', ru: 'Заблокировано', uk: 'Заблоковано', pt: 'Banidos', pl: 'Zbanowani', fr: 'Bannis' },
+  messages: { en: 'Messages', ru: 'Сообщений', uk: 'Повідомлень', pt: 'Mensagens', pl: 'Wiadomości', fr: 'Messages' },
+  messagesToday: { en: 'Messages today', ru: 'Сообщений сегодня', uk: 'Повідомлень сьогодні', pt: 'Mensagens hoje', pl: 'Wiadomości dziś', fr: 'Messages aujourd’hui' },
+  rooms: { en: 'Rooms', ru: 'Комнат', uk: 'Кімнат', pt: 'Salas', pl: 'Pokoje', fr: 'Salons' },
+  publicSites: { en: 'Public sites', ru: 'Публичных сайтов', uk: 'Публічних сайтів', pt: 'Sites públicos', pl: 'Publicznych stron', fr: 'Sites publics' },
+  posts: { en: 'Posts', ru: 'Постов', uk: 'Постів', pt: 'Posts', pl: 'Posty', fr: 'Posts' },
+  openReports: { en: 'Open reports', ru: 'Открытых жалоб', uk: 'Відкритих скарг', pt: 'Denúncias abertas', pl: 'Otwarte zgłoszenia', fr: 'Signalements ouverts' },
+  deletionQueue24h: { en: '24h deletion queue', ru: 'Очередь удаления 24ч', uk: 'Черга видалення 24г', pt: 'Fila de exclusão de 24h', pl: '24h kolejka usuwania', fr: 'File de suppression 24h' },
+  workspaces: { en: 'Workspaces', ru: 'Воркспейсов', uk: 'Воркспейсів', pt: 'Workspaces', pl: 'Przestrzenie robocze', fr: 'Espaces de travail' },
+  sitesWaitingReview: { en: 'Sites waiting review', ru: 'Сайтов ждут ревью', uk: 'Сайтів чекають на ревʼю', pt: 'Sites aguardando revisão', pl: 'Strony oczekujące na przegląd', fr: 'Sites en attente de revue' },
+  windowPageviews: { en: 'Window pageviews', ru: 'Pageviews за окно', uk: 'Pageviews за вікно', pt: 'Visualizações no período', pl: 'Wyświetlenia w oknie', fr: 'Pages vues sur la période' },
+  maintenanceMode: { en: 'Maintenance mode', ru: 'Maintenance mode', uk: 'Режим обслуговування', pt: 'Modo de manutenção', pl: 'Tryb konserwacji', fr: 'Mode maintenance' },
+  maintenanceRestricted: { en: 'Public API access is currently restricted.', ru: 'Публичный API сейчас ограничен.', uk: 'Публічний API зараз обмежений.', pt: 'O acesso público à API está restrito no momento.', pl: 'Publiczny dostęp do API jest obecnie ograniczony.', fr: 'L’accès public à l’API est actuellement restreint.' },
+  users: { en: 'Users', ru: 'Пользователи', uk: 'Користувачі', pt: 'Usuários', pl: 'Użytkownicy', fr: 'Utilisateurs' },
+  searchUsers: { en: 'Search users…', ru: 'Поиск пользователей…', uk: 'Пошук користувачів…', pt: 'Buscar usuários…', pl: 'Szukaj użytkowników…', fr: 'Rechercher des utilisateurs…' },
+  plan: { en: 'Plan', ru: 'Тариф', uk: 'План', pt: 'Plano', pl: 'Plan', fr: 'Forfait' },
+  sites: { en: 'Sites', ru: 'Сайты', uk: 'Сайти', pt: 'Sites', pl: 'Strony', fr: 'Sites' },
+  role: { en: 'Role', ru: 'Роль', uk: 'Роль', pt: 'Função', pl: 'Rola', fr: 'Rôle' },
+  badges: { en: 'Badges', ru: 'Бейджи', uk: 'Бейджі', pt: 'Badges', pl: 'Odznaki', fr: 'Badges' },
+  member: { en: 'Member', ru: 'Участник', uk: 'Учасник', pt: 'Membro', pl: 'Członek', fr: 'Membre' },
+  moderator: { en: 'Moderator', ru: 'Модератор', uk: 'Модератор', pt: 'Moderador', pl: 'Moderator', fr: 'Modérateur' },
+  ownerRole: { en: 'Owner', ru: 'Владелец', uk: 'Власник', pt: 'Proprietário', pl: 'Właściciel', fr: 'Propriétaire' },
+  operatorAccess: { en: 'Operator access', ru: 'доступ оператора', uk: 'доступ оператора', pt: 'acesso de operador', pl: 'dostęp operatora', fr: 'accès opérateur' },
+  savePlan: { en: 'Save plan', ru: 'Сохранить тариф', uk: 'Зберегти план', pt: 'Salvar plano', pl: 'Zapisz plan', fr: 'Enregistrer le forfait' },
+  unban: { en: 'Unban', ru: 'Разбанить', uk: 'Розбанити', pt: 'Desbanir', pl: 'Odbanuj', fr: 'Débannir' },
+  ban: { en: 'Ban', ru: 'Забанить', uk: 'Забанити', pt: 'Banir', pl: 'Zbanuj', fr: 'Bannir' },
+  verify: { en: 'Verify', ru: 'Верифицировать', uk: 'Верифікувати', pt: 'Verificar', pl: 'Zweryfikuj', fr: 'Vérifier' },
+  saveAccess: { en: 'Save access', ru: 'Сохранить доступ', uk: 'Зберегти доступ', pt: 'Salvar acesso', pl: 'Zapisz dostęp', fr: 'Enregistrer l’accès' },
+  noUsersFound: { en: 'No users found.', ru: 'Пользователи не найдены.', uk: 'Користувачів не знайдено.', pt: 'Nenhum usuário encontrado.', pl: 'Nie znaleziono użytkowników.', fr: 'Aucun utilisateur trouvé.' },
+  verificationRequests: { en: 'Verification requests', ru: 'Запросы на верификацию', uk: 'Запити на верифікацію', pt: 'Solicitações de verificação', pl: 'Prośby o weryfikację', fr: 'Demandes de vérification' },
+  noPendingRequests: { en: 'No pending requests.', ru: 'Заявок пока нет.', uk: 'Заявок поки немає.', pt: 'Nenhuma solicitação pendente.', pl: 'Brak oczekujących zgłoszeń.', fr: 'Aucune demande en attente.' },
+  toApproveOpen: { en: 'To approve a user, open the', ru: 'Чтобы одобрить пользователя, откройте вкладку ', uk: 'Щоб схвалити користувача, відкрийте вкладку ', pt: 'Para aprovar um usuário, abra a aba ', pl: 'Aby zatwierdzić użytkownika, otwórz kartę ', fr: 'Pour approuver un utilisateur, ouvrez l’onglet ' },
+  usersTab: { en: 'Users tab', ru: 'Пользователи', uk: 'Користувачі', pt: 'Usuários', pl: 'Użytkownicy', fr: 'Utilisateurs' },
+  siteReviewQueue: { en: 'Site review queue', ru: 'Очередь ревью сайтов', uk: 'Черга ревʼю сайтів', pt: 'Fila de revisão de sites', pl: 'Kolejka przeglądu stron', fr: 'File de revue des sites' },
+  siteReviewLead: { en: 'Review sites that were submitted for manual approval before wider visibility.', ru: 'Проверка сайтов, которые были отправлены на ручное ревью перед публикацией.', uk: 'Перевірка сайтів, які були відправлені на ручне ревʼю перед публікацією.', pt: 'Revise sites enviados para aprovação manual antes de maior visibilidade.', pl: 'Przeglądaj strony wysłane do ręcznej akceptacji przed szerszą publikacją.', fr: 'Examinez les sites envoyés pour validation manuelle avant une visibilité plus large.' },
+  pending: { en: 'Pending', ru: 'Ожидает', uk: 'Очікує', pt: 'Pendente', pl: 'Oczekuje', fr: 'En attente' },
+  openSite: { en: 'Open site', ru: 'Открыть сайт', uk: 'Відкрити сайт', pt: 'Abrir site', pl: 'Otwórz stronę', fr: 'Ouvrir le site' },
+  approve: { en: 'Approve', ru: 'Одобрить', uk: 'Схвалити', pt: 'Aprovar', pl: 'Zatwierdź', fr: 'Approuver' },
+  reject: { en: 'Reject', ru: 'Отклонить', uk: 'Відхилити', pt: 'Rejeitar', pl: 'Odrzuć', fr: 'Rejeter' },
+  emptyQueue: { en: 'The queue is empty.', ru: 'Очередь пустая.', uk: 'Черга порожня.', pt: 'A fila está vazia.', pl: 'Kolejka jest pusta.', fr: 'La file est vide.' },
+  telemetry: { en: 'Telemetry', ru: 'Телеметрия', uk: 'Телеметрія', pt: 'Telemetria', pl: 'Telemetria', fr: 'Télémétrie' },
+  telemetryLead: { en: 'Anonymous self-hosted telemetry for pageviews, client errors, and web vitals.', ru: 'Анонимная self-hosted телеметрия по pageview, ошибкам и web vitals.', uk: 'Анонімна self-hosted телеметрія для pageview, помилок клієнта та web vitals.', pt: 'Telemetria anônima self-hosted para pageviews, erros do cliente e web vitals.', pl: 'Anonimowa self-hosted telemetria dla pageviews, błędów klienta i web vitals.', fr: 'Télémétrie anonyme auto-hébergée pour les pages vues, les erreurs client et les web vitals.' },
+  events: { en: 'Events', ru: 'Событий', uk: 'Подій', pt: 'Eventos', pl: 'Zdarzenia', fr: 'Événements' },
+  jsErrors: { en: 'JS errors', ru: 'JS ошибок', uk: 'JS помилок', pt: 'Erros JS', pl: 'Błędy JS', fr: 'Erreurs JS' },
+  sessions: { en: 'Sessions', ru: 'Сессий', uk: 'Сесій', pt: 'Sessões', pl: 'Sesje', fr: 'Sessions' },
+  topRoutes: { en: 'Top routes', ru: 'Топ маршрутов', uk: 'Топ маршрутів', pt: 'Principais rotas', pl: 'Top trasy', fr: 'Routes principales' },
+  topErrors: { en: 'Top errors', ru: 'Топ ошибок', uk: 'Топ помилок', pt: 'Principais erros', pl: 'Top błędy', fr: 'Erreurs principales' },
+  noDataYet: { en: 'No data yet.', ru: 'Нет данных.', uk: 'Даних поки немає.', pt: 'Ainda não há dados.', pl: 'Brak danych.', fr: 'Pas encore de données.' },
+  platformControl: { en: 'Platform control', ru: 'Контроль платформы', uk: 'Контроль платформи', pt: 'Controle da plataforma', pl: 'Kontrola platformy', fr: 'Contrôle de la plateforme' },
+  sitesInReview: { en: 'Sites in review', ru: 'Сайтов на ревью', uk: 'Сайтів на ревʼю', pt: 'Sites em revisão', pl: 'Strony w przeglądzie', fr: 'Sites en revue' },
+  queuedDeletions: { en: 'Queued deletions', ru: 'Удалений в очереди', uk: 'Видалень у черзі', pt: 'Exclusões na fila', pl: 'Usunięcia w kolejce', fr: 'Suppressions en file' },
+  activeAds: { en: 'Active ads', ru: 'Активных ads', uk: 'Активних ads', pt: 'Anúncios ativos', pl: 'Aktywne reklamy', fr: 'Annonces actives' },
+  maintenanceDirectToggle: { en: 'This now toggles from the owner session directly instead of asking for an env token in the UI.', ru: 'Теперь переключается прямо owner-сессией без ручного ввода токена в UI.', uk: 'Тепер перемикається прямо з owner-сесії без ручного введення токена в UI.', pt: 'Agora isso alterna direto da sessão owner sem pedir token de env na UI.', pl: 'Teraz przełącza się bezpośrednio z sesji owner bez ręcznego wpisywania tokena env w UI.', fr: 'Cela se bascule désormais directement depuis la session owner sans demander de jeton env dans l’UI.' },
+  disableMaintenance: { en: 'Disable maintenance', ru: 'Выключить maintenance', uk: 'Вимкнути maintenance', pt: 'Desativar manutenção', pl: 'Wyłącz maintenance', fr: 'Désactiver la maintenance' },
+  enableMaintenance: { en: 'Enable maintenance', ru: 'Включить maintenance', uk: 'Увімкнути maintenance', pt: 'Ativar manutenção', pl: 'Włącz maintenance', fr: 'Activer la maintenance' },
+  refreshData: { en: 'Refresh data', ru: 'Обновить данные', uk: 'Оновити дані', pt: 'Atualizar dados', pl: 'Odśwież dane', fr: 'Rafraîchir les données' },
+  maintenanceActive: { en: 'Maintenance is active', ru: 'Maintenance активно', uk: 'Maintenance активний', pt: 'A manutenção está ativa', pl: 'Maintenance jest aktywny', fr: 'La maintenance est active' },
+  maintenanceBlocking: { en: 'Most API requests are restricted until you disable this mode.', ru: 'Большая часть API сейчас закрыта до отключения режима.', uk: 'Більшість API зараз закрито до вимкнення цього режиму.', pt: 'A maior parte das requisições da API está restrita até você desativar este modo.', pl: 'Większość żądań API jest ograniczona, dopóki nie wyłączysz tego trybu.', fr: 'La plupart des requêtes API sont limitées tant que vous ne désactivez pas ce mode.' },
+  auditLogs: { en: 'Audit logs', ru: 'Аудит-логи', uk: 'Аудит-логи', pt: 'Logs de auditoria', pl: 'Logi audytu', fr: 'Journaux d’audit' },
+  auditLogsLead: { en: 'Audit logs record admin and owner actions taken on accounts and platform objects.', ru: 'Логи действий админов и владельца над аккаунтами и объектами платформы.', uk: 'Логи дій адмінів і власника над акаунтами та обʼєктами платформи.', pt: 'Os logs de auditoria registram ações de admin e owner em contas e objetos da plataforma.', pl: 'Logi audytu rejestrują działania admina i ownera na kontach i obiektach platformy.', fr: 'Les journaux d’audit enregistrent les actions des admins et owners sur les comptes et objets de la plateforme.' },
+  noAuditLogs: { en: 'No audit logs yet.', ru: 'Логов пока нет.', uk: 'Логів поки немає.', pt: 'Ainda não há logs de auditoria.', pl: 'Brak logów audytu.', fr: 'Aucun journal d’audit pour le moment.' },
+  actions: { en: 'Actions', ru: 'Действия', uk: 'Дії', pt: 'Ações', pl: 'Działania', fr: 'Actions' },
+  refreshAdminData: { en: 'Refresh admin data', ru: 'Обновить админ-данные', uk: 'Оновити адмін-дані', pt: 'Atualizar dados admin', pl: 'Odśwież dane admina', fr: 'Rafraîchir les données admin' },
+  exportMyAccountData: { en: 'Export my account data', ru: 'Экспорт моих данных', uk: 'Експорт моїх даних', pt: 'Exportar meus dados', pl: 'Eksportuj moje dane', fr: 'Exporter mes données' },
+  adminDataRefreshed: { en: 'Admin data refreshed.', ru: 'Админ-данные обновлены.', uk: 'Адмін-дані оновлено.', pt: 'Dados admin atualizados.', pl: 'Dane admina odświeżone.', fr: 'Données admin actualisées.' },
+  subscriptionUpdated: { en: 'Subscription updated.', ru: 'Подписка обновлена.', uk: 'Підписку оновлено.', pt: 'Assinatura atualizada.', pl: 'Subskrypcja zaktualizowana.', fr: 'Abonnement mis à jour.' },
+  userAccessUpdated: { en: 'User access updated.', ru: 'Доступ пользователя обновлён.', uk: 'Доступ користувача оновлено.', pt: 'Acesso do usuário atualizado.', pl: 'Dostęp użytkownika zaktualizowany.', fr: 'Accès utilisateur mis à jour.' },
+  userBanned: { en: 'User banned.', ru: 'Пользователь забанен.', uk: 'Користувача забанено.', pt: 'Usuário banido.', pl: 'Użytkownik zbanowany.', fr: 'Utilisateur banni.' },
+  userUnbanned: { en: 'Unbanned.', ru: 'Разбанено.', uk: 'Розбанено.', pt: 'Desbanido.', pl: 'Odbanowano.', fr: 'Débanni.' },
+  userVerified: { en: 'Verified.', ru: 'Верифицировано.', uk: 'Верифіковано.', pt: 'Verificado.', pl: 'Zweryfikowano.', fr: 'Vérifié.' },
+  banReasonPrompt: { en: 'Ban reason for', ru: 'Причина бана для', uk: 'Причина бану для', pt: 'Motivo do banimento de', pl: 'Powód bana dla', fr: 'Raison du bannissement de' },
+  queueAccountDeletionConfirm: { en: 'Queue @%s for deletion in 24 hours? You can restore it before the timer ends.', ru: 'Поставить аккаунт @%s в очередь удаления на 24 часа? За это время удаление можно отменить.', uk: 'Поставити акаунт @%s у чергу видалення на 24 години? За цей час видалення можна скасувати.', pt: 'Colocar @%s na fila de exclusão em 24 horas? Você pode restaurar antes do fim do timer.', pl: 'Umieścić @%s w kolejce do usunięcia za 24 godziny? Możesz przywrócić przed końcem licznika.', fr: 'Mettre @%s en file de suppression dans 24 heures ? Vous pourrez restaurer avant la fin du délai.' },
+  accountQueuedDeletion: { en: 'Account queued for 24-hour deletion.', ru: 'Аккаунт поставлен в 24-часовую очередь удаления.', uk: 'Акаунт поставлено в 24-годинну чергу видалення.', pt: 'Conta colocada na fila de exclusão de 24h.', pl: 'Konto dodane do 24-godzinnej kolejki usuwania.', fr: 'Compte placé dans la file de suppression 24h.' },
+  queuePostDeletionConfirm: { en: 'Queue this post for deletion in 24 hours?', ru: 'Поставить этот пост в очередь удаления на 24 часа?', uk: 'Поставити цей пост у чергу видалення на 24 години?', pt: 'Colocar este post na fila de exclusão em 24 horas?', pl: 'Dodać ten post do kolejki usuwania na 24 godziny?', fr: 'Mettre ce post en file de suppression dans 24 heures ?' },
+  postQueuedDeletion: { en: 'Post queued for 24-hour deletion.', ru: 'Пост поставлен в 24-часовую очередь удаления.', uk: 'Пост поставлено в 24-годинну чергу видалення.', pt: 'Post colocado na fila de exclusão de 24h.', pl: 'Post dodany do 24-godzinnej kolejki usuwania.', fr: 'Post placé dans la file de suppression 24h.' },
+  queueSiteDeletionConfirm: { en: 'Queue this site for deletion in 24 hours?', ru: 'Поставить этот сайт в очередь удаления на 24 часа?', uk: 'Поставити цей сайт у чергу видалення на 24 години?', pt: 'Colocar este site na fila de exclusão em 24 horas?', pl: 'Dodać ten site do kolejki usuwania na 24 godziny?', fr: 'Mettre ce site en file de suppression dans 24 heures ?' },
+  siteQueuedDeletion: { en: 'Site queued for 24-hour deletion.', ru: 'Сайт поставлен в 24-часовую очередь удаления.', uk: 'Сайт поставлено в 24-годинну чергу видалення.', pt: 'Site colocado na fila de exclusão de 24h.', pl: 'Strona dodana do 24-godzinnej kolejki usuwania.', fr: 'Site placé dans la file de suppression 24h.' },
+  queueProjectDeletionConfirm: { en: 'Queue this project for deletion in 24 hours?', ru: 'Поставить этот проект в очередь удаления на 24 часа?', uk: 'Поставити цей проєкт у чергу видалення на 24 години?', pt: 'Colocar este projeto na fila de exclusão em 24 horas?', pl: 'Dodać ten projekt do kolejki usuwania na 24 godziny?', fr: 'Mettre ce projet en file de suppression dans 24 heures ?' },
+  projectQueuedDeletion: { en: 'Project queued for 24-hour deletion.', ru: 'Проект поставлен в 24-часовую очередь удаления.', uk: 'Проєкт поставлено в 24-годинну чергу видалення.', pt: 'Projeto colocado na fila de exclusão de 24h.', pl: 'Projekt dodany do 24-godzinnej kolejki usuwania.', fr: 'Projet placé dans la file de suppression 24h.' },
+  queueMessageDeletionConfirm: { en: 'Queue this message for deletion in 24 hours?', ru: 'Поставить это сообщение в очередь удаления на 24 часа?', uk: 'Поставити це повідомлення у чергу видалення на 24 години?', pt: 'Colocar esta mensagem na fila de exclusão em 24 horas?', pl: 'Dodać tę wiadomość do kolejki usuwania na 24 godziny?', fr: 'Mettre ce message en file de suppression dans 24 heures ?' },
+  messageQueuedDeletion: { en: 'Message queued for 24-hour deletion.', ru: 'Сообщение поставлено в 24-часовую очередь удаления.', uk: 'Повідомлення поставлено в 24-годинну чергу видалення.', pt: 'Mensagem colocada na fila de exclusão de 24h.', pl: 'Wiadomość dodana do 24-godzinnej kolejki usuwania.', fr: 'Message placé dans la file de suppression 24h.' },
+  reportConfirmed: { en: 'Report confirmed.', ru: 'Жалоба подтверждена.', uk: 'Скаргу підтверджено.', pt: 'Denúncia confirmada.', pl: 'Zgłoszenie potwierdzone.', fr: 'Signalement confirmé.' },
+  reportDismissed: { en: 'Report dismissed.', ru: 'Жалоба скрыта.', uk: 'Скаргу приховано.', pt: 'Denúncia dispensada.', pl: 'Zgłoszenie odrzucone.', fr: 'Signalement rejeté.' },
+  deletionRestored: { en: 'Deletion restored.', ru: 'Удаление отменено.', uk: 'Видалення скасовано.', pt: 'Exclusão restaurada.', pl: 'Usunięcie cofnięte.', fr: 'Suppression restaurée.' },
+  optionalNoteForOwner: { en: 'Optional note for the site owner:', ru: 'Комментарий для владельца сайта (необязательно):', uk: 'Коментар для власника сайту (необовʼязково):', pt: 'Nota opcional para o dono do site:', pl: 'Opcjonalna notatka dla właściciela strony:', fr: 'Note facultative pour le propriétaire du site :' },
+  rejectReasonPrompt: { en: 'Reason for rejecting this site:', ru: 'Причина отклонения сайта:', uk: 'Причина відхилення сайту:', pt: 'Motivo para rejeitar este site:', pl: 'Powód odrzucenia tej strony:', fr: 'Raison du rejet de ce site :' },
+  siteApproved: { en: 'Site approved.', ru: 'Сайт одобрен.', uk: 'Сайт схвалено.', pt: 'Site aprovado.', pl: 'Strona zatwierdzona.', fr: 'Site approuvé.' },
+  siteRejected: { en: 'Site rejected.', ru: 'Сайт отклонён.', uk: 'Сайт відхилено.', pt: 'Site rejeitado.', pl: 'Strona odrzucona.', fr: 'Site rejeté.' },
+  adSlots: { en: 'Ad slots', ru: 'Рекламные слоты', uk: 'Рекламні слоти', pt: 'Slots de anúncio', pl: 'Sloty reklamowe', fr: 'Emplacements publicitaires' },
+  adSlotsLead: { en: 'Manage the sponsor blocks that appear on home and feed pages. This now uses dedicated admin state instead of the public ad render cache.', ru: 'Управление sponsor-блоками на главной и в ленте. Здесь отдельное admin-состояние, без смешивания с публичным рендером.', uk: 'Керування sponsor-блоками на головній та в стрічці. Тут окремий admin-state без змішування з публічним рендером.', pt: 'Gerencie os blocos de patrocinador na home e no feed. Agora isso usa estado admin dedicado em vez do cache público de render.', pl: 'Zarządzaj blokami sponsorów na stronie głównej i w feedzie. Teraz używa to osobnego stanu admina zamiast publicznego cache renderu.', fr: 'Gérez les blocs sponsors sur l’accueil et le feed. Cela utilise désormais un état admin dédié au lieu du cache public de rendu.' },
+  title: { en: 'Title', ru: 'Заголовок', uk: 'Заголовок', pt: 'Título', pl: 'Tytuł', fr: 'Titre' },
+  internalLink: { en: 'Internal link', ru: 'Внутренняя ссылка', uk: 'Внутрішнє посилання', pt: 'Link interno', pl: 'Link wewnętrzny', fr: 'Lien interne' },
+  description: { en: 'Description', ru: 'Описание', uk: 'Опис', pt: 'Descrição', pl: 'Opis', fr: 'Description' },
+  addSlot: { en: 'Add slot', ru: 'Добавить слот', uk: 'Додати слот', pt: 'Adicionar slot', pl: 'Dodaj slot', fr: 'Ajouter un slot' },
+  internal: { en: 'internal', ru: 'внутренняя', uk: 'внутрішня', pt: 'interno', pl: 'wewnętrzny', fr: 'interne' },
+  external: { en: 'external', ru: 'внешняя', uk: 'зовнішня', pt: 'externo', pl: 'zewnętrzny', fr: 'externe' },
+  icon: { en: 'Icon', ru: 'Иконка', uk: 'Іконка', pt: 'Ícone', pl: 'Ikona', fr: 'Icône' },
+  logoUrl: { en: 'Logo URL', ru: 'Лого URL', uk: 'Лого URL', pt: 'URL do logo', pl: 'URL logo', fr: 'URL du logo' },
+  save: { en: 'Save', ru: 'Сохранить', uk: 'Зберегти', pt: 'Salvar', pl: 'Zapisz', fr: 'Enregistrer' },
+  enable: { en: 'Enable', ru: 'Включить', uk: 'Увімкнути', pt: 'Ativar', pl: 'Włącz', fr: 'Activer' },
+  disable: { en: 'Disable', ru: 'Выключить', uk: 'Вимкнути', pt: 'Desativar', pl: 'Wyłącz', fr: 'Désactiver' },
+  delete: { en: 'Delete', ru: 'Удалить', uk: 'Видалити', pt: 'Excluir', pl: 'Usuń', fr: 'Supprimer' },
+  adSlotAdded: { en: 'Ad slot added.', ru: 'Рекламный слот добавлен.', uk: 'Рекламний слот додано.', pt: 'Slot de anúncio adicionado.', pl: 'Slot reklamowy dodany.', fr: 'Emplacement publicitaire ajouté.' },
+  adSlotUpdated: { en: 'Ad slot updated.', ru: 'Слот обновлён.', uk: 'Слот оновлено.', pt: 'Slot de anúncio atualizado.', pl: 'Slot reklamowy zaktualizowany.', fr: 'Emplacement publicitaire mis à jour.' },
+  adSlotEnabled: { en: 'Ad slot enabled.', ru: 'Слот включён.', uk: 'Слот увімкнено.', pt: 'Slot de anúncio ativado.', pl: 'Slot reklamowy włączony.', fr: 'Emplacement publicitaire activé.' },
+  adSlotDisabled: { en: 'Ad slot disabled.', ru: 'Слот выключен.', uk: 'Слот вимкнено.', pt: 'Slot de anúncio desativado.', pl: 'Slot reklamowy wyłączony.', fr: 'Emplacement publicitaire désactivé.' },
+  deleteAdSlotConfirm: { en: 'Delete this ad slot?', ru: 'Удалить этот рекламный слот?', uk: 'Видалити цей рекламний слот?', pt: 'Excluir este slot de anúncio?', pl: 'Usunąć ten slot reklamowy?', fr: 'Supprimer cet emplacement publicitaire ?' },
+  adSlotDeleted: { en: 'Ad slot deleted.', ru: 'Слот удалён.', uk: 'Слот видалено.', pt: 'Slot de anúncio excluído.', pl: 'Slot reklamowy usunięty.', fr: 'Emplacement publicitaire supprimé.' },
+  maintenanceEnabled: { en: 'Maintenance mode enabled.', ru: 'Maintenance mode включён.', uk: 'Maintenance mode увімкнено.', pt: 'Modo de manutenção ativado.', pl: 'Tryb maintenance włączony.', fr: 'Mode maintenance activé.' },
+  maintenanceDisabled: { en: 'Maintenance mode disabled.', ru: 'Maintenance mode выключен.', uk: 'Maintenance mode вимкнено.', pt: 'Modo de manutenção desativado.', pl: 'Tryb maintenance wyłączony.', fr: 'Mode maintenance désactivé.' }
+};
+function adminText(key) {
+  return localeLabel(adminLocale[key]);
+}
+function adminFormat(key, value) {
+  return adminText(key).replace('%s', value);
+}
 function getChatSettings() {
   return currentUser()?.settings || state.me?.user?.settings || {};
 }
@@ -2560,27 +2683,26 @@ function renderAdminPage() {
   if (!isOperatorSession()) return renderGate('Access restricted to operators.');
   const stats = state.adminStats;
   const ownerMode = isOwnerSession();
-  const isRu = currentLang() === 'ru';
   const tabs = ownerMode
     ? [
         { id: 'stats', label: t('stats') || 'Stats' },
         { id: 'users', label: t('users') || 'Users' },
         { id: 'moderation', label: t('moderation') || 'Moderation' },
-        { id: 'review', label: isRu ? 'Ревью сайтов' : 'Site review' },
-        { id: 'verification', label: isRu ? 'Верификация' : 'Verification' },
+        { id: 'review', label: adminText('siteReviewQueue') },
+        { id: 'verification', label: t('verification') || adminText('verificationRequests') },
         { id: 'ads', label: t('ads') || 'Ads' },
-        { id: 'telemetry', label: 'Telemetry' },
-        { id: 'platform', label: isRu ? 'Платформа' : 'Platform' },
+        { id: 'telemetry', label: adminText('telemetry') },
+        { id: 'platform', label: adminText('platformControl') },
         { id: 'logs', label: t('logs') || 'Logs' },
       ]
     : [
-        { id: 'users', label: currentLang() === 'ru' ? 'Пользователи и подписки' : 'Users & subscriptions' },
+        { id: 'users', label: adminText('usersAndSubscriptions') },
         { id: 'moderation', label: currentLang() === 'ru' ? 'Модерация' : 'Moderation' }
       ];
   const activeTab = tabs.some(({ id }) => id === state.adminTab) ? state.adminTab : tabs[0].id;
   return `
     <div class="admin-page-head">
-      <span class="eyebrow">${ownerMode ? (isRu ? 'владелец' : 'owner') : 'admin'}</span>
+      <span class="eyebrow">${ownerMode ? adminText('owner') : 'admin'}</span>
       <h1>${t('adminPanel') || 'Admin Panel'}</h1>
     </div>
     <section class="settings-shell section-shell">
@@ -2601,43 +2723,41 @@ function renderAdminPage() {
     </section>`;
 }
 function renderAdminStats(stats) {
-  const isRu = currentLang() === 'ru';
   if (!stats) return renderLoading();
   const queueCount = (state.adminSiteReviewQueue || []).length;
   const telemetry = state.adminTelemetry;
-  return `<section class="settings-panel"><h2>${isRu ? 'Обзор платформы' : 'Platform overview'}</h2>
+  return `<section class="settings-panel"><h2>${adminText('platformOverview')}</h2>
     <div class="admin-stats-grid">
-      <div class="admin-stat"><strong>${stats.users?.total || 0}</strong><span>${isRu ? 'Всего пользователей' : 'Total users'}</span></div>
-      <div class="admin-stat"><strong>${stats.users?.newToday || 0}</strong><span>${isRu ? 'Новых сегодня' : 'New today'}</span></div>
-      <div class="admin-stat"><strong>${stats.users?.banned || 0}</strong><span>${isRu ? 'Заблокировано' : 'Banned'}</span></div>
-      <div class="admin-stat"><strong>${stats.messages?.total || 0}</strong><span>${isRu ? 'Сообщений' : 'Messages'}</span></div>
-      <div class="admin-stat"><strong>${stats.messages?.today || 0}</strong><span>${isRu ? 'Сообщений сегодня' : 'Messages today'}</span></div>
-      <div class="admin-stat"><strong>${stats.rooms?.total || 0}</strong><span>${isRu ? 'Комнат' : 'Rooms'}</span></div>
-      <div class="admin-stat"><strong>${stats.sites?.public || 0}</strong><span>${isRu ? 'Публичных сайтов' : 'Public sites'}</span></div>
-      <div class="admin-stat"><strong>${stats.posts?.total || 0}</strong><span>${isRu ? 'Постов' : 'Posts'}</span></div>
-      <div class="admin-stat"><strong>${stats.reports?.open || 0}</strong><span>${isRu ? 'Открытых жалоб' : 'Open reports'}</span></div>
-      <div class="admin-stat"><strong>${stats.deletions?.scheduled || 0}</strong><span>${isRu ? 'Очередь удаления 24ч' : '24h deletion queue'}</span></div>
-      <div class="admin-stat"><strong>${stats.workspaces || 0}</strong><span>${isRu ? 'Воркспейсов' : 'Workspaces'}</span></div>
-      <div class="admin-stat"><strong>${queueCount}</strong><span>${isRu ? 'Сайтов ждут ревью' : 'Sites waiting review'}</span></div>
-      <div class="admin-stat"><strong>${telemetry?.summary?.pageviews || 0}</strong><span>${isRu ? 'Pageviews за окно' : 'Window pageviews'}</span></div>
+      <div class="admin-stat"><strong>${stats.users?.total || 0}</strong><span>${adminText('totalUsers')}</span></div>
+      <div class="admin-stat"><strong>${stats.users?.newToday || 0}</strong><span>${adminText('newToday')}</span></div>
+      <div class="admin-stat"><strong>${stats.users?.banned || 0}</strong><span>${adminText('banned')}</span></div>
+      <div class="admin-stat"><strong>${stats.messages?.total || 0}</strong><span>${adminText('messages')}</span></div>
+      <div class="admin-stat"><strong>${stats.messages?.today || 0}</strong><span>${adminText('messagesToday')}</span></div>
+      <div class="admin-stat"><strong>${stats.rooms?.total || 0}</strong><span>${adminText('rooms')}</span></div>
+      <div class="admin-stat"><strong>${stats.sites?.public || 0}</strong><span>${adminText('publicSites')}</span></div>
+      <div class="admin-stat"><strong>${stats.posts?.total || 0}</strong><span>${adminText('posts')}</span></div>
+      <div class="admin-stat"><strong>${stats.reports?.open || 0}</strong><span>${adminText('openReports')}</span></div>
+      <div class="admin-stat"><strong>${stats.deletions?.scheduled || 0}</strong><span>${adminText('deletionQueue24h')}</span></div>
+      <div class="admin-stat"><strong>${stats.workspaces || 0}</strong><span>${adminText('workspaces')}</span></div>
+      <div class="admin-stat"><strong>${queueCount}</strong><span>${adminText('sitesWaitingReview')}</span></div>
+      <div class="admin-stat"><strong>${telemetry?.summary?.pageviews || 0}</strong><span>${adminText('windowPageviews')}</span></div>
     </div>
-    ${state.maintenance ? `<div class="inline-alert inline-alert-warning" style="margin-top:10px">${iconBadge('alert', 'warning')}<div class="inline-alert-copy"><strong>Maintenance mode</strong><span>Public API access is currently restricted.</span></div></div>` : ''}
+    ${state.maintenance ? `<div class="inline-alert inline-alert-warning" style="margin-top:10px">${iconBadge('alert', 'warning')}<div class="inline-alert-copy"><strong>${adminText('maintenanceMode')}</strong><span>${adminText('maintenanceRestricted')}</span></div></div>` : ''}
   </section>`;
 }
 function renderAdminUsers() {
   const ownerMode = isOwnerSession();
   const plans = state.meta?.subscriptions || [];
-  const isRu = currentLang() === 'ru';
   const roleOptions = [
-    ['member', isRu ? 'Участник' : 'Member'],
-    ['moderator', isRu ? 'Модератор' : 'Moderator'],
+    ['member', adminText('member')],
+    ['moderator', adminText('moderator')],
     ['admin', 'Admin'],
-    ['owner', isRu ? 'Владелец' : 'Owner']
+    ['owner', adminText('ownerRole')]
   ];
-  return `<section class="settings-panel"><h2>${isRu ? 'Пользователи' : 'Users'} (${state.adminUsers.length})</h2>
+  return `<section class="settings-panel"><h2>${adminText('users')} (${state.adminUsers.length})</h2>
     <div class="search-control" style="margin-bottom:12px">
       ${icons.search}
-      <input type="search" data-input="admin-search" placeholder="${isRu ? 'Поиск пользователей…' : 'Search users…'}" />
+      <input type="search" data-input="admin-search" placeholder="${adminText('searchUsers')}" />
     </div>
     <div class="social-list">${state.adminUsers.map(u => `
       <div class="social-row admin-user-row ${u.bannedAt ? 'banned-row' : ''}">
@@ -2647,19 +2767,19 @@ function renderAdminUsers() {
           <span>@${escapeHtml(u.handle)} · ${escapeHtml(u.email || '')} · <em>${escapeHtml(u.roleInternal || u.roleLabel || 'member')}</em></span>
           <div class="badge-row">${badgePills(u)}</div>
           <span class="muted" style="display:block;font-size:12px;margin-top:4px">
-            ${isRu ? 'Тариф' : 'Plan'}: ${escapeHtml((['owner', 'admin'].includes(u.roleInternal || '') ? (isRu ? 'доступ оператора' : 'Operator access') : (u.billing?.planLabel || 'Free')))}
-            · ${isRu ? 'Сайты' : 'Sites'}: ${u.siteCount || 0}/${u.siteUnlimited ? '∞' : escapeHtml(u.siteLimitLabel || '0')}
+            ${adminText('plan')}: ${escapeHtml((['owner', 'admin'].includes(u.roleInternal || '') ? adminText('operatorAccess') : (u.billing?.planLabel || 'Free')))}
+            · ${adminText('sites')}: ${u.siteCount || 0}/${u.siteUnlimited ? '∞' : escapeHtml(u.siteLimitLabel || '0')}
           </span>
           ${ownerMode ? `
             <div class="admin-control-grid" style="margin-top:10px">
               <label class="admin-field">
-                <span>${isRu ? 'Роль' : 'Role'}</span>
+                <span>${adminText('role')}</span>
                 <select data-admin-role-select="${escapeHtml(u.handleCanonical)}" ${u.isSelf ? 'disabled' : ''}>
                   ${roleOptions.map(([value, label]) => `<option value="${value}" ${(u.roleInternal || 'member') === value ? 'selected' : ''}>${label}</option>`).join('')}
                 </select>
               </label>
               <label class="admin-field">
-                <span>${isRu ? 'Бейджи' : 'Badges'}</span>
+                <span>${adminText('badges')}</span>
                 <input type="text" data-admin-badges-input="${escapeHtml(u.handleCanonical)}" value="${escapeHtml((u.badges || []).join(', '))}" placeholder="USR, VRF, DEV" ${u.isSelf ? 'disabled' : ''} />
               </label>
             </div>` : ''}
@@ -2670,37 +2790,36 @@ function renderAdminUsers() {
             ${plans.map((plan) => `<option value="${escapeHtml(plan.id)}" ${(u.billing?.planId || '') === plan.id ? 'selected' : ''}>${escapeHtml(plan.label)}</option>`).join('')}
           </select>
           <button class="soft-button compact" data-action="admin-save-plan" data-handle="${escapeHtml(u.handleCanonical)}" ${!ownerMode && u.roleInternal === 'owner' ? 'disabled' : ''}>
-            ${isRu ? 'Сохранить тариф' : 'Save plan'}
+            ${adminText('savePlan')}
           </button>
           ${ownerMode && !u.isSelf ? `
             ${u.bannedAt
-              ? `<button class="soft-button compact" data-action="admin-unban" data-handle="${escapeHtml(u.handleCanonical)}">${isRu ? 'Разбанить' : 'Unban'}</button>`
-              : `<button class="inline-button danger compact" data-action="admin-ban" data-handle="${escapeHtml(u.handleCanonical)}">${isRu ? 'Забанить' : 'Ban'}</button>`}
-            <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} ${isRu ? 'Верифицировать' : 'Verify'}</button>
-            <button class="soft-button compact" data-action="admin-save-user-access" data-handle="${escapeHtml(u.handleCanonical)}">${isRu ? 'Сохранить доступ' : 'Save access'}</button>
+              ? `<button class="soft-button compact" data-action="admin-unban" data-handle="${escapeHtml(u.handleCanonical)}">${adminText('unban')}</button>`
+              : `<button class="inline-button danger compact" data-action="admin-ban" data-handle="${escapeHtml(u.handleCanonical)}">${adminText('ban')}</button>`}
+            <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} ${adminText('verify')}</button>
+            <button class="soft-button compact" data-action="admin-save-user-access" data-handle="${escapeHtml(u.handleCanonical)}">${adminText('saveAccess')}</button>
           ` : ''}
           ${!u.isSelf ? `<button class="inline-button danger compact" data-action="admin-delete-account" data-handle="${escapeHtml(u.handleCanonical)}" ${!ownerMode && u.roleInternal === 'owner' ? 'disabled' : ''}>${currentLang() === 'ru' ? 'Удалить аккаунт' : 'Delete account'}</button>` : ''}
           ${!ownerMode && u.isSelf ? '<span class="muted">you</span>' : ''}
         </div>
-      </div>`).join('') || renderEmpty(isRu ? 'Пользователи не найдены.' : 'No users found.')}
+      </div>`).join('') || renderEmpty(adminText('noUsersFound'))}
     </div>
   </section>`;
 }
 function renderAdminAds() {
-  const isRu = currentLang() === 'ru';
-  return `<section class="settings-panel"><h2>${isRu ? 'Рекламные слоты' : 'Ad slots'}</h2>
-    <p class="muted">${isRu ? 'Управление sponsor-блоками на главной и в ленте. Здесь отдельное admin-состояние, без смешивания с публичным рендером.' : 'Manage the sponsor blocks that appear on home and feed pages. This now uses dedicated admin state instead of the public ad render cache.'}</p>
+  return `<section class="settings-panel"><h2>${adminText('adSlots')}</h2>
+    <p class="muted">${adminText('adSlotsLead')}</p>
     <div class="tile admin-ad-create">
       <div class="admin-control-grid">
-        <label class="admin-field"><span>${isRu ? 'Заголовок' : 'Title'}</span><input type="text" data-admin-new-ad="title" placeholder="${isRu ? 'Новый спонсор' : 'New sponsor'}" /></label>
+        <label class="admin-field"><span>${adminText('title')}</span><input type="text" data-admin-new-ad="title" placeholder="New sponsor" /></label>
         <label class="admin-field"><span>CTA</span><input type="text" data-admin-new-ad="cta" placeholder="${isRu ? 'Открыть' : 'Learn more'}" /></label>
         <label class="admin-field"><span>Href</span><input type="text" data-admin-new-ad="href" placeholder="/discover" /></label>
-        <label class="admin-field"><span>${isRu ? 'Иконка / emoji' : 'Icon / emoji'}</span><input type="text" data-admin-new-ad="icon" placeholder="📢" /></label>
-        <label class="admin-field"><span>${isRu ? 'Тип' : 'Type'}</span><select data-admin-new-ad="type"><option value="banner">banner</option><option value="card">card</option></select></label>
-        <label class="admin-field admin-field-check"><input type="checkbox" data-admin-new-ad="internal" checked /><span>${isRu ? 'Внутренняя ссылка' : 'Internal link'}</span></label>
+        <label class="admin-field"><span>Icon / emoji</span><input type="text" data-admin-new-ad="icon" placeholder="📢" /></label>
+        <label class="admin-field"><span>Type</span><select data-admin-new-ad="type"><option value="banner">banner</option><option value="card">card</option></select></label>
+        <label class="admin-field admin-field-check"><input type="checkbox" data-admin-new-ad="internal" checked /><span>${adminText('internalLink')}</span></label>
       </div>
-      <label class="admin-field"><span>${isRu ? 'Описание' : 'Description'}</span><textarea rows="3" data-admin-new-ad="desc" placeholder="${isRu ? 'Короткое описание слота' : 'Short sponsor copy'}"></textarea></label>
-      <div class="detail-actions"><button class="primary-button compact" data-action="admin-create-ad">${icons.plus}<span>${isRu ? 'Добавить слот' : 'Add slot'}</span></button></div>
+      <label class="admin-field"><span>${adminText('description')}</span><textarea rows="3" data-admin-new-ad="desc" placeholder="Short sponsor copy"></textarea></label>
+      <div class="detail-actions"><button class="primary-button compact" data-action="admin-create-ad">${icons.plus}<span>${adminText('addSlot')}</span></button></div>
     </div>
     <div class="stack-list">
       ${(state.adminAds || []).map((ad) => `
@@ -2710,22 +2829,22 @@ function renderAdminAds() {
               ${renderAdVisual(ad, 'admin')}
               <div><strong>${escapeHtml(ad.title)}</strong><span style="display:block;font-size:12px;color:var(--text-muted)">${escapeHtml(ad.type)}</span></div>
             </div>
-            <span class="badge-pill" style="background:${ad.internal ? 'rgba(63,185,80,.12)' : 'rgba(45,140,240,.12)'}">${ad.internal ? (isRu ? 'внутренняя' : 'internal') : (isRu ? 'внешняя' : 'external')}</span>
+            <span class="badge-pill" style="background:${ad.internal ? 'rgba(63,185,80,.12)' : 'rgba(45,140,240,.12)'}">${ad.internal ? adminText('internal') : adminText('external')}</span>
           </div>
           <div class="admin-control-grid">
-            <label class="admin-field"><span>${isRu ? 'Заголовок' : 'Title'}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:title" value="${escapeHtml(ad.title || '')}" /></label>
+            <label class="admin-field"><span>${adminText('title')}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:title" value="${escapeHtml(ad.title || '')}" /></label>
             <label class="admin-field"><span>CTA</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:cta" value="${escapeHtml(ad.cta || '')}" /></label>
             <label class="admin-field"><span>Href</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:href" value="${escapeHtml(ad.href || '')}" /></label>
-            <label class="admin-field"><span>${isRu ? 'Иконка' : 'Icon'}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:icon" value="${escapeHtml(ad.icon || '')}" /></label>
-            <label class="admin-field"><span>${isRu ? 'Лого URL' : 'Logo URL'}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:logo" value="${escapeHtml(ad.logo || '')}" /></label>
-            <label class="admin-field"><span>${isRu ? 'Тип' : 'Type'}</span><select data-admin-ad-input="${escapeHtml(ad.id)}:type"><option value="banner" ${ad.type === 'banner' ? 'selected' : ''}>banner</option><option value="card" ${ad.type === 'card' ? 'selected' : ''}>card</option></select></label>
+            <label class="admin-field"><span>${adminText('icon')}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:icon" value="${escapeHtml(ad.icon || '')}" /></label>
+            <label class="admin-field"><span>${adminText('logoUrl')}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:logo" value="${escapeHtml(ad.logo || '')}" /></label>
+            <label class="admin-field"><span>Type</span><select data-admin-ad-input="${escapeHtml(ad.id)}:type"><option value="banner" ${ad.type === 'banner' ? 'selected' : ''}>banner</option><option value="card" ${ad.type === 'card' ? 'selected' : ''}>card</option></select></label>
           </div>
-          <label class="admin-field"><span>${isRu ? 'Описание' : 'Description'}</span><textarea rows="3" data-admin-ad-input="${escapeHtml(ad.id)}:desc">${escapeHtml(ad.desc || '')}</textarea></label>
+          <label class="admin-field"><span>${adminText('description')}</span><textarea rows="3" data-admin-ad-input="${escapeHtml(ad.id)}:desc">${escapeHtml(ad.desc || '')}</textarea></label>
           <a href="${escapeHtml(ad.href)}" style="font-size:12px;color:var(--accent-2)">${escapeHtml(ad.href)}</a>
           <div class="detail-actions">
-            <button class="soft-button compact" data-action="admin-save-ad" data-id="${escapeHtml(ad.id)}">${isRu ? 'Сохранить' : 'Save'}</button>
-            <button class="soft-button compact" data-action="admin-toggle-ad" data-id="${escapeHtml(ad.id)}" data-active="${ad.active === false ? 'false' : 'true'}">${ad.active === false ? (isRu ? 'Включить' : 'Enable') : (isRu ? 'Выключить' : 'Disable')}</button>
-            <button class="inline-button danger compact" data-action="admin-delete-ad" data-id="${escapeHtml(ad.id)}">${isRu ? 'Удалить' : 'Delete'}</button>
+            <button class="soft-button compact" data-action="admin-save-ad" data-id="${escapeHtml(ad.id)}">${adminText('save')}</button>
+            <button class="soft-button compact" data-action="admin-toggle-ad" data-id="${escapeHtml(ad.id)}" data-active="${ad.active === false ? 'false' : 'true'}">${ad.active === false ? adminText('enable') : adminText('disable')}</button>
+            <button class="inline-button danger compact" data-action="admin-delete-ad" data-id="${escapeHtml(ad.id)}">${adminText('delete')}</button>
           </div>
         </div>`).join('')}
     </div>
@@ -2733,8 +2852,7 @@ function renderAdminAds() {
 }
 function renderAdminVerification() {
   const pending = (state.adminUsers || []).filter(u => u.verificationRequested && !u.badges?.includes('VRF'));
-  const isRu = currentLang() === 'ru';
-  return `<section class="settings-panel"><h2>${isRu ? 'Запросы на верификацию' : 'Verification requests'}</h2>
+  return `<section class="settings-panel"><h2>${adminText('verificationRequests')}</h2>
     ${pending.length ? `
       <div class="social-list">
         ${pending.map(u => `
@@ -2745,21 +2863,20 @@ function renderAdminVerification() {
               <span>@${escapeHtml(u.handle)}</span>
             </div>
             <div class="row-actions">
-              <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} ${isRu ? 'Верифицировать' : 'Verify'}</button>
+              <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} ${adminText('verify')}</button>
             </div>
           </div>`).join('')}
-      </div>` : `<p class="muted">${isRu ? 'Заявок пока нет.' : 'No pending requests.'}</p>`}
+      </div>` : `<p class="muted">${adminText('noPendingRequests')}</p>`}
     <p style="font-size:12px;color:var(--text-muted);margin-top:12px">
-      ${isRu ? 'Чтобы одобрить пользователя, откройте вкладку ' : 'To approve a user, open the '}
-      <button class="text-link" data-action="admin-tab" data-tab="users">${isRu ? 'Пользователи' : 'Users tab'}</button>.
+      ${adminText('toApproveOpen')}
+      <button class="text-link" data-action="admin-tab" data-tab="users">${adminText('usersTab')}</button>.
     </p>
   </section>`;
 }
 function renderAdminReviewQueue() {
-  const isRu = currentLang() === 'ru';
   const items = state.adminSiteReviewQueue || [];
-  return `<section class="settings-panel"><h2>${isRu ? 'Очередь ревью сайтов' : 'Site review queue'}</h2>
-    <p class="muted">${isRu ? 'Проверка сайтов, которые были отправлены на ручное ревью перед публикацией.' : 'Review sites that were submitted for manual approval before wider visibility.'}</p>
+  return `<section class="settings-panel"><h2>${adminText('siteReviewQueue')}</h2>
+    <p class="muted">${adminText('siteReviewLead')}</p>
     <div class="stack-list">
       ${items.length ? items.map((site) => `
         <article class="tile moderation-card" style="gap:10px">
@@ -2768,15 +2885,15 @@ function renderAdminReviewQueue() {
               <strong>${escapeHtml(site.title || site.slug)}</strong>
               <span style="display:block;font-size:12px;color:var(--text-muted)">/@${escapeHtml(site.owner?.handle || '')}/${escapeHtml(site.slug || '')} · ${formatDate(site.updatedAt || site.createdAt)}</span>
             </div>
-            <span class="surface-pill surface-group">${isRu ? 'Ожидает' : 'Pending'}</span>
+            <span class="surface-pill surface-group">${adminText('pending')}</span>
           </div>
           ${site.summary ? `<p style="margin:0;font-size:13px;color:var(--text-soft)">${escapeHtml(site.summary)}</p>` : ''}
           <div class="tile-actions">
-            <a class="soft-button compact" href="${escapeHtml(site.url || `/@${site.owner?.handle}/${site.slug}`)}" target="_blank" rel="noopener">${icons.external}<span>${isRu ? 'Открыть сайт' : 'Open site'}</span></a>
-            <button class="primary-button compact" data-action="admin-site-review" data-id="${site.id}" data-decision="approved">${icons.check}<span>${isRu ? 'Одобрить' : 'Approve'}</span></button>
-            <button class="inline-button danger compact" data-action="admin-site-review" data-id="${site.id}" data-decision="rejected">${isRu ? 'Отклонить' : 'Reject'}</button>
+            <a class="soft-button compact" href="${escapeHtml(site.url || `/@${site.owner?.handle}/${site.slug}`)}" target="_blank" rel="noopener">${icons.external}<span>${adminText('openSite')}</span></a>
+            <button class="primary-button compact" data-action="admin-site-review" data-id="${site.id}" data-decision="approved">${icons.check}<span>${adminText('approve')}</span></button>
+            <button class="inline-button danger compact" data-action="admin-site-review" data-id="${site.id}" data-decision="rejected">${adminText('reject')}</button>
           </div>
-        </article>`).join('') : `<p class="muted">${isRu ? 'Очередь пустая.' : 'The queue is empty.'}</p>`}
+        </article>`).join('') : `<p class="muted">${adminText('emptyQueue')}</p>`}
     </div>
   </section>`;
 }
@@ -2962,20 +3079,19 @@ function renderAdminModeration() {
   </section>`;
 }
 function renderAdminTelemetry() {
-  const isRu = currentLang() === 'ru';
   const telemetry = state.adminTelemetry;
   if (!telemetry) return renderLoading();
   const summary = telemetry.summary || {};
   const topRoutes = telemetry.topRoutes || [];
   const topErrors = telemetry.topErrors || [];
   const vitals = telemetry.vitals || {};
-  return `<section class="settings-panel"><h2>${isRu ? 'Телеметрия' : 'Telemetry'}</h2>
-    <p class="muted">${isRu ? 'Анонимная self-hosted телеметрия по pageview, ошибкам и web vitals.' : 'Anonymous self-hosted telemetry for pageviews, client errors, and web vitals.'}</p>
+  return `<section class="settings-panel"><h2>${adminText('telemetry')}</h2>
+    <p class="muted">${adminText('telemetryLead')}</p>
     <div class="admin-stats-grid">
-      <div class="admin-stat"><strong>${summary.totalEvents || 0}</strong><span>${isRu ? 'Событий' : 'Events'}</span></div>
+      <div class="admin-stat"><strong>${summary.totalEvents || 0}</strong><span>${adminText('events')}</span></div>
       <div class="admin-stat"><strong>${summary.pageviews || 0}</strong><span>${isRu ? 'Pageviews' : 'Pageviews'}</span></div>
-      <div class="admin-stat"><strong>${summary.errors || 0}</strong><span>${isRu ? 'JS ошибок' : 'JS errors'}</span></div>
-      <div class="admin-stat"><strong>${summary.sessions || 0}</strong><span>${isRu ? 'Сессий' : 'Sessions'}</span></div>
+      <div class="admin-stat"><strong>${summary.errors || 0}</strong><span>${adminText('jsErrors')}</span></div>
+      <div class="admin-stat"><strong>${summary.sessions || 0}</strong><span>${adminText('sessions')}</span></div>
     </div>
     <div class="settings-block">
       <h3>${isRu ? 'Web Vitals' : 'Web Vitals'}</h3>
@@ -2989,49 +3105,47 @@ function renderAdminTelemetry() {
     </div>
     <div class="admin-two-col">
       <div class="settings-block">
-        <h3>${isRu ? 'Топ маршрутов' : 'Top routes'}</h3>
+        <h3>${adminText('topRoutes')}</h3>
         <div class="stack-list">
-          ${topRoutes.length ? topRoutes.map(([route, count]) => `<div class="tile admin-inline-list"><strong>${escapeHtml(route || '/')}</strong><span>${count}</span></div>`).join('') : `<p class="muted">${isRu ? 'Нет данных.' : 'No data yet.'}</p>`}
+          ${topRoutes.length ? topRoutes.map(([route, count]) => `<div class="tile admin-inline-list"><strong>${escapeHtml(route || '/')}</strong><span>${count}</span></div>`).join('') : `<p class="muted">${adminText('noDataYet')}</p>`}
         </div>
       </div>
       <div class="settings-block">
-        <h3>${isRu ? 'Топ ошибок' : 'Top errors'}</h3>
+        <h3>${adminText('topErrors')}</h3>
         <div class="stack-list">
-          ${topErrors.length ? topErrors.map(([message, count]) => `<div class="tile admin-inline-list"><strong>${escapeHtml(message)}</strong><span>${count}</span></div>`).join('') : `<p class="muted">${isRu ? 'Нет данных.' : 'No data yet.'}</p>`}
+          ${topErrors.length ? topErrors.map(([message, count]) => `<div class="tile admin-inline-list"><strong>${escapeHtml(message)}</strong><span>${count}</span></div>`).join('') : `<p class="muted">${adminText('noDataYet')}</p>`}
         </div>
       </div>
     </div>
   </section>`;
 }
 function renderAdminPlatform() {
-  const isRu = currentLang() === 'ru';
   const reviewCount = (state.adminSiteReviewQueue || []).length;
   const deletionCount = (state.adminDeletionJobs || []).length;
   const reportCount = (state.adminReports || []).filter((item) => item.status === 'open').length;
-  return `<section class="settings-panel"><h2>${isRu ? 'Контроль платформы' : 'Platform control'}</h2>
+  return `<section class="settings-panel"><h2>${adminText('platformControl')}</h2>
     <div class="admin-stats-grid">
-      <div class="admin-stat"><strong>${reviewCount}</strong><span>${isRu ? 'Сайтов на ревью' : 'Sites in review'}</span></div>
-      <div class="admin-stat"><strong>${deletionCount}</strong><span>${isRu ? 'Удалений в очереди' : 'Queued deletions'}</span></div>
-      <div class="admin-stat"><strong>${reportCount}</strong><span>${isRu ? 'Открытых жалоб' : 'Open reports'}</span></div>
-      <div class="admin-stat"><strong>${(state.adminAds || []).filter((item) => item.active !== false).length}</strong><span>${isRu ? 'Активных ads' : 'Active ads'}</span></div>
+      <div class="admin-stat"><strong>${reviewCount}</strong><span>${adminText('sitesInReview')}</span></div>
+      <div class="admin-stat"><strong>${deletionCount}</strong><span>${adminText('queuedDeletions')}</span></div>
+      <div class="admin-stat"><strong>${reportCount}</strong><span>${adminText('openReports')}</span></div>
+      <div class="admin-stat"><strong>${(state.adminAds || []).filter((item) => item.active !== false).length}</strong><span>${adminText('activeAds')}</span></div>
     </div>
     <div class="settings-block">
-      <h3>${isRu ? 'Maintenance mode' : 'Maintenance mode'}</h3>
-      <p class="muted">${isRu ? 'Теперь переключается прямо owner-сессией без ручного ввода токена в UI.' : 'This now toggles from the owner session directly instead of asking for an env token in the UI.'}</p>
+      <h3>${adminText('maintenanceMode')}</h3>
+      <p class="muted">${adminText('maintenanceDirectToggle')}</p>
       <div class="detail-actions">
         <button class="soft-button ${state.maintenance ? 'danger' : ''}" data-action="toggle-maintenance">
-          ${icons.wrench}<span>${state.maintenance ? (isRu ? 'Выключить maintenance' : 'Disable maintenance') : (isRu ? 'Включить maintenance' : 'Enable maintenance')}</span>
+          ${icons.wrench}<span>${state.maintenance ? adminText('disableMaintenance') : adminText('enableMaintenance')}</span>
         </button>
-        <button class="soft-button" data-action="admin-refresh">${icons.refresh}<span>${isRu ? 'Обновить данные' : 'Refresh data'}</span></button>
+        <button class="soft-button" data-action="admin-refresh">${icons.refresh}<span>${adminText('refreshData')}</span></button>
       </div>
-      ${state.maintenance ? `<div class="inline-alert inline-alert-warning" style="margin-top:10px">${iconBadge('alert', 'warning')}<div class="inline-alert-copy"><strong>${isRu ? 'Maintenance активно' : 'Maintenance is active'}</strong><span>${isRu ? 'Большая часть API сейчас закрыта до отключения режима.' : 'Most API requests are restricted until you disable this mode.'}</span></div></div>` : ''}
+      ${state.maintenance ? `<div class="inline-alert inline-alert-warning" style="margin-top:10px">${iconBadge('alert', 'warning')}<div class="inline-alert-copy"><strong>${adminText('maintenanceActive')}</strong><span>${adminText('maintenanceBlocking')}</span></div></div>` : ''}
     </div>
   </section>`;
 }
 function renderAdminLogs() {
-  const isRu = currentLang() === 'ru';
-  return `<section class="settings-panel"><h2>${isRu ? 'Аудит-логи' : 'Audit logs'}</h2>
-    <p class="muted">${isRu ? 'Логи действий админов и владельца над аккаунтами и объектами платформы.' : 'Audit logs record admin and owner actions taken on accounts and platform objects.'}</p>
+  return `<section class="settings-panel"><h2>${adminText('auditLogs')}</h2>
+    <p class="muted">${adminText('auditLogsLead')}</p>
     <div class="stack-list">
       ${(state.adminLogs || []).length ? (state.adminLogs || []).map(log => `
         <div class="tile" style="gap:6px">
@@ -3041,13 +3155,13 @@ function renderAdminLogs() {
           </div>
           <span style="font-size:12px;color:var(--text-muted)">by @${escapeHtml(log.actorHandle || '')} → @${escapeHtml(log.targetHandle || '')}</span>
         </div>`).join('')
-      : `<p class="muted" style="margin:0">${isRu ? 'Логов пока нет.' : 'No audit logs yet.'}</p>`}
+      : `<p class="muted" style="margin:0">${adminText('noAuditLogs')}</p>`}
     </div>
     <div class="settings-block" style="margin-top:16px">
-      <h3>${isRu ? 'Действия' : 'Actions'}</h3>
+      <h3>${adminText('actions')}</h3>
       <div class="detail-actions">
-        <button class="soft-button" data-action="admin-refresh">${icons.refresh}<span>${isRu ? 'Обновить админ-данные' : 'Refresh admin data'}</span></button>
-        <button class="soft-button" data-action="export-data">${icons.archive}<span>${isRu ? 'Экспорт моих данных' : 'Export my account data'}</span></button>
+        <button class="soft-button" data-action="admin-refresh">${icons.refresh}<span>${adminText('refreshAdminData')}</span></button>
+        <button class="soft-button" data-action="export-data">${icons.archive}<span>${adminText('exportMyAccountData')}</span></button>
       </div>
     </div>
   </section>`;
@@ -4126,8 +4240,11 @@ function renderMessageBubble(room, message) {
   }
   const sticker = message.sticker ? `<img class="message-sticker" src="${message.sticker.previewUrl || message.sticker.dataUrl}" alt="${escapeHtml(message.sticker.name)}" />` : '';
   // Reply preview
+  const replyPreviewText = message.replyTo
+    ? (message.replyTo.displayBody || message.replyTo.body || '')
+    : '';
   const replyPreview = message.replyTo
-    ? `<div class="reply-preview"><span class="reply-author">${escapeHtml(message.replyTo.author?.displayName || '')}</span><span>${escapeHtml((message.replyTo.body || '').slice(0, 80))}</span></div>`
+    ? `<div class="reply-preview"><span class="reply-author">${escapeHtml(message.replyTo.author?.displayName || '')}</span><span>${escapeHtml(replyPreviewText.slice(0, 80))}</span></div>`
     : '';
   // Reactions grouped
   const reactionsHtml = (message.reactions || []).length
@@ -5305,6 +5422,8 @@ function renderSwitchAccountModal() {
   const accounts = state.savedAccounts || [];
   const current = currentUser();
   const localGuest = state.guest === true;
+  const otherAccounts = accounts.filter((account) => Number(account.id) !== Number(current?.id || 0));
+  const modalClass = otherAccounts.length >= 6 ? 'many-accounts' : otherAccounts.length >= 3 ? 'wide-accounts' : '';
   return `<div class="modal-head"><span class="eyebrow">accounts</span><h2>Switch account</h2></div>
     <div class="modal-inner">
       ${current ? `<div class="switch-account-current">
@@ -5314,15 +5433,15 @@ function renderSwitchAccountModal() {
           <span>@${escapeHtml(current.handle || '')}</span>
         </div>
       </div>` : ''}
-      ${accounts.length ? `<div class="switch-account-list">
-        ${accounts.map((account) => `
+      ${otherAccounts.length ? `<div class="switch-account-list ${modalClass}">
+        ${otherAccounts.map((account) => `
           <div class="switch-account-row">
-            <button class="switch-account ${Number(account.id) === Number(current?.id || 0) ? 'is-current' : ''}" data-action="switch-account" data-token="${escapeHtml(account.sessionToken || '')}" ${Number(account.id) === Number(current?.id || 0) ? 'disabled' : ''}>
+            <button class="switch-account" data-action="switch-account" data-token="${escapeHtml(account.sessionToken || '')}">
               ${account.avatarUrl ? `<img src="${escapeHtml(account.avatarUrl)}" alt="${escapeHtml(account.displayName || '')}" />` : `<span class="switch-account-initials">${(account.displayName || account.handle || '?').slice(0,2).toUpperCase()}</span>`}
               <div class="switch-account-meta">
                 <strong>${escapeHtml(account.displayName || '')}</strong>
                 <span>@${escapeHtml(account.handle || '')}</span>
-                <em class="switch-account-status">${Number(account.id) === Number(current?.id || 0) ? 'Current account' : 'Tap to switch'}</em>
+                <em class="switch-account-status">Tap to switch</em>
               </div>
             </button>
             <button class="icon-button compact ghost-button" data-action="remove-saved-account" data-id="${account.id}" title="Remove">${icons.close}</button>
@@ -5422,7 +5541,13 @@ function renderModal() {
   const modal = state.modal;
   // FIX: sort menu rendered inline in searchControl, not as overlay modal
   if (modal.type === 'sort-menu') return '';
-  return `<div class="modal-layer modal-layer-${modal.type}"><div class="modal-backdrop" data-action="close-modal"></div><div class="modal-card modal-${modal.type}"><button class="icon-button compact modal-close" data-action="close-modal">${icons.close}</button>${renderModalInner(modal)}</div></div>`;
+  const switchAccounts = modal.type === 'switch-account'
+    ? (state.savedAccounts || []).filter((account) => Number(account.id) !== Number(currentUser()?.id || 0)).length
+    : 0;
+  const modalSizeClass = modal.type === 'switch-account'
+    ? (switchAccounts >= 6 ? ' modal-size-many' : switchAccounts >= 3 ? ' modal-size-wide' : '')
+    : '';
+  return `<div class="modal-layer modal-layer-${modal.type}"><div class="modal-backdrop" data-action="close-modal"></div><div class="modal-card modal-${modal.type}${modalSizeClass}"><button class="icon-button compact modal-close" data-action="close-modal">${icons.close}</button>${renderModalInner(modal)}</div></div>`;
 }
 function renderModalInner(modal) {
   switch (modal.type) {

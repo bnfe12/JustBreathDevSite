@@ -49,6 +49,8 @@ Uploaded archive sites open through a launch screen first. That screen explains 
 
 Large archive uploads now show a visible client-side progress state during binary upload and then switch into a server-side processing phase, so a 20 MB+ import no longer looks like a silent hang.
 
+Archive-based creator sites now load through the guarded launch flow while still opening the real entry file inside the sandboxed iframe. That preserves warning / consent UX and keeps CSS, JS, images, multi-page exports, and relative asset paths working like a normal static host instead of degrading into raw text.
+
 ---
 
 ## Chat Audio / Voice Notes
@@ -60,6 +62,16 @@ Recent chat-media changes are important because they change how the UI behaves u
 - The active track now lives in a shared top audio block, so playback can continue while you switch chats or move to another screen in the SPA.
 - Voice recording now has an explicit live state with a visible timer and recording banner, so there is no ambiguity about whether the microphone is actually recording.
 - If a future change reintroduces interval-based full renders during media playback, treat that as a regression. Chat playback must stay incremental, not page-wide.
+
+## Current Product Notes
+
+Recent live fixes that matter for anyone deploying or reviewing the repo:
+
+- Admin panel now has a real owner control center: telemetry, site review queue, richer platform controls, ad-slot management, user role / badge editing, and cleaner audit actions.
+- Chat replies are server-linked again. New messages now persist `replyToId`, so replies no longer break as detached messages.
+- Account switcher no longer shows the current profile twice and scales better when many saved accounts exist on one device.
+- Accent color chips use rounded-square swatches instead of compressed circles.
+- Imported archive sites keep the launch / warning boundary but open the actual static entrypoint, so full custom builds work with their own relative assets.
 
 ---
 
@@ -74,6 +86,16 @@ This project should not rely on hiding client code, obfuscating random modules, 
 - isolate uploaded creator sites and review archive imports before approval
 
 The expanded checklist and rationale live in [SECURITY.md](SECURITY.md).
+
+## Repository Hygiene
+
+This GitHub mirror is meant to contain source and documentation only.
+
+- Never commit `.env`, production secrets, OAuth credentials, SMTP passwords, or admin tokens.
+- Never commit live `data/store.json`, uploaded media, extracted creator-site bundles, or backup snapshots.
+- Keep runtime state outside the repository or ignored by git.
+- Treat `/tmp/JustBreathDevSite` or any deployment mirror as a publish target, not as a place to stage secrets.
+- Before every push, re-check `.gitignore`, review `git status`, and ensure only source/docs/config that are safe to expose are being committed.
 
 Questions about docs or the repository: `justbreath.business.mail@gmail.com` and <https://github.com/bnfe12>.
 
@@ -93,7 +115,7 @@ bot tokens, push notifications, sticker packs, GIF search, sign-in by password,
 email code, or Google.
 
 **Owner only**: `/admin` — stats, user management (ban/verify), ad slots,
-verification queue, maintenance mode.
+verification queue, site review queue, telemetry, maintenance mode, and richer platform controls.
 
 Guest mode is read-only. Chats, mail, publishing, sites, and settings require
 an account.

@@ -4512,6 +4512,7 @@ app.post('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
   }
   const body = sanitizeText(req.body?.body, 4000);
   const stickerId = req.body?.stickerId ? Number(req.body.stickerId) : null;
+  const requestedReplyToId = Number(req.body?.replyToId || 0);
   const attachmentName = sanitizeText(req.body?.attachmentName, 90);
   const attachmentDataUrl = safeDataUrl(req.body?.attachmentDataUrl, IMAGE_UPLOAD_LIMIT_BYTES * 4, ['image', 'audio']);
   const attachmentType = sanitizeText(req.body?.attachmentType || '', 30);
@@ -4581,10 +4582,14 @@ app.post('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
     attachment = attachments[0];
   }
   if (!body && !stickerId && !attachment && !attachments.length && !encrypted) return res.status(400).json({ error: 'Write a message or attach something.' });
+  const replyTarget = requestedReplyToId > 0
+    ? store.messages.find((item) => Number(item.id) === requestedReplyToId && Number(item.roomId) === Number(room.id))
+    : null;
   const message = messageDefaults({
     id: nextId(store, 'messages'),
     roomId: room.id,
     userId: req.authUser.id,
+    replyToId: replyTarget?.id || null,
     body: encrypted ? '' : body,
     encrypted,
     ciphertext: encrypted ? sanitizeText(req.body?.ciphertext, 50000) : '',
