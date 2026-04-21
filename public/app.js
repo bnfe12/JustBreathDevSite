@@ -199,8 +199,8 @@ const SITE_CHANGELOG_ENTRIES = [
     date: '2026-04-19',
     title: { en: 'Admin subscriptions and unlimited internal uploads', ru: 'Админские подписки и безлимитные внутренние загрузки' },
     body: {
-      en: 'Operators can manage user plans, and internal admin/owner accounts are no longer limited by standard site upload caps.',
-      ru: 'Операторы теперь могут управлять тарифами пользователей, а внутренние admin/owner-аккаунты больше не ограничены стандартными лимитами загрузки сайтов.'
+      en: 'Operators can manage user plans, and internal platform accounts are no longer limited by standard site upload caps.',
+      ru: 'Операторы теперь могут управлять тарифами пользователей, а внутренние аккаунты платформы больше не ограничены стандартными лимитами загрузки сайтов.'
     }
   }
 ];
@@ -424,11 +424,14 @@ const state = {
     unreadCount: 0, lastSeenMessageId: 0, previewOnly: false,
     friendsExpanded: false, roomInfoTab: 'info',
     attachments: [],
+    upload: { active: false, label: '', percent: 0 },
     forceScrollBottom: false,
     pendingScrollRestore: null,
     activityCount: 0,
     activityKind: '',
-    voiceSpeed: 1
+    voiceSpeed: 1,
+    selectionMode: false,
+    selectedMessageIds: []
   },
   sites: { mine: [], public: [], filter: 'mine', studio: { siteId: null, site: null, files: [], activePath: '', activeFile: null, content: '', loading: false, fileLoading: false, saving: false, dirty: false, error: '', studioEnabled: false, staticRules: null } },
   mail: { inbox: [], sent: [], unread: 0, folder: 'inbox', selected: null, composing: false },
@@ -448,9 +451,11 @@ const state = {
   savedAccounts: loadSavedAccounts(),
   refreshTimer: null, fastRefreshTimer: null,
   backgroundRenderTimer: null, backgroundRenderQueued: false, backgroundRenderFrame: null,
+  renderFrame: null, renderQueued: false,
   renderHoldUntil: 0, filePickerActive: false,
   routeLoadSeq: 0,
   initialUiAnimated: false,
+  telemetry: { sid: '', lastPageviewPath: '', clsValue: 0 },
   // SSE
   sse: null, sseStatus: 'off',
   sseUserId: 0,
@@ -470,12 +475,17 @@ const state = {
       cta: 'See plans →', href: '/#billing', internal: true, active: true }
   ],
   voicePlayback: { key: '', url: '', playing: false, currentTime: 0, duration: 0, speed: 1, title: '', label: '', kind: 'voice' },
+  mediaLibrary: loadMediaLibraryState(),
+  contextMenu: null,
 };
+
+let isRu = false;
 
 function parseRoute(pathname) {
   if (pathname === '/feed') return { name: 'feed' };
   if (pathname === '/messages') return { name: 'messages' };
   if (pathname.startsWith('/messages/')) return { name: 'messages', slug: pathname.split('/').at(-1) };
+  if (pathname === '/media-library') return { name: 'media-library' };
   if (pathname === '/settings') return { name: 'settings' };
   if (pathname.startsWith('/sites/studio/')) return { name: 'site-studio', siteId: pathname.split('/').at(-1) };
   if (pathname === '/sites') return { name: 'sites' };
@@ -525,6 +535,144 @@ function currentLang() {
   });
   return matched ? matched.split('-')[0] : 'en';
 }
+
+function syncLanguageFlags() {
+  isRu = currentLang() === 'ru';
+}
+
+function queueRender() {
+  if (state.renderFrame) return;
+  state.renderQueued = true;
+  state.renderFrame = requestAnimationFrame(() => {
+    state.renderFrame = null;
+    state.renderQueued = false;
+    render();
+  });
+}
+
+function ensureTelemetrySessionId() {
+  if (state.telemetry.sid) return state.telemetry.sid;
+  try {
+    const stored = localStorage.getItem('jb_telemetry_sid');
+    if (stored) {
+      state.telemetry.sid = String(stored).slice(0, 32);
+      return state.telemetry.sid;
+    }
+  } catch {}
+  const sid = `tel-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`.slice(0, 32);
+  state.telemetry.sid = sid;
+  try {
+    localStorage.setItem('jb_telemetry_sid', sid);
+  } catch {}
+  return sid;
+}
+
+function sendTelemetryEvents(events, preferBeacon = false) {
+  const batch = (Array.isArray(events) ? events : [events]).filter(Boolean);
+  if (!batch.length) return;
+  const payload = JSON.stringify({
+    events: batch.map((event) => ({
+      ...event,
+      sid: ensureTelemetrySessionId(),
+      path: event.path || location.pathname,
+      lang: currentLang()
+    }))
+  });
+  const beaconSent = preferBeacon
+    && navigator.sendBeacon
+    && navigator.sendBeacon('/api/telemetry/event', new Blob([payload], { type: 'application/json' }));
+  if (beaconSent) return;
+  fetch('/api/telemetry/event', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: payload,
+    keepalive: preferBeacon
+  }).catch(() => {});
+}
+
+function trackPageview(path = location.pathname) {
+  const cleanPath = String(path || '/').split('?')[0].split('#')[0] || '/';
+  if (state.telemetry.lastPageviewPath === cleanPath) return;
+  state.telemetry.lastPageviewPath = cleanPath;
+  sendTelemetryEvents({
+    type: 'pageview',
+    path: cleanPath,
+    referrer: document.referrer || '',
+    viewport: `${window.innerWidth || 0}x${window.innerHeight || 0}`
+  });
+}
+
+function installTelemetry() {
+  ensureTelemetrySessionId();
+  sendTelemetryEvents({ type: 'session', event: 'start' });
+  window.addEventListener('error', (event) => {
+    sendTelemetryEvents({
+      type: 'error',
+      message: event.message || 'Script error',
+      source: event.filename || '',
+      line: event.lineno || 0,
+      col: event.colno || 0,
+      stack: event.error?.stack || ''
+    });
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    sendTelemetryEvents({
+      type: 'error',
+      message: reason?.message || String(reason || 'Unhandled promise rejection'),
+      source: 'unhandledrejection',
+      stack: reason?.stack || ''
+    });
+  });
+  window.addEventListener('pagehide', () => {
+    sendTelemetryEvents({ type: 'session', event: 'end' }, true);
+  });
+  if (typeof PerformanceObserver === 'function') {
+    try {
+      const paintObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.name === 'first-contentful-paint') {
+            sendTelemetryEvents({ type: 'web-vital', name: 'FCP', value: entry.startTime });
+          }
+        }
+      });
+      paintObserver.observe({ type: 'paint', buffered: true });
+    } catch {}
+    try {
+      const lcpObserver = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        const last = entries[entries.length - 1];
+        if (last) sendTelemetryEvents({ type: 'web-vital', name: 'LCP', value: last.startTime || last.renderTime || last.loadTime || 0 });
+      });
+      lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+    } catch {}
+    try {
+      const clsObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.hadRecentInput) continue;
+          state.telemetry.clsValue += Number(entry.value || 0);
+        }
+        sendTelemetryEvents({ type: 'web-vital', name: 'CLS', value: state.telemetry.clsValue });
+      });
+      clsObserver.observe({ type: 'layout-shift', buffered: true });
+    } catch {}
+    try {
+      const inpObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const duration = Number(entry.duration || entry.processingEnd || 0);
+          if (duration > 0) sendTelemetryEvents({ type: 'web-vital', name: 'INP', value: duration });
+        }
+      });
+      inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 40 });
+    } catch {}
+  }
+  const nav = performance.getEntriesByType?.('navigation')?.[0];
+  if (nav?.responseStart) {
+    sendTelemetryEvents({ type: 'web-vital', name: 'TTFB', value: nav.responseStart });
+  }
+}
+
 function currentTheme() {
   const pref = state.me?.user?.themePreference || localStorage.getItem('jb_theme') || 'dark';
   if (pref === 'system') {
@@ -596,14 +744,14 @@ const adminLocale = {
   sitesInReview: { en: 'Sites in review', ru: 'Сайтов на ревью', uk: 'Сайтів на ревʼю', pt: 'Sites em revisão', pl: 'Strony w przeglądzie', fr: 'Sites en revue' },
   queuedDeletions: { en: 'Queued deletions', ru: 'Удалений в очереди', uk: 'Видалень у черзі', pt: 'Exclusões na fila', pl: 'Usunięcia w kolejce', fr: 'Suppressions en file' },
   activeAds: { en: 'Active ads', ru: 'Активных ads', uk: 'Активних ads', pt: 'Anúncios ativos', pl: 'Aktywne reklamy', fr: 'Annonces actives' },
-  maintenanceDirectToggle: { en: 'This now toggles from the owner session directly instead of asking for an env token in the UI.', ru: 'Теперь переключается прямо owner-сессией без ручного ввода токена в UI.', uk: 'Тепер перемикається прямо з owner-сесії без ручного введення токена в UI.', pt: 'Agora isso alterna direto da sessão owner sem pedir token de env na UI.', pl: 'Teraz przełącza się bezpośrednio z sesji owner bez ręcznego wpisywania tokena env w UI.', fr: 'Cela se bascule désormais directement depuis la session owner sans demander de jeton env dans l’UI.' },
+  maintenanceDirectToggle: { en: 'This now toggles directly from the privileged session instead of asking for an env token in the UI.', ru: 'Теперь переключается прямо из привилегированной сессии без ручного ввода env-токена в UI.', uk: 'Тепер перемикається прямо з привілейованої сесії без ручного введення env-токена в UI.', pt: 'Agora isso alterna direto da sessão privilegiada sem pedir token de env na UI.', pl: 'Teraz przełącza się bezpośrednio z uprzywilejowanej sesji bez ręcznego wpisywania tokena env w UI.', fr: 'Cela se bascule désormais directement depuis la session privilégiée sans demander de jeton env dans l’UI.' },
   disableMaintenance: { en: 'Disable maintenance', ru: 'Выключить maintenance', uk: 'Вимкнути maintenance', pt: 'Desativar manutenção', pl: 'Wyłącz maintenance', fr: 'Désactiver la maintenance' },
   enableMaintenance: { en: 'Enable maintenance', ru: 'Включить maintenance', uk: 'Увімкнути maintenance', pt: 'Ativar manutenção', pl: 'Włącz maintenance', fr: 'Activer la maintenance' },
   refreshData: { en: 'Refresh data', ru: 'Обновить данные', uk: 'Оновити дані', pt: 'Atualizar dados', pl: 'Odśwież dane', fr: 'Rafraîchir les données' },
   maintenanceActive: { en: 'Maintenance is active', ru: 'Maintenance активно', uk: 'Maintenance активний', pt: 'A manutenção está ativa', pl: 'Maintenance jest aktywny', fr: 'La maintenance est active' },
   maintenanceBlocking: { en: 'Most API requests are restricted until you disable this mode.', ru: 'Большая часть API сейчас закрыта до отключения режима.', uk: 'Більшість API зараз закрито до вимкнення цього режиму.', pt: 'A maior parte das requisições da API está restrita até você desativar este modo.', pl: 'Większość żądań API jest ograniczona, dopóki nie wyłączysz tego trybu.', fr: 'La plupart des requêtes API sont limitées tant que vous ne désactivez pas ce mode.' },
   auditLogs: { en: 'Audit logs', ru: 'Аудит-логи', uk: 'Аудит-логи', pt: 'Logs de auditoria', pl: 'Logi audytu', fr: 'Journaux d’audit' },
-  auditLogsLead: { en: 'Audit logs record admin and owner actions taken on accounts and platform objects.', ru: 'Логи действий админов и владельца над аккаунтами и объектами платформы.', uk: 'Логи дій адмінів і власника над акаунтами та обʼєктами платформи.', pt: 'Os logs de auditoria registram ações de admin e owner em contas e objetos da plataforma.', pl: 'Logi audytu rejestrują działania admina i ownera na kontach i obiektach platformy.', fr: 'Les journaux d’audit enregistrent les actions des admins et owners sur les comptes et objets de la plateforme.' },
+  auditLogsLead: { en: 'Audit logs record privileged actions taken on accounts and platform objects.', ru: 'Аудит-логи фиксируют привилегированные действия над аккаунтами и объектами платформы.', uk: 'Аудит-логи фіксують привілейовані дії над акаунтами та обʼєктами платформи.', pt: 'Os logs de auditoria registram ações privilegiadas em contas e objetos da plataforma.', pl: 'Logi audytu rejestrują uprzywilejowane działania na kontach i obiektach platformy.', fr: 'Les journaux d’audit enregistrent les actions privilégiées sur les comptes et objets de la plateforme.' },
   noAuditLogs: { en: 'No audit logs yet.', ru: 'Логов пока нет.', uk: 'Логів поки немає.', pt: 'Ainda não há logs de auditoria.', pl: 'Brak logów audytu.', fr: 'Aucun journal d’audit pour le moment.' },
   actions: { en: 'Actions', ru: 'Действия', uk: 'Дії', pt: 'Ações', pl: 'Działania', fr: 'Actions' },
   refreshAdminData: { en: 'Refresh admin data', ru: 'Обновить админ-данные', uk: 'Оновити адмін-дані', pt: 'Atualizar dados admin', pl: 'Odśwież dane admina', fr: 'Rafraîchir les données admin' },
@@ -628,7 +776,7 @@ const adminLocale = {
   reportConfirmed: { en: 'Report confirmed.', ru: 'Жалоба подтверждена.', uk: 'Скаргу підтверджено.', pt: 'Denúncia confirmada.', pl: 'Zgłoszenie potwierdzone.', fr: 'Signalement confirmé.' },
   reportDismissed: { en: 'Report dismissed.', ru: 'Жалоба скрыта.', uk: 'Скаргу приховано.', pt: 'Denúncia dispensada.', pl: 'Zgłoszenie odrzucone.', fr: 'Signalement rejeté.' },
   deletionRestored: { en: 'Deletion restored.', ru: 'Удаление отменено.', uk: 'Видалення скасовано.', pt: 'Exclusão restaurada.', pl: 'Usunięcie cofnięte.', fr: 'Suppression restaurée.' },
-  optionalNoteForOwner: { en: 'Optional note for the site owner:', ru: 'Комментарий для владельца сайта (необязательно):', uk: 'Коментар для власника сайту (необовʼязково):', pt: 'Nota opcional para o dono do site:', pl: 'Opcjonalna notatka dla właściciela strony:', fr: 'Note facultative pour le propriétaire du site :' },
+  optionalNoteForOwner: { en: 'Optional note for the site author:', ru: 'Комментарий для автора сайта (необязательно):', uk: 'Коментар для автора сайту (необовʼязково):', pt: 'Nota opcional para o autor do site:', pl: 'Opcjonalna notatka dla autora strony:', fr: 'Note facultative pour l’auteur du site :' },
   rejectReasonPrompt: { en: 'Reason for rejecting this site:', ru: 'Причина отклонения сайта:', uk: 'Причина відхилення сайту:', pt: 'Motivo para rejeitar este site:', pl: 'Powód odrzucenia tej strony:', fr: 'Raison du rejet de ce site :' },
   siteApproved: { en: 'Site approved.', ru: 'Сайт одобрен.', uk: 'Сайт схвалено.', pt: 'Site aprovado.', pl: 'Strona zatwierdzona.', fr: 'Site approuvé.' },
   siteRejected: { en: 'Site rejected.', ru: 'Сайт отклонён.', uk: 'Сайт відхилено.', pt: 'Site rejeitado.', pl: 'Strona odrzucona.', fr: 'Site rejeté.' },
@@ -741,6 +889,199 @@ function normalizeMessageForViewer(message) {
   const authorId = Number(message?.author?.id || 0);
   return { ...message, ownedBySession: Boolean(authorId && meId && authorId === meId) };
 }
+function hiddenMessageIdSet(roomSlug = state.chat.room?.slug) {
+  const slug = String(roomSlug || '').trim();
+  if (!slug) return new Set();
+  const map = state.me?.user?.settings?.hiddenMessageIdsByRoom || {};
+  return new Set((Array.isArray(map[slug]) ? map[slug] : []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0));
+}
+function visibleChatMessages(messages = state.chat.messages, roomSlug = state.chat.room?.slug) {
+  const hiddenIds = hiddenMessageIdSet(roomSlug);
+  if (!hiddenIds.size) return Array.isArray(messages) ? messages : [];
+  return (Array.isArray(messages) ? messages : []).filter((message) => !hiddenIds.has(Number(message?.id || 0)));
+}
+function selectedMessageIds() {
+  return Array.from(new Set((state.chat.selectedMessageIds || []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0)));
+}
+function selectedMessageIdSet() {
+  return new Set(selectedMessageIds());
+}
+function selectedChatMessages() {
+  const ids = selectedMessageIdSet();
+  return (state.chat.messages || []).filter((message) => ids.has(Number(message?.id || 0)));
+}
+function setSelectedMessageIds(ids = [], options = {}) {
+  const next = Array.from(new Set((Array.isArray(ids) ? ids : []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0)));
+  state.chat.selectedMessageIds = next;
+  state.chat.selectionMode = next.length > 0;
+  if (!state.chat.selectionMode) {
+    state.contextMenu = null;
+  }
+  if (options.renderNow !== false) queueRender();
+}
+function clearMessageSelection(options = {}) {
+  stopMouseMessageSelectionDrag(false);
+  stopTouchMessageSelectionDrag(false);
+  cancelMessageLongPress();
+  setSelectedMessageIds([], options);
+}
+function toggleMessageSelection(messageId, forceSelected = null, options = {}) {
+  const id = Number(messageId || 0);
+  if (!id) return false;
+  const selected = selectedMessageIdSet();
+  const shouldSelect = typeof forceSelected === 'boolean' ? forceSelected : !selected.has(id);
+  if (shouldSelect) selected.add(id);
+  else selected.delete(id);
+  setSelectedMessageIds(Array.from(selected), options);
+  return shouldSelect;
+}
+function isMessageSelectable(message) {
+  return Boolean(message && !message.deleted && !message.pending && Number(message.id || 0) > 0);
+}
+function canDeleteMessageForEveryone(room, message) {
+  if (!room || !isMessageSelectable(message)) return false;
+  if (message.ownedBySession) return true;
+  return ['owner', 'admin', 'moderator'].includes(String(room.currentRole || ''));
+}
+function canDeleteSelectionForEveryone(room = state.chat.room, messages = selectedChatMessages()) {
+  return Boolean(messages.length && messages.every((message) => canDeleteMessageForEveryone(room, message)));
+}
+function ensureHiddenMessageMap() {
+  if (!state.me?.user) return {};
+  if (!state.me.user.settings) state.me.user.settings = {};
+  if (!state.me.user.settings.hiddenMessageIdsByRoom || typeof state.me.user.settings.hiddenMessageIdsByRoom !== 'object') {
+    state.me.user.settings.hiddenMessageIdsByRoom = {};
+  }
+  return state.me.user.settings.hiddenMessageIdsByRoom;
+}
+function hideMessagesLocally(roomSlug, messageIds = []) {
+  const slug = String(roomSlug || '').trim();
+  if (!slug || !state.me?.user) return;
+  const hiddenMap = ensureHiddenMessageMap();
+  const current = Array.isArray(hiddenMap[slug]) ? hiddenMap[slug] : [];
+  const nextIds = Array.from(new Set(current.concat((Array.isArray(messageIds) ? messageIds : []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0))));
+  hiddenMap[slug] = nextIds;
+  state.chat.messages = visibleChatMessages(state.chat.messages, slug);
+  const selected = selectedMessageIds().filter((id) => !nextIds.includes(id));
+  setSelectedMessageIds(selected, { renderNow: false });
+  syncCurrentRoomPreview();
+}
+function markMessagesDeletedForEveryone(messageIds = []) {
+  const ids = new Set((Array.isArray(messageIds) ? messageIds : []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0));
+  if (!ids.size) return;
+  state.chat.messages = (state.chat.messages || []).map((message) => {
+    if (!ids.has(Number(message?.id || 0))) return message;
+    return {
+      ...message,
+      deleted: true,
+      body: '',
+      displayBody: '[deleted]',
+      attachment: null,
+      attachments: [],
+      sticker: null,
+      confirmedAt: null,
+      confirmedByUserId: null
+    };
+  });
+  const selected = selectedMessageIds().filter((id) => !ids.has(id));
+  setSelectedMessageIds(selected, { renderNow: false });
+  syncCurrentRoomPreview();
+}
+function currentRoomPreviewText() {
+  const messages = visibleChatMessages(state.chat.messages, state.chat.room?.slug).filter((message) => !message.deleted);
+  const last = messages[messages.length - 1] || visibleChatMessages(state.chat.messages, state.chat.room?.slug).at(-1) || null;
+  if (!last) return '';
+  if (last.deleted) return '[deleted]';
+  if (last.encrypted) return 'Encrypted message';
+  if (last.displayBody || last.body) return String(last.displayBody || last.body).slice(0, 160);
+  const attachment = Array.isArray(last.attachments) && last.attachments.length ? last.attachments[0] : last.attachment;
+  return attachment?.name ? `[${attachment.name}]` : '';
+}
+function syncCurrentRoomPreview() {
+  const roomSlug = state.chat.room?.slug;
+  if (!roomSlug) return;
+  const visibleMessages = visibleChatMessages(state.chat.messages, roomSlug);
+  const patch = (room) => {
+    if (!room || room.slug !== roomSlug) return room;
+    return {
+      ...room,
+      messageCount: visibleMessages.length,
+      lastMessagePreview: currentRoomPreviewText()
+    };
+  };
+  if (state.chat.room?.slug === roomSlug) state.chat.room = patch(state.chat.room);
+  if (state.chat.bootstrap?.rooms) state.chat.bootstrap.rooms = state.chat.bootstrap.rooms.map(patch);
+  if (state.chat.bootstrap?.segments) {
+    for (const key of ['groups', 'personal', 'work']) {
+      if (Array.isArray(state.chat.bootstrap.segments[key])) {
+        state.chat.bootstrap.segments[key] = state.chat.bootstrap.segments[key].map(patch);
+      }
+    }
+  }
+  if (Array.isArray(state.me?.rooms)) state.me.rooms = state.me.rooms.map(patch);
+}
+function openMessageDeleteScope(messageIds = []) {
+  const ids = Array.from(new Set((Array.isArray(messageIds) ? messageIds : []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0)));
+  if (!ids.length || !state.chat.room) return;
+  const messages = (state.chat.messages || []).filter((message) => ids.includes(Number(message.id || 0)));
+  if (!messages.length) return;
+  setModal({
+    type: 'message-delete-scope',
+    roomSlug: state.chat.room.slug,
+    messageIds: ids,
+    canDeleteForEveryone: canDeleteSelectionForEveryone(state.chat.room, messages)
+  });
+}
+function messageMenuItems(message, room) {
+  const isRu = currentLang() === 'ru';
+  const items = [];
+  if (isMessageSelectable(message)) {
+    items.push({
+      action: 'select-message',
+      label: isRu ? 'Выбрать' : 'Select',
+      data: { msgId: String(message.id), roomSlug: room?.slug || '' }
+    });
+  }
+  if (!message?.deleted && !message?.pending) {
+    items.push({
+      action: 'reply-message',
+      label: isRu ? 'Ответить' : 'Reply',
+      data: { msgId: String(message.id) }
+    });
+    items.push({
+      action: 'react-emoji',
+      label: isRu ? 'Реакция' : 'React',
+      data: { msgId: String(message.id) }
+    });
+  }
+  if (room && !message?.deleted && !message?.pending && (message?.ownedBySession || ['owner', 'admin', 'moderator'].includes(String(room.currentRole || '')))) {
+    items.push({
+      action: 'delete-message',
+      label: isRu ? 'Удалить' : 'Delete',
+      danger: true,
+      data: { msgId: String(message.id), roomSlug: room.slug }
+    });
+  }
+  return items;
+}
+function openContextMenuAt(x, y, items = []) {
+  const safeItems = Array.isArray(items) ? items.filter((item) => item && item.action && item.label) : [];
+  if (!safeItems.length) {
+    state.contextMenu = null;
+    queueRender();
+    return;
+  }
+  const viewportWidth = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 0);
+  const viewportHeight = Math.max(320, window.innerHeight || document.documentElement.clientHeight || 0);
+  const menuWidth = 260;
+  const menuHeight = safeItems.length * 46 + 18;
+  state.contextMenu = {
+    x: Math.max(8, Math.min(Number(x || 0), viewportWidth - menuWidth - 8)),
+    y: Math.max(8, Math.min(Number(y || 0), viewportHeight - menuHeight - 8)),
+    items: safeItems
+  };
+  queueRender();
+}
 function getRoomMediaItems(room = state.chat.room) {
   if (!room) return [];
   const items = [];
@@ -777,7 +1118,7 @@ function openLightboxState(src, alt = '', type = 'image') {
   state.lightbox = { items, index };
 }
 function isMessagesRouteActive() {
-  return state.route.name === 'messages';
+  return state.route.name === 'messages' || state.route.name === 'media-library';
 }
 function isVisibleChatRoomById(roomId) {
   return isMessagesRouteActive() && Number(state.chat.room?.id || 0) === Number(roomId || 0);
@@ -1028,6 +1369,48 @@ function persistRememberedSettingsSearch(value = '') {
   } catch {}
 }
 
+const MEDIA_LIBRARY_STORAGE_KEY = 'jb_media_library';
+
+function defaultMediaLibraryState() {
+  const fallbackLang = (() => {
+    try {
+      return String(localStorage.getItem('jb_lang') || navigator.language || 'en').toLowerCase();
+    } catch {
+      return 'en';
+    }
+  })();
+  return {
+    folders: [{ id: 'recent', name: fallbackLang.startsWith('ru') ? 'Недавние' : 'Recent' }],
+    tracks: [],
+    selectedFolderId: 'recent'
+  };
+}
+
+function loadMediaLibraryState() {
+  try {
+    const raw = localStorage.getItem(MEDIA_LIBRARY_STORAGE_KEY);
+    if (!raw) return defaultMediaLibraryState();
+    const parsed = JSON.parse(raw);
+    const folders = Array.isArray(parsed?.folders) && parsed.folders.length
+      ? parsed.folders.map((item) => ({ id: String(item.id || ''), name: String(item.name || '').slice(0, 40) })).filter((item) => item.id && item.name)
+      : defaultMediaLibraryState().folders;
+    if (!folders.some((item) => item.id === 'recent')) folders.unshift(defaultMediaLibraryState().folders[0]);
+    return {
+      folders,
+      tracks: Array.isArray(parsed?.tracks) ? parsed.tracks.slice(0, 300) : [],
+      selectedFolderId: folders.some((item) => item.id === parsed?.selectedFolderId) ? parsed.selectedFolderId : 'recent'
+    };
+  } catch {
+    return defaultMediaLibraryState();
+  }
+}
+
+function persistMediaLibrary() {
+  try {
+    localStorage.setItem(MEDIA_LIBRARY_STORAGE_KEY, JSON.stringify(state.mediaLibrary || defaultMediaLibraryState()));
+  } catch {}
+}
+
 function chatScrollStorageKey(slug = '') {
   return slug ? `jb_chat_scroll:${slug}` : '';
 }
@@ -1070,60 +1453,22 @@ function noteChatActivity(kind = 'message') {
 
 function loadSavedAccounts() {
   try {
-    const raw = localStorage.getItem('jb_saved_accounts');
-    const list = raw ? JSON.parse(raw) : [];
-    // deduplicate by id, keep most recent
-    const seen = new Set();
-    return list.filter(a => {
-      if (!a?.id || !a?.sessionToken) return false;
-      if (seen.has(a.id)) return false;
-      seen.add(a.id);
-      return true;
-    }).slice(0, 8);
+    localStorage.removeItem('jb_saved_accounts');
   } catch {
-    return [];
   }
+  return [];
 }
 function persistSavedAccounts() {
-  localStorage.setItem('jb_saved_accounts', JSON.stringify(state.savedAccounts.slice(0, 8)));
+  try {
+    localStorage.removeItem('jb_saved_accounts');
+  } catch {}
 }
 function saveAccountSession(user, sessionToken) {
-  if (!sessionToken || !user) return;
-  const next = {
-    id: user.id,
-    handle: user.handle,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    avatarText: user.avatarText,
-    email: user.email || '',
-    sessionToken
-  };
-  state.savedAccounts = [next, ...state.savedAccounts.filter((item) => item.sessionToken !== next.sessionToken && item.id !== next.id)].slice(0, 8);
-  persistSavedAccounts();
+  void user;
+  void sessionToken;
 }
 function syncSavedAccountProfile(user) {
-  if (!user?.id || !Array.isArray(state.savedAccounts) || !state.savedAccounts.length) return;
-  let changed = false;
-  state.savedAccounts = state.savedAccounts.map((item) => {
-    if (Number(item.id) !== Number(user.id)) return item;
-    const next = {
-      ...item,
-      handle: user.handle || item.handle,
-      displayName: user.displayName || user.handle || item.displayName,
-      avatarUrl: user.avatarUrl || '',
-      avatarText: user.avatarText || item.avatarText || initials(user),
-      email: user.email || item.email || ''
-    };
-    if (
-      next.handle !== item.handle
-      || next.displayName !== item.displayName
-      || next.avatarUrl !== item.avatarUrl
-      || next.avatarText !== item.avatarText
-      || next.email !== item.email
-    ) changed = true;
-    return next;
-  });
-  if (changed) persistSavedAccounts();
+  void user;
 }
 function canReportOwner(owner) {
   const viewer = currentUser();
@@ -1159,6 +1504,32 @@ async function api(url, options = {}) {
   return data;
 }
 
+function uploadJson(url, body, onProgress = null) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || typeof onProgress !== 'function') return;
+      onProgress(Math.max(0, Math.min(1, event.loaded / event.total)));
+    };
+    xhr.onerror = () => reject(new Error('Upload failed.'));
+    xhr.onload = () => {
+      let data = {};
+      try { data = xhr.responseText ? JSON.parse(xhr.responseText) : {}; } catch { data = { rawText: xhr.responseText || '' }; }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data);
+        return;
+      }
+      const error = new Error(data?.error || 'Request failed.');
+      Object.assign(error, data || {});
+      reject(error);
+    };
+    xhr.send(JSON.stringify(body));
+  });
+}
+
 function navigate(path) {
   if (location.pathname === path) return;
   rememberProfileScroll();
@@ -1167,7 +1538,7 @@ function navigate(path) {
   state.route = parseRoute(location.pathname);
   queueWindowScroll(state.currentPath, state.route);
   routeLoad();
-  render();
+  queueRender();
 }
 window.addEventListener('popstate', () => {
   rememberProfileScroll();
@@ -1175,7 +1546,7 @@ window.addEventListener('popstate', () => {
   state.route = parseRoute(location.pathname);
   queueWindowScroll(state.currentPath, state.route);
   routeLoad();
-  render();
+  queueRender();
 });
 
 function shouldHandleClientNav(event, target) {
@@ -1191,10 +1562,10 @@ function shouldHandleClientNav(event, target) {
 function toast(message, tone = 'info') {
   const item = { id: Math.random().toString(36).slice(2), message, tone };
   state.toasts = [...state.toasts, item].slice(-4);
-  render();
+  queueRender();
   setTimeout(() => {
     state.toasts = state.toasts.filter((entry) => entry.id !== item.id);
-    render();
+    queueRender();
   }, 3400);
 }
 
@@ -1490,14 +1861,13 @@ async function loadBootstrap() {
   state.meta = payload.meta;
   state.home = payload.home;
   state.me = payload.me;
+  state.savedAccounts = Array.isArray(payload.savedAccounts) ? payload.savedAccounts : [];
   state.meLoaded = Boolean(payload.me);
   if (state.me?.user) {
     if (state.guest || localStorage.getItem('jb_guest_mode') === '1') {
       localStorage.removeItem('jb_guest_mode');
       state.guest = false;
     }
-    if (payload.sessionToken) saveAccountSession(state.me.user, payload.sessionToken);
-    syncSavedAccountProfile(state.me.user);
     localStorage.setItem('jb_lang', state.me.user.languagePreference || 'en');
     localStorage.setItem('jb_theme', state.me.user.themePreference || 'dark');
     await ensureE2EEKeys();
@@ -1515,7 +1885,10 @@ async function loadBootstrap() {
   } catch {}
   // Load mail unread count
   if (currentUser() && currentUser().roleInternal !== 'guest') {
-    api('/api/mail/unread').then(r => { state.mail.unread = r.count || 0; }).catch(() => {});
+    api('/api/mail/unread').then(r => {
+      state.mail.unread = r.count || 0;
+      queueBackgroundRender();
+    }).catch(() => {});
   }
   syncRealtimeTransport();
 }
@@ -1549,8 +1922,10 @@ async function loadProject(slug) {
   state.project = payload;
 }
 
-async function loadChatBootstrap() {
+async function loadChatBootstrap(options = {}) {
   if (!currentUser() || isGuestSession()) return;
+  const shouldRender = options.render !== false;
+  const preserveRoute = options.preserveRoute === true;
   const payload = await api('/api/chat/bootstrap');
   state.chat.bootstrap = payload;
   const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
@@ -1566,13 +1941,13 @@ async function loadChatBootstrap() {
     state.route = parseRoute(location.pathname);
   }
   if (state.chat.selectedSlug) {
-    await loadChatRoom(state.chat.selectedSlug);
+    await loadChatRoom(state.chat.selectedSlug, true, { render: shouldRender, syncRoute: !preserveRoute });
   } else {
     state.chat.room = null;
     state.chat.messages = [];
     state.chat.tasks = [];
     state.chat.previewOnly = false;
-    render();
+    if (shouldRender) queueRender();
   }
 }
 
@@ -1602,13 +1977,14 @@ function createEmptySiteStudioState(siteId = null) {
   };
 }
 
-async function loadSiteStudio(siteId, preferredPath = '') {
+async function loadSiteStudio(siteId, preferredPath = '', options = {}) {
   if (!currentUser() || isGuestSession()) return;
+  const shouldRender = options.render !== false;
   const numericId = Number(siteId || 0);
   if (!numericId) return;
   const previous = state.sites.studio || createEmptySiteStudioState(numericId);
   state.sites.studio = { ...previous, siteId: numericId, loading: true, error: '' };
-  render();
+  if (shouldRender) queueRender();
   const payload = await api(`/api/me/sites/${numericId}/studio`);
   const files = payload.files || [];
   const rememberedPath = previous.activePath && files.some((item) => item.path === previous.activePath) ? previous.activePath : '';
@@ -1625,18 +2001,19 @@ async function loadSiteStudio(siteId, preferredPath = '') {
   };
   patchVisibleSites(numericId, () => payload.site);
   if (activePath && payload.studioEnabled) {
-    await loadSiteStudioFile(numericId, activePath);
+    await loadSiteStudioFile(numericId, activePath, { render: shouldRender });
     return;
   }
-  render();
+  if (shouldRender) queueRender();
 }
 
-async function loadSiteStudioFile(siteId, filePath) {
+async function loadSiteStudioFile(siteId, filePath, options = {}) {
+  const shouldRender = options.render !== false;
   const numericId = Number(siteId || state.sites.studio?.siteId || 0);
   const relativePath = String(filePath || '').trim();
   if (!numericId || !relativePath) return;
   state.sites.studio = { ...(state.sites.studio || createEmptySiteStudioState(numericId)), siteId: numericId, activePath: relativePath, fileLoading: true, error: '' };
-  render();
+  if (shouldRender) queueRender();
   const payload = await api(`/api/me/sites/${numericId}/studio/file?path=${encodeURIComponent(relativePath)}`);
   state.sites.studio = {
     ...(state.sites.studio || createEmptySiteStudioState(numericId)),
@@ -1654,14 +2031,17 @@ async function loadSiteStudioFile(siteId, filePath) {
     studioEnabled: true
   };
   patchVisibleSites(numericId, () => payload.site);
-  render();
+  if (shouldRender) queueRender();
 }
 
 // FIX: scrollToBottom=true for user-initiated navigation, false for background polling
-async function loadChatRoom(slug, scrollToBottom = true) {
+async function loadChatRoom(slug, scrollToBottom = true, options = {}) {
   if (!slug) return;
+  const shouldRender = options.render !== false;
+  const syncRoute = options.syncRoute !== false;
   const payload = await api(`/api/chat/rooms/${encodeURIComponent(slug)}/messages`);
   state.chat.selectedSlug = slug;
+  clearMessageSelection({ renderNow: false });
   state.chat.room = payload.room;
   state.chat.tasks = payload.tasks || [];
   state.chat.previewOnly = Boolean(payload.previewOnly);
@@ -1670,15 +2050,17 @@ async function loadChatRoom(slug, scrollToBottom = true) {
     const normalized = normalizeMessageForViewer(message);
     return { ...normalized, displayBody: await decryptMessage(payload.room, normalized) };
   }));
+  state.chat.messages = visibleChatMessages(state.chat.messages, slug);
+  syncCurrentRoomPreview();
   if (state.memberListRoom !== slug) state.memberList = [];
   state.chat.forceScrollBottom = Boolean(scrollToBottom);
   if (scrollToBottom && window.matchMedia('(max-width: 900px)').matches) state.chat.mobileView = 'room';
-  if (state.route.name !== 'messages' || state.route.slug !== slug) {
+  if (syncRoute && (state.route.name !== 'messages' || state.route.slug !== slug)) {
     history.replaceState({}, '', `/messages/${slug}`);
     state.currentPath = location.pathname;
     state.route = parseRoute(location.pathname);
   }
-  render();
+  if (shouldRender) queueRender();
   if (scrollToBottom) {
     scrollChatToBottom(true);
     // Mark as read
@@ -1852,6 +2234,68 @@ function voiceBars(seed = '', count = 20) {
   });
 }
 
+function normalizeLibraryTrack(track = {}) {
+  return {
+    id: String(track.id || `${track.url || ''}:${track.label || ''}`),
+    url: String(track.url || ''),
+    label: String(track.label || '').slice(0, 120),
+    title: String(track.title || '').slice(0, 80),
+    kind: track.kind === 'audio' ? 'audio' : 'voice',
+    duration: Number(track.duration || 0),
+    folderId: String(track.folderId || 'recent')
+  };
+}
+
+function rememberTrackInLibrary(track = {}) {
+  const normalized = normalizeLibraryTrack(track);
+  if (!normalized.url) return;
+  const existing = Array.isArray(state.mediaLibrary?.tracks) ? state.mediaLibrary.tracks : [];
+  const filtered = existing.filter((item) => String(item.url) !== normalized.url || String(item.folderId || 'recent') !== 'recent');
+  state.mediaLibrary = {
+    ...(state.mediaLibrary || defaultMediaLibraryState()),
+    tracks: [{ ...normalized, folderId: 'recent' }, ...filtered].slice(0, 300)
+  };
+  persistMediaLibrary();
+}
+
+function buildAudioQueueFromCurrentRoom() {
+  const room = state.chat.room;
+  if (!room) return [];
+  const queue = [];
+  for (const message of state.chat.messages || []) {
+    const items = Array.isArray(message.attachments) && message.attachments.length ? message.attachments : (message.attachment?.url ? [message.attachment] : []);
+    for (const item of items) {
+      if (item?.url && item.type === 'audio') {
+        queue.push({
+          key: `message-${message.id}-${item.url}`,
+          url: item.url,
+          duration: Number(item.duration || 0),
+          title: item.voice ? (t('voiceMessage') || 'Voice message') : (t('audioFile') || 'Audio file'),
+          label: message.author?.displayName || item.name || 'Audio',
+          kind: item.voice ? 'voice' : 'audio'
+        });
+      }
+    }
+  }
+  return queue;
+}
+
+function getPlaybackQueue() {
+  const queue = Array.isArray(state.voicePlayback?.queue) ? state.voicePlayback.queue : [];
+  return queue.filter((item) => item?.url);
+}
+
+function stepVoicePlayback(direction = 1) {
+  const queue = getPlaybackQueue();
+  const currentUrl = String(state.voicePlayback?.url || '');
+  if (!queue.length || !currentUrl) return;
+  const index = queue.findIndex((item) => String(item.url) === currentUrl);
+  if (index < 0) return;
+  const next = queue[index + (direction < 0 ? -1 : 1)];
+  if (!next) return;
+  toggleVoicePlayback(next.key || next.url, next.url, next.duration || 0, next);
+}
+
 async function toggleVoicePlayback(key, url, duration = 0, options = {}) {
   if (!url) return;
   if (!_voicePlaybackAudio) {
@@ -1886,6 +2330,7 @@ async function toggleVoicePlayback(key, url, duration = 0, options = {}) {
   if (!sameTrack) {
     stopVoicePlayback(true);
     _voicePlaybackAudio.src = url;
+    const queue = Array.isArray(options.queue) && options.queue.length ? options.queue : buildAudioQueueFromCurrentRoom();
     state.voicePlayback = {
       key,
       url,
@@ -1895,12 +2340,21 @@ async function toggleVoicePlayback(key, url, duration = 0, options = {}) {
       speed: Number(state.chat.voiceSpeed || 1),
       title: options.title || voicePlaybackLabel(options.kind || 'voice'),
       label: options.label || voicePlaybackLabel(options.kind || 'voice'),
-      kind: options.kind === 'audio' ? 'audio' : 'voice'
+      kind: options.kind === 'audio' ? 'audio' : 'voice',
+      queue
     };
   }
   _voicePlaybackAudio.playbackRate = Number(state.chat.voiceSpeed || state.voicePlayback?.speed || 1);
   try {
     await _voicePlaybackAudio.play();
+    rememberTrackInLibrary({
+      id: String(key || url),
+      url,
+      duration: Number(duration || 0),
+      title: options.title || voicePlaybackLabel(options.kind || 'voice'),
+      label: options.label || voicePlaybackLabel(options.kind || 'voice'),
+      kind: options.kind === 'audio' ? 'audio' : 'voice'
+    });
     syncVoicePlaybackState();
     syncVoicePlaybackUi();
   } catch (error) {
@@ -1948,6 +2402,188 @@ function readVideoDuration(file) {
   });
 }
 
+function readVideoMetadata(file) {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    const objectUrl = URL.createObjectURL(file);
+    video.onloadedmetadata = () => {
+      const width = Math.max(0, Math.round(video.videoWidth || 0));
+      const height = Math.max(0, Math.round(video.videoHeight || 0));
+      const duration = Math.max(0, Math.round(video.duration || 0));
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width, height, duration });
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width: 0, height: 0, duration: 0 });
+    };
+    video.src = objectUrl;
+  });
+}
+
+function preferredVideoRecorderMimeType() {
+  if (typeof window === 'undefined' || typeof window.MediaRecorder === 'undefined') return '';
+  const candidates = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ];
+  return candidates.find((item) => {
+    try {
+      return typeof MediaRecorder.isTypeSupported === 'function' ? MediaRecorder.isTypeSupported(item) : item === 'video/webm';
+    } catch {
+      return false;
+    }
+  }) || '';
+}
+
+function targetVideoProfile(metadata = {}) {
+  const sourceWidth = Math.max(1, Number(metadata.width || 0) || 1);
+  const sourceHeight = Math.max(1, Number(metadata.height || 0) || 1);
+  const duration = Math.max(1, Number(metadata.duration || 0) || 1);
+  const longestSide = duration > 60 ? 720 : (duration > 25 ? 854 : 960);
+  const scale = Math.min(1, longestSide / Math.max(sourceWidth, sourceHeight));
+  const width = Math.max(2, Math.round((sourceWidth * scale) / 2) * 2);
+  const height = Math.max(2, Math.round((sourceHeight * scale) / 2) * 2);
+  const pixelCount = width * height;
+  const fps = duration > 60 ? 20 : 24;
+  const videoBitsPerSecond = pixelCount >= 1280 * 720
+    ? 1600000
+    : pixelCount >= 960 * 540
+      ? 1150000
+      : 850000;
+  return { width, height, fps, videoBitsPerSecond };
+}
+
+async function transcodeVideoBlob(file, metadata, onProgress = null) {
+  const mimeType = preferredVideoRecorderMimeType();
+  if (!mimeType || typeof HTMLCanvasElement === 'undefined' || typeof HTMLCanvasElement.prototype.captureStream !== 'function') {
+    return null;
+  }
+  const profile = targetVideoProfile(metadata);
+  const objectUrl = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.preload = 'auto';
+  video.playsInline = true;
+  video.muted = true;
+  video.volume = 0;
+  video.src = objectUrl;
+  let canvasStream = null;
+  let mediaStream = null;
+  let rafId = 0;
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error('Video metadata failed to load.'));
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = profile.width;
+    canvas.height = profile.height;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return null;
+    canvasStream = canvas.captureStream(profile.fps);
+    let audioTracks = [];
+    try {
+      const captured = typeof video.captureStream === 'function'
+        ? video.captureStream()
+        : (typeof video.mozCaptureStream === 'function' ? video.mozCaptureStream() : null);
+      audioTracks = captured ? captured.getAudioTracks() : [];
+    } catch {}
+    mediaStream = new MediaStream([
+      ...canvasStream.getVideoTracks(),
+      ...audioTracks
+    ]);
+    const chunks = [];
+    const recorder = new MediaRecorder(mediaStream, {
+      mimeType,
+      videoBitsPerSecond: profile.videoBitsPerSecond,
+      audioBitsPerSecond: 96000
+    });
+    const blobPromise = new Promise((resolve, reject) => {
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) chunks.push(event.data);
+      };
+      recorder.onerror = () => reject(new Error('Video compression failed.'));
+      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+    });
+    const draw = () => {
+      if (!video.paused && !video.ended) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        if (typeof onProgress === 'function' && video.duration > 0) {
+          onProgress(Math.min(0.9, Math.max(0.08, (video.currentTime / video.duration) * 0.9)));
+        }
+        rafId = requestAnimationFrame(draw);
+      }
+    };
+    recorder.start(300);
+    const playPromise = video.play();
+    if (playPromise?.catch) await playPromise.catch(() => {});
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    draw();
+    await new Promise((resolve, reject) => {
+      video.onended = () => resolve();
+      video.onerror = () => reject(new Error('Video playback failed during compression.'));
+    });
+    cancelAnimationFrame(rafId);
+    if (recorder.state !== 'inactive') recorder.stop();
+    const blob = await blobPromise;
+    if (!blob.size || (file.size && blob.size >= file.size * 0.98)) return null;
+    return {
+      blob,
+      width: profile.width,
+      height: profile.height,
+      duration: Math.max(0, Number(metadata.duration || 0)),
+      mimeType
+    };
+  } finally {
+    cancelAnimationFrame(rafId);
+    if (canvasStream) canvasStream.getTracks().forEach((track) => track.stop());
+    if (mediaStream) mediaStream.getTracks().forEach((track) => track.stop());
+    try { video.pause(); } catch {}
+    video.removeAttribute('src');
+    try { video.load(); } catch {}
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function compressVideoFile(file, onProgress = null) {
+  const metadata = await readVideoMetadata(file);
+  if (typeof onProgress === 'function') onProgress(0.08);
+  const transcoded = await transcodeVideoBlob(file, metadata, (progress) => {
+    if (typeof onProgress === 'function') onProgress(progress);
+  }).catch(() => null);
+  const source = transcoded?.blob || file;
+  const dataUrl = await readFileAsDataURLWithProgress(source, (progress) => {
+    if (typeof onProgress === 'function') onProgress(0.9 + progress * 0.1);
+  });
+  const outputName = transcoded?.mimeType?.includes('webm')
+    ? `${String(file.name || 'video').replace(/\.[^.]+$/, '')}.webm`
+    : file.name;
+  return {
+    dataUrl,
+    width: transcoded?.width || metadata.width,
+    height: transcoded?.height || metadata.height,
+    duration: transcoded?.duration || metadata.duration,
+    name: outputName,
+    type: 'video'
+  };
+}
+
+async function prepareAudioUpload(file, onProgress = null) {
+  const dataUrl = await readFileAsDataURLWithProgress(file, onProgress);
+  return {
+    dataUrl,
+    width: 0,
+    height: 0,
+    duration: 0,
+    name: file.name,
+    type: 'audio',
+    voice: false
+  };
+}
+
 async function prepareStickerUpload(file) {
   const lowerName = String(file?.name || '').toLowerCase();
   if (!file?.size) throw new Error('Choose a sticker file.');
@@ -1990,26 +2626,44 @@ async function prepareStickerUpload(file) {
   };
 }
 
-async function handleChatImageFiles(files = []) {
-  const list = Array.from(files || []).filter((file) => file?.type?.startsWith('image/'));
+async function handleChatMediaFiles(files = []) {
+  const list = Array.from(files || []).filter((file) => {
+    const type = String(file?.type || '').toLowerCase();
+    return type.startsWith('image/') || type.startsWith('audio/') || type.startsWith('video/');
+  });
   if (!list.length) return 0;
   const existing = state.chat.attachments || [];
   const capacity = Math.max(0, 10 - existing.length);
   if (!capacity) {
-    toast('Max 10 photos per message.', 'info');
+    toast(currentLang() === 'ru' ? 'Максимум 10 файлов в одном сообщении.' : 'Max 10 files per message.', 'info');
     return 0;
   }
   const take = list.slice(0, capacity);
   const prepared = [];
-  for (const file of take) {
+  for (let index = 0; index < take.length; index += 1) {
+    const file = take[index];
+    const basePercent = index / take.length;
+    const type = String(file.type || '').toLowerCase();
     try {
-      prepared.push(await compressImageFile(file, 1440, 0.82));
+      if (type.startsWith('image/')) {
+        setChatUploadProgress(true, currentLang() === 'ru' ? `Подготовка фото ${index + 1}/${take.length}` : `Preparing photo ${index + 1}/${take.length}`, basePercent * 100);
+        prepared.push({ ...(await compressImageFile(file, 1440, 0.82)), type: 'image' });
+      } else if (type.startsWith('video/')) {
+        prepared.push(await compressVideoFile(file, (progress) => {
+          setChatUploadProgress(true, currentLang() === 'ru' ? `Подготовка видео ${index + 1}/${take.length}` : `Preparing video ${index + 1}/${take.length}`, (basePercent + progress / take.length) * 100);
+        }));
+      } else if (type.startsWith('audio/')) {
+        prepared.push(await prepareAudioUpload(file, (progress) => {
+          setChatUploadProgress(true, currentLang() === 'ru' ? `Подготовка аудио ${index + 1}/${take.length}` : `Preparing audio ${index + 1}/${take.length}`, (basePercent + progress / take.length) * 100);
+        }));
+      }
     } catch {}
   }
+  clearChatUploadProgress();
   if (!prepared.length) return 0;
   state.chat.attachments = existing.concat(prepared);
-  if (list.length > capacity) toast(`Only ${capacity} photo(s) added (max 10 per message).`, 'info');
-  render();
+  if (list.length > capacity) toast(currentLang() === 'ru' ? `Добавлено только ${capacity} файл(ов) из-за лимита.` : `Only ${capacity} file(s) added due to the limit.`, 'info');
+  queueRender();
   return prepared.length;
 }
 
@@ -2075,7 +2729,15 @@ async function loadAdminData() {
   state.adminLogs = logs.logs || [];
   state.adminAds = ads?.ads || [];
   state.ads = (ads?.ads || []).filter((item) => item.active !== false);
-  state.adminTelemetry = telemetry;
+  state.adminTelemetry = telemetry ? {
+    ...telemetry,
+    summary: {
+      totalEvents: telemetry.totalEvents || 0,
+      pageviews: telemetry.pageviews || 0,
+      errors: telemetry.errors || 0,
+      sessions: telemetry.sessions || 0
+    }
+  } : null;
   state.adminSiteReviewQueue = reviewQueue?.items || [];
 }
 async function loadAdminUsers(q = '') {
@@ -2369,7 +3031,7 @@ const privacySections = {
     <h2>Contact</h2>
     <p>Data controller: <strong>justbreath</strong></p>
     <p>Email: <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a><br/>
-       Owner profile: <a ${navAttrs('/@justbreath')}>@justbreath</a></p>
+       Platform profile: <a ${navAttrs('/@justbreath')}>@justbreath</a></p>
     <p>For legal / DMCA / GDPR subject-access requests, please mark the subject line accordingly.</p>`
 };
 
@@ -2485,12 +3147,12 @@ function renderContactPage() {
         <ul>
           <li><strong>General:</strong> <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a></li>
           <li><strong>Legal / DMCA / Privacy:</strong> same address, subject line <code>[LEGAL]</code> / <code>[DMCA]</code> / <code>[PRIVACY]</code>.</li>
-          <li><strong>Security reports:</strong> subject line <code>[SECURITY]</code>. We acknowledge within 72 h.</li>
+          <li><strong>Platform reports:</strong> subject line <code>[SECURITY]</code>. We acknowledge within 72 h.</li>
           <li><strong>Press:</strong> subject line <code>[PRESS]</code>.</li>
         </ul>
         <h2>On the platform</h2>
         <ul>
-          <li>Owner profile — <a ${navAttrs('/@justbreath')}>@justbreath</a></li>
+          <li>Platform profile — <a ${navAttrs('/@justbreath')}>@justbreath</a></li>
           <li>Ship feedback — open a post in <a ${navAttrs('/feed')}>Feed</a> with the <code>#feedback</code> tag.</li>
         </ul>
         <h2>Elsewhere</h2>
@@ -2807,6 +3469,7 @@ function renderAdminUsers() {
   </section>`;
 }
 function renderAdminAds() {
+  const isRu = currentLang() === 'ru';
   return `<section class="settings-panel"><h2>${adminText('adSlots')}</h2>
     <p class="muted">${adminText('adSlotsLead')}</p>
     <div class="tile admin-ad-create">
@@ -3079,6 +3742,7 @@ function renderAdminModeration() {
   </section>`;
 }
 function renderAdminTelemetry() {
+  const isRu = currentLang() === 'ru';
   const telemetry = state.adminTelemetry;
   if (!telemetry) return renderLoading();
   const summary = telemetry.summary || {};
@@ -3099,7 +3763,7 @@ function renderAdminTelemetry() {
         ${Object.entries(vitals).map(([name, item]) => `
           <div class="admin-stat">
             <strong>${escapeHtml(name)}</strong>
-            <span>p75 ${item?.p75 || 0} · p95 ${item?.p95 || 0}</span>
+            <span>p50 ${item?.p50 || 0} · p75 ${item?.p75 || 0} · p95 ${item?.p95 || 0}</span>
           </div>`).join('')}
       </div>
     </div>
@@ -3107,16 +3771,17 @@ function renderAdminTelemetry() {
       <div class="settings-block">
         <h3>${adminText('topRoutes')}</h3>
         <div class="stack-list">
-          ${topRoutes.length ? topRoutes.map(([route, count]) => `<div class="tile admin-inline-list"><strong>${escapeHtml(route || '/')}</strong><span>${count}</span></div>`).join('') : `<p class="muted">${adminText('noDataYet')}</p>`}
+          ${topRoutes.length ? topRoutes.map((item) => `<div class="tile admin-inline-list"><strong>${escapeHtml(item?.path || '/')}</strong><span>${item?.count || 0}</span></div>`).join('') : `<p class="muted">${adminText('noDataYet')}</p>`}
         </div>
       </div>
       <div class="settings-block">
         <h3>${adminText('topErrors')}</h3>
         <div class="stack-list">
-          ${topErrors.length ? topErrors.map(([message, count]) => `<div class="tile admin-inline-list"><strong>${escapeHtml(message)}</strong><span>${count}</span></div>`).join('') : `<p class="muted">${adminText('noDataYet')}</p>`}
+          ${topErrors.length ? topErrors.map((item) => `<div class="tile admin-inline-list"><strong>${escapeHtml(item?.message || 'unknown')}</strong><span>${item?.count || 0}</span></div>`).join('') : `<p class="muted">${adminText('noDataYet')}</p>`}
         </div>
       </div>
     </div>
+    <p class="muted" style="margin-top:12px;font-size:12px">${isRu ? `Хранение: ${telemetry.retentionDays || 180} дней. Источники: pageviews, JS errors, session start/end, Web Vitals.` : `Retention: ${telemetry.retentionDays || 180} days. Sources: pageviews, JS errors, session start/end, Web Vitals.`}</p>
   </section>`;
 }
 function renderAdminPlatform() {
@@ -3171,6 +3836,7 @@ async function routeLoad() {
   const routeSnapshot = { ...state.route };
   const loadSeq = ++state.routeLoadSeq;
   state.loading = true;
+  queueRender();
   if (routeSnapshot.name === 'settings') {
     const params = new URLSearchParams(location.search || '');
     state.settingsTab = normalizeSettingsTab(params.get('tab') || state.settingsTab || loadRememberedSettingsTab());
@@ -3187,9 +3853,10 @@ async function routeLoad() {
 
     const postBootstrapTasks = [];
     const canUseAccountAreas = currentUser() && !isGuestSession();
-    if (routeSnapshot.name === 'messages' && canUseAccountAreas) postBootstrapTasks.push(loadChatBootstrap());
+    if (routeSnapshot.name === 'messages' && canUseAccountAreas) postBootstrapTasks.push(loadChatBootstrap({ render: false }));
+    if (routeSnapshot.name === 'media-library' && canUseAccountAreas) postBootstrapTasks.push(loadChatBootstrap({ render: false, preserveRoute: true }));
     if (routeSnapshot.name === 'sites' && canUseAccountAreas) postBootstrapTasks.push(loadSitesMine());
-    if (routeSnapshot.name === 'site-studio' && canUseAccountAreas) postBootstrapTasks.push(loadSitesMine(), loadSiteStudio(routeSnapshot.siteId));
+    if (routeSnapshot.name === 'site-studio' && canUseAccountAreas) postBootstrapTasks.push(loadSitesMine(), loadSiteStudio(routeSnapshot.siteId, '', { render: false }));
     if (routeSnapshot.name === 'join' && currentUser()) postBootstrapTasks.push(joinInvite(routeSnapshot.code));
     if (routeSnapshot.name === 'mail' && canUseAccountAreas) postBootstrapTasks.push(loadMail());
     if (routeSnapshot.name === 'admin' && canUseAccountAreas) postBootstrapTasks.push(loadAdminData());
@@ -3199,7 +3866,8 @@ async function routeLoad() {
   } finally {
     if (loadSeq !== state.routeLoadSeq) return;
     state.loading = false;
-    render();
+    queueRender();
+    trackPageview(location.pathname);
     hidePublicShell();
     if (!state.appReady) hideSplash();
   }
@@ -3647,7 +4315,7 @@ function siteReadinessChecklist(site, config = {}) {
     { label: 'Contact method', done: Boolean(String(config.supportEmail || config.phone || config.contact || '').trim()), hint: 'Give visitors a real way to reach you.' },
     { label: 'Legal links', done: Boolean(String(config.privacyUrl || config.termsUrl || '').trim()), hint: 'Privacy and terms links make the site look legitimate.' },
     { label: 'Open Graph image', done: Boolean(String(config.ogImageUrl || site?.iconUrl || '').trim()), hint: 'Used by search and social previews.' },
-    { label: 'Review ready', done: site?.visibility !== 'public' || ['pending', 'approved'].includes(site?.reviewStatus || ''), hint: 'Public sites should be sent for review before listing.' }
+    { label: 'Review ready', done: site?.visibility === 'private' || ['pending', 'approved'].includes(site?.reviewStatus || ''), hint: 'Sites that should be reachable by other people stay visible only to the author until approval.' }
   ];
 }
 function renderSiteReadiness(site, config = {}) {
@@ -3668,7 +4336,7 @@ function renderSiteCreationGuide() {
       <li>${isRu ? 'Single HTML: если весь сайт живёт в одном <code>.html</code> и не зависит от локальных <code>css/js/images</code>.' : 'Single HTML: when everything lives in one <code>.html</code> file with no local css/js/images dependencies.'}</li>
       <li>${isRu ? 'Archive package: полноценный импорт статического сайта с несколькими страницами, локальными папками <code>css/</code>, <code>js/</code>, <code>img/</code>, <code>fonts/</code> и файлами для скачивания.' : 'Archive package: full static-site import with multiple pages, local <code>css/</code>, <code>js/</code>, <code>img/</code>, <code>fonts/</code> folders and downloadable files.'}</li>
       <li>${isRu ? 'Архив может быть <code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code> или <code>.7z</code>. Для обычных пользователей лимит архива сейчас <code>5 MB</code>; если внутри несколько <code>index.html</code>, приоритет у корневого файла.' : 'Archive packages can be <code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code> or <code>.7z</code>. Regular-user archive limit is now <code>5 MB</code>; if multiple <code>index.html</code> files exist, the root one wins.'}</li>
-      <li>${isRu ? 'Если внутри есть backend/API-код, сайт всё равно импортируется как статика: интерфейс и дизайн сохраняются, а конфликтующие server-side функции только предупреждаются и не исполняются.' : 'If the archive contains backend/API code, the site is still imported as static: the UI and design are preserved, while conflicting server-side features are only warned about and never executed.'}</li>
+      <li>${isRu ? 'Архив проходит карантин и проверку перед публикацией: server-side и исполняемые файлы блокируются, а спорные места попадают в предупреждения на ручное ревью.' : 'Archive uploads pass quarantine and safety checks before publish: server-side and executable files are blocked, while borderline patterns are surfaced as review warnings.'}</li>
     </ul>
   </div>`;
 }
@@ -3684,13 +4352,15 @@ function renderSiteUploadDiagnostics(site) {
   const remaining = Math.max(Number(info.fileCount || 0) - shownFiles.length, 0);
   const importReport = info.importReport || site?.importReport || {};
   const optimizedAssets = importReport.optimizedAssets || [];
+  const securityWarnings = importReport.securityWarnings || [];
+  const antivirus = importReport.antivirus || {};
   const compatibilityWarnings = info.compatibilityWarnings || [];
   return `<div class="site-upload-diagnostics">
     <div class="site-upload-diagnostic-card">
       <strong>${modeLabel}</strong>
       <span>${isRu ? `Точка входа: ${info.entryFile || 'index.html'}` : `Entry file: ${info.entryFile || 'index.html'}`}</span>
       <small>${info.variant === 'archive'
-        ? (isRu ? 'Архив хранится как полноценный static bundle. Дизайн и структура сайта отдаются как есть, а server-side части только предупреждаются и не исполняются.' : 'Archive uploads are stored as a full static bundle. The site design and structure are served as-is, while server-side parts are only flagged and never executed.')
+        ? (isRu ? 'Архив хранится как полноценный static bundle. Перед публикацией он проходит карантин, проверку файлов и, если на сервере настроен ClamAV, сигнатурный антивирусный скан.' : 'Archive uploads are stored as a full static bundle. Before publish they pass quarantine, file checks, and, when ClamAV is available on the server, a signature-based antivirus scan.')
         : (isRu ? 'Этот режим подходит только для одного HTML-файла без локальных ассетов.' : 'This mode only works for one HTML file without local bundled assets.')}</small>
     </div>
     ${(info.files || []).length ? `<div class="site-upload-diagnostic-card">
@@ -3708,6 +4378,13 @@ function renderSiteUploadDiagnostics(site) {
             ? 'Изображения были проверены на оптимизацию. Сжатие применяется только когда новый файл реально меньше исходного.'
             : 'Images were scanned for optimization. Compression is applied only when the new file is actually smaller than the original.')}</small>
       ${optimizedAssets.length ? `<div class="site-upload-file-list">${optimizedAssets.slice(0, 10).map((item) => `<code>${escapeHtml(item.path)} · ${formatByteSize(item.beforeBytes)} → ${formatByteSize(item.afterBytes)}</code>`).join('')}</div>` : ''}
+    </div>` : ''}
+    ${info.variant === 'archive' ? `<div class="site-upload-diagnostic-card warning">
+      <strong>${isRu ? 'Проверка архива' : 'Archive safety scan'}</strong>
+      <small>${antivirus.scanned
+        ? (isRu ? 'Архив прошёл встроенные проверки и сигнатурный антивирусный скан перед публикацией.' : 'The archive passed built-in checks and a signature-based antivirus scan before publish.')
+        : (isRu ? 'Архив прошёл встроенные проверки файлов перед публикацией. Для сигнатурного антивирусного скана добавьте ClamAV на сервер.' : 'The archive passed built-in file checks before publish. Add ClamAV on the server for signature-based antivirus scanning.')}</small>
+      ${securityWarnings.length ? `<div class="site-upload-file-list">${securityWarnings.slice(0, 10).map((item) => `<code>${escapeHtml(item.path)} · ${escapeHtml(item.message)}</code>`).join('')}</div>` : ''}
     </div>` : ''}
     ${(info.missingRefs || []).length ? `<div class="site-upload-diagnostic-card warning">
       <strong>${isRu ? 'Битые локальные ссылки' : 'Broken local references'}</strong>
@@ -3892,12 +4569,15 @@ function renderMessagesPage() {
              : friends;
   const onlineCount = friends.filter(f => f.online).length;
   return `
-    <section class="chat-shell view-${state.chat.mobileView} ${state.chat.room ? 'has-room' : 'no-room'}">
+    <section class="chat-shell view-${state.chat.mobileView} ${state.chat.room ? 'has-room' : 'no-room'}" style="${escapeHtml(chatThemeInlineStyle(chatTheme))}">
       <aside class="chat-list ${state.chat.mobileView === 'room' ? 'mobile-hidden' : ''}">
         <div class="chat-list-head">
           <div class="chat-list-title">
             <h1>${t('messages')}</h1>
-            <button class="icon-button primary compact" data-action="open-modal" data-modal="group" title="${t('createGroup')}">${icons.plus}</button>
+            <div class="inline-stack">
+              <button class="icon-button compact" data-action="open-media-library" title="${currentLang() === 'ru' ? 'Медиатека' : 'Media library'}">${icons.archive}</button>
+              <button class="icon-button primary compact" data-action="open-modal" data-modal="group" title="${t('createGroup')}">${icons.plus}</button>
+            </div>
           </div>
           ${searchControl('chat', t('search') + '…')}
           <div class="chat-sub-tabs four-col">
@@ -3909,7 +4589,7 @@ function renderMessagesPage() {
         </div>
         <div class="chat-items">${renderChatTabItems(rows)}</div>
       </aside>
-      <section class="chat-main message-style-${messageStyle} ${!state.chat.room ? 'empty' : ''}" style="${escapeHtml(chatThemeInlineStyle(chatTheme))}">
+      <section class="chat-main message-style-${messageStyle} ${!state.chat.room ? 'empty' : ''}">
         ${state.chat.room ? renderChatRoom(state.chat.room) : `<div class="chat-placeholder"><div class="chat-placeholder-art">${icons.message}</div><h3>${t('messages')}</h3><p>${t('noRoom')}</p></div>`}
       </section>
     </section>`;
@@ -4046,22 +4726,37 @@ function renderRoomComposer(room) {
       ${state.chat.attachment ? `<div class="composer-preview">
         ${state.chat.attachment.type === 'audio'
           ? renderVoicePlayer(state.chat.attachment, { key: 'composer-preview', compact: true, title: t('voicePreview') || 'Voice preview', label: state.chat.attachment.name || (t('voiceDraft') || 'Voice draft'), kind: state.chat.attachment.voice ? 'voice' : 'audio' })
-          : `<img src="${state.chat.attachment.dataUrl}" alt="attachment" data-action="open-lightbox" data-src="${state.chat.attachment.dataUrl}" />`}
+          : state.chat.attachment.type === 'video'
+            ? `<video src="${state.chat.attachment.dataUrl}" muted playsinline preload="metadata" data-action="open-lightbox" data-src="${state.chat.attachment.dataUrl}" data-media-type="video"></video>`
+            : `<img src="${state.chat.attachment.dataUrl}" alt="attachment" data-action="open-lightbox" data-src="${state.chat.attachment.dataUrl}" />`}
         <div class="preview-meta">
-          <strong>${escapeHtml(state.chat.attachment.name || 'Image')}</strong>
+          <strong>${escapeHtml(state.chat.attachment.name || 'Attachment')}</strong>
           ${state.chat.attachment.type === 'audio'
             ? `<span>${state.chat.attachment.duration || 0}s</span>`
-            : `<span>${state.chat.attachment.width || ''}×${state.chat.attachment.height || ''}</span>`}
+            : state.chat.attachment.type === 'video'
+              ? `<span>${state.chat.attachment.width || ''}×${state.chat.attachment.height || ''} · ${state.chat.attachment.duration || 0}s</span>`
+              : `<span>${state.chat.attachment.width || ''}×${state.chat.attachment.height || ''}</span>`}
           <span class="preview-hint">${state.chat.attachment.type === 'audio' ? (t('pressSendVoice') || 'Press send to share voice message.') : (t('addCaptionHint') || 'Add a caption below and press send.')}</span>
         </div>
         <button type="button" class="icon-button compact" data-action="clear-chat-attachment" title="${t('remove') || 'Remove'}">${icons.close}</button>
       </div>` : ''}
       ${(state.chat.attachments || []).length ? `<div class="composer-gallery-preview">
         ${state.chat.attachments.map((a, i) => `<div class="composer-gallery-item">
-          <img src="${a.dataUrl}" alt="${escapeHtml(a.name || ('Image ' + (i+1)))}" />
+          ${a.type === 'video'
+            ? `<video src="${a.dataUrl}" muted playsinline preload="metadata"></video>`
+            : a.type === 'audio'
+              ? `<div class="composer-audio-chip">${icons.file}<span>${escapeHtml(a.name || ('Audio ' + (i + 1)))}</span></div>`
+              : `<img src="${a.dataUrl}" alt="${escapeHtml(a.name || ('Image ' + (i + 1)))}" />`}
           <button type="button" class="composer-gallery-remove" data-action="remove-chat-attachment" data-index="${i}" title="${t('remove') || 'Remove'}">${icons.close}</button>
         </div>`).join('')}
         ${state.chat.attachments.length < 10 ? `<button type="button" class="composer-gallery-add" data-action="attach-chat-image" title="${t('addPhotos') || 'Add more'}">+</button>` : ''}
+      </div>` : ''}
+      ${state.chat.upload?.active ? `<div class="site-upload-progress chat-upload-progress" aria-live="polite">
+        <div class="site-upload-progress-head">
+          <strong>${escapeHtml(state.chat.upload.label || 'Uploading media')}</strong>
+          <span>${state.chat.upload.percent || 0}%</span>
+        </div>
+        <div class="site-upload-progress-bar"><span style="width:${state.chat.upload.percent || 0}%"></span></div>
       </div>` : ''}
       <div class="composer-shell">
         <button type="button" class="icon-button compact" data-action="attach-chat-image" title="${t('addPhotos')}">${icons.image}</button>
@@ -4070,8 +4765,27 @@ function renderRoomComposer(room) {
         <button type="button" class="icon-button compact ${state.chat.recording ? 'recording-active' : ''}" data-action="toggle-voice-record" title="${state.chat.recording ? (t('stopRecording') || 'Stop') : (t('recordVoice') || 'Voice message')}">${state.chat.recording ? icons.record : icons.mic}</button>
         <button class="icon-button primary-send" type="submit" title="${t('send')}">${icons.plane}</button>
       </div>
-      <input type="file" id="chat-file-input" accept="image/*" multiple hidden />
+      <input type="file" id="chat-file-input" accept="image/*,video/*,audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.weba,.webm,.mp4,.mkv,.mov" multiple hidden />
     </form>`;
+}
+
+function renderMessageSelectionBar(room) {
+  const messages = selectedChatMessages();
+  if (!state.chat.selectionMode || !messages.length) return '';
+  const isRu = currentLang() === 'ru';
+  const canDeleteAll = canDeleteSelectionForEveryone(room, messages);
+  return `<div class="chat-selection-bar">
+    <button type="button" class="icon-button compact" data-action="clear-message-selection" title="${isRu ? 'Закрыть' : 'Close'}">${icons.close}</button>
+    <div class="chat-selection-copy">
+      <strong>${messages.length} ${isRu ? 'выбрано' : 'selected'}</strong>
+      <span>${canDeleteAll
+        ? (isRu ? 'Можно удалить у себя или у всех.' : 'You can delete for yourself or for everyone.')
+        : (isRu ? 'Удаление у всех доступно только для ваших сообщений или для модераторов.' : 'Delete for everyone is available only for your messages or for moderators.')}</span>
+    </div>
+    <div class="chat-selection-actions">
+      <button type="button" class="soft-button compact" data-action="delete-selected-messages">${icons.trash}<span>${isRu ? 'Удалить' : 'Delete'}</span></button>
+    </div>
+  </div>`;
 }
 
 function renderChatRoom(room) {
@@ -4086,7 +4800,8 @@ function renderChatRoom(room) {
       <div class="inline-stack">${room.subscription?.enabled ? `<span class="surface-pill surface-group">${escapeHtml(roomPremiumSummary(room))}</span>` : ''}${(room.tags || []).map((tag) => `<span class="tag-pill">#${escapeHtml(tag)}</span>`).join('')}<button class="icon-button compact" data-action="open-chat-settings" data-slug="${room.slug}" title="${t('details')}">${icons.more}</button></div>
     </header>
     ${renderRoomAccessBanner(room)}
-    <div class="chat-message-list" id="chat-scroll">${state.chat.previewOnly ? '' : renderMessagesWithDividers(room)}</div>
+    ${renderMessageSelectionBar(room)}
+    <div class="chat-message-list ${state.chat.selectionMode ? 'selection-mode' : ''}" id="chat-scroll">${state.chat.previewOnly ? '' : renderMessagesWithDividers(room)}</div>
     <button type="button" class="jump-to-latest" id="jump-to-latest" data-action="jump-to-latest" hidden>${icons.chevronLeft}<span class="jump-count" id="jump-count">${unread > 0 ? unread : ''}</span></button>
     ${renderTypingIndicator(room)}
     ${state.chat.emojiPickerMsgId ? `<div class="composer-overlay-slot">${renderEmojiPicker()}</div>` : ''}
@@ -4147,18 +4862,23 @@ function renderGlobalAudioPlayer() {
   const progress = Math.round(getVoicePlaybackProgress(playback) * 1000);
   return `<section class="audio-hub ${playback.playing ? 'is-playing' : ''}" data-global-audio-player>
     <div class="audio-hub-copy">
-      <span class="audio-hub-kicker" data-role="audio-hub-title">${escapeHtml(playback.title || voicePlaybackLabel(playback.kind))}</span>
-      <strong data-role="audio-hub-label">${escapeHtml(playback.label || voicePlaybackLabel(playback.kind))}</strong>
-      <span class="audio-hub-hint">${t('audioContinueHint') || 'Keeps playing while you switch chats or screens.'}</span>
+      <button type="button" class="audio-hub-open" data-action="open-media-library">
+        <span class="audio-hub-kicker" data-role="audio-hub-title">${escapeHtml(playback.title || voicePlaybackLabel(playback.kind))}</span>
+        <strong data-role="audio-hub-label">${escapeHtml(playback.label || voicePlaybackLabel(playback.kind))}</strong>
+        <span class="audio-hub-hint">${t('audioContinueHint') || 'Keeps playing while you switch chats or screens.'}</span>
+      </button>
     </div>
     <div class="audio-hub-controls">
+      <button type="button" class="audio-hub-ghost" data-action="prev-voice-track" aria-label="Previous">${icons.chevronLeft}</button>
       <button type="button" class="audio-hub-play" data-role="audio-hub-play" data-action="toggle-voice-play" data-voice-key="${escapeHtml(String(playback.key || playback.url))}" data-voice-url="${escapeHtml(playback.url)}" data-voice-duration="${Number(playback.duration || 0)}" data-voice-title="${escapeHtml(playback.title || voicePlaybackLabel(playback.kind))}" data-voice-label="${escapeHtml(playback.label || voicePlaybackLabel(playback.kind))}" data-voice-kind="${escapeHtml(playback.kind || 'voice')}">
         ${playback.playing ? icons.pause : icons.play}
       </button>
+      <button type="button" class="audio-hub-ghost" data-action="next-voice-track" aria-label="Next">${icons.chevronRight}</button>
       <div class="audio-hub-timeline">
         <input type="range" min="0" max="1000" value="${progress}" data-input="global-audio-progress" />
         <div class="audio-hub-meta"><span data-role="audio-hub-current">${formatMediaDuration(playback.currentTime || 0)}</span><span data-role="audio-hub-total">${formatMediaDuration(playback.duration || 0)}</span><span data-role="audio-hub-speed">${Number(playback.speed || 1)}x</span></div>
       </div>
+      <button type="button" class="audio-hub-ghost" data-action="close-voice-playback" aria-label="Close">${icons.close}</button>
     </div>
   </section>`;
 }
@@ -4208,6 +4928,9 @@ function renderMessageStatusControl(room, message) {
 
 function renderMessageBubble(room, message) {
   const own = message.ownedBySession;
+  const selectionMode = Boolean(state.chat.selectionMode);
+  const selected = selectionMode && selectedMessageIdSet().has(Number(message.id || 0));
+  const selectable = isMessageSelectable(message);
   const gallery = Array.isArray(message.attachments) && message.attachments.length > 1 ? message.attachments : null;
   let attachment = '';
   if (gallery) {
@@ -4220,7 +4943,9 @@ function renderMessageBubble(room, message) {
         const isLast = (i === shown.length - 1) && extra > 0;
         const media = a.type === 'video'
           ? `<video src="${a.url}" muted playsinline preload="metadata" data-action="open-lightbox" data-src="${a.url}" data-media-type="video" data-alt="${escapeHtml(a.name || 'video')}"></video>`
-          : `<img src="${a.url}" alt="${escapeHtml(a.name || 'image')}" data-action="open-lightbox" data-src="${a.url}" data-media-type="${escapeHtml(a.type || 'image')}" data-alt="${escapeHtml(a.name || 'image')}" loading="lazy" />`;
+          : a.type === 'audio'
+            ? `<button class="composer-audio-chip" data-action="toggle-voice-play" data-voice-key="${escapeHtml(`message-${message.id}-${a.url}`)}" data-voice-url="${escapeHtml(a.url)}" data-voice-duration="${Number(a.duration || 0)}" data-voice-title="${escapeHtml(a.voice ? (t('voiceMessage') || 'Voice message') : (t('audioFile') || 'Audio file'))}" data-voice-label="${escapeHtml(a.name || 'Audio')}" data-voice-kind="${escapeHtml(a.voice ? 'voice' : 'audio')}">${icons.file}<span>${escapeHtml(a.name || 'Audio')}</span></button>`
+            : `<img src="${a.url}" alt="${escapeHtml(a.name || 'image')}" data-action="open-lightbox" data-src="${a.url}" data-media-type="${escapeHtml(a.type || 'image')}" data-alt="${escapeHtml(a.name || 'image')}" loading="lazy" />`;
         return `<div class="${isLast ? 'message-gallery-more' : ''}" ${isLast ? `data-extra="+${extra}"` : ''}>
           ${media}
         </div>`;
@@ -4231,8 +4956,9 @@ function renderMessageBubble(room, message) {
       ? renderVoicePlayer(message.attachment, {
           key: `message-${message.id}`,
           compact: true,
-          title: 'Voice',
-          label: message.author?.displayName || message.attachment.name || 'Voice message'
+          title: message.attachment.voice ? (t('voiceMessage') || 'Voice message') : (t('audioFile') || 'Audio file'),
+          label: message.attachment.name || message.author?.displayName || 'Audio',
+          kind: message.attachment.voice ? 'voice' : 'audio'
         })
       : message.attachment.type === 'video'
         ? `<video class="message-image clickable-img" src="${message.attachment.url}" playsinline muted preload="metadata" data-action="open-lightbox" data-src="${message.attachment.url}" data-media-type="video" data-alt="${escapeHtml(message.attachment.name || 'video')}"></video>`
@@ -4259,7 +4985,7 @@ function renderMessageBubble(room, message) {
     : '';
   const footerHtml = reactionsHtml || confirmButton ? `<div class="message-footer-row">${reactionsHtml}${confirmButton}</div>` : '';
   // Hover actions
-  const actions = message.deleted || message.pending ? '' : `<div class="msg-actions">
+  const actions = selectionMode || message.deleted || message.pending ? '' : `<div class="msg-actions">
     <button class="msg-action-btn" data-action="reply-message" data-msg-id="${message.id}" title="Reply">${icons.comment}</button>
     <button class="msg-action-btn" data-action="react-emoji" data-msg-id="${message.id}" title="React">${icons.smile}</button>
     ${!own && canReportOwner(message.author) ? `<button class="msg-action-btn" data-action="report-target" data-target-type="message" data-target-id="${message.id}" data-target-label="${escapeHtml(`Message in ${room?.title || 'chat'}`)}" data-target-url="${escapeHtml(room?.slug ? `/messages/${room.slug}` : '/messages')}" title="${currentLang() === 'ru' ? 'Пожаловаться' : 'Report'}">${icons.alert}</button>` : ''}
@@ -4280,9 +5006,10 @@ function renderMessageBubble(room, message) {
            </div>`
         : (message.displayBody ? `<div class="msg-body">${renderMarkdown(message.displayBody)}</div>` : '')
       );
-  return `<article class="message-row ${own ? 'own' : ''} ${message.deleted ? 'deleted' : ''}" id="msg-${message.id}">
+  return `<article class="message-row ${own ? 'own' : ''} ${message.deleted ? 'deleted' : ''} ${selectionMode ? 'select-mode' : ''} ${selected ? 'selected' : ''}" id="msg-${message.id}" data-msg-id="${message.id}" data-room-slug="${room?.slug || ''}" data-can-select="${selectable ? 'true' : 'false'}">
     ${!own ? avatar(message.author, 'xs') : ''}
     <div class="message-bubble-wrap">
+      ${selectionMode ? `<span class="message-select-indicator ${selected ? 'is-selected' : ''}" aria-hidden="true">${icons.check}</span>` : ''}
       ${replyPreview}
       <div class="message-bubble ${state.chat.editingMessageId === message.id ? 'editing' : ''}">
         <div class="message-meta">
@@ -4604,7 +5331,7 @@ function renderSitesPage() {
   const publicSites = state.sites.public || [];
   return `
     <section class="section-shell page-heading-row">
-      <div><span class="eyebrow">sites</span><h1>${t('sites')}</h1><p class="muted">Upload a static HTML site, import a full archive as raw static hosting, or open Studio to edit internal files. Backend-dependent code is flagged during import and stays disabled.</p></div>
+      <div><span class="eyebrow">sites</span><h1>${t('sites')}</h1><p class="muted">Upload a static HTML site, import a full archive as raw static hosting, or open Studio to edit internal files. Archive bundles are scanned before publish, and public launch stays visible only to you until approval.</p></div>
       <div class="page-tools"><button class="soft-button" data-action="open-modal" data-modal="site-template">${icons.plus}<span>${t('templateSite')}</span></button><button class="primary-button" data-action="open-modal" data-modal="site-upload">${icons.upload}<span>${t('uploadSite')}</span></button></div>
     </section>
     <section class="section-shell">
@@ -4629,13 +5356,14 @@ function renderSitesPage() {
 }
 function renderOwnedSiteCard(site) {
   const canEditSite = Boolean(site?.id);
-  const canSubmitReview = site.visibility === 'public' && ['draft', 'rejected'].includes(site.reviewStatus || 'draft');
+  const canSubmitReview = site.visibility !== 'private' && ['draft', 'rejected'].includes(site.reviewStatus || 'draft');
   const reviewLabel = escapeHtml(String(site.reviewStatus || 'draft'));
   return `<article class="tile tile-site owned-site-card">
     <div class="tile-top between"><div class="site-title-row">${renderSiteIcon(site)}<div><span class="kicker">${site.mode} · ${reviewLabel}</span><a class="text-link strong" href="${site.path}">${escapeHtml(site.title)}</a></div></div><div class="row-actions">${canEditSite ? `<button class="icon-button compact" data-action="open-site-studio" data-id="${site.id}" title="Open Studio">${icons.wrench}</button><button class="icon-button compact" data-action="open-edit-site" data-id="${site.id}" title="${t('update')}">${icons.edit}</button>` : ''}<button class="icon-button compact" data-action="copy-site-link" data-path="${site.path}">${icons.share}</button><button class="icon-button compact" data-action="delete-site" data-id="${site.id}">${icons.trash}</button></div></div>
     <p>${escapeHtml(site.summary || '')}</p>
     ${site.mode === 'upload' ? renderSiteImportDigest(site, true) : ''}
     ${site.reviewNote ? `<p class="muted" style="margin:0;font-size:12px">${escapeHtml(site.reviewNote)}</p>` : ''}
+    ${site.visibility !== 'private' && site.reviewStatus !== 'approved' ? `<p class="muted" style="margin:0;font-size:12px">${currentLang() === 'ru' ? 'Пока сайт доступен только вам. После подтверждения он начнёт открываться для других по ссылке.' : 'Only you can open this site until approval. Other visitors will get access only after it is confirmed.'}</p>` : ''}
     <div class="tile-actions">${canEditSite ? `<button class="inline-button" data-action="open-site-studio" data-id="${site.id}">${icons.wrench}<span>Studio</span></button><button class="inline-button" data-action="open-edit-site" data-id="${site.id}">${icons.edit}<span>${t('update')}</span></button>` : ''}${canSubmitReview ? `<button class="inline-button" data-action="submit-site-review" data-id="${site.id}">${icons.check}<span>Submit review</span></button>` : ''}<a class="inline-button" href="${site.path}">${icons.external}<span>${t('launch')}</span></a></div>
   </article>`;
 }
@@ -4649,8 +5377,8 @@ function renderSiteStudioDesignForm(site, studio) {
       <div class="site-studio-rule-card">
         <strong>${currentLang() === 'ru' ? 'Raw static import' : 'Raw static import'}</strong>
         <span>${currentLang() === 'ru'
-          ? 'Сайт отдаётся как есть: HTML, CSS, JS и assets живут в архиве и не оборачиваются платформой. Если в коде есть backend/API-логика, она сохраняется только как статический код и не исполняется.'
-          : 'The site is served as-is: HTML, CSS, JS and assets live in the archive and are not wrapped by the platform. If the code contains backend/API logic, it is preserved only as static code and never executed.'}</span>
+          ? 'Сайт отдаётся как есть: HTML, CSS, JS и assets живут в архиве и не оборачиваются платформой. Server-side и исполняемые файлы блокируются до публикации, а спорные сигналы остаются в диагностике для ревью.'
+          : 'The site is served as-is: HTML, CSS, JS and assets live in the archive and are not wrapped by the platform. Server-side and executable files are blocked before publish, while borderline signals stay in diagnostics for review.'}</span>
         ${discussionPath ? `<a class="inline-button" href="${discussionPath}">${icons.comment}<span>${escapeHtml(discussionLabel)}</span></a>` : ''}
       </div>
       <div class="settings-grid-two">
@@ -4817,6 +5545,12 @@ function renderSettingsPage() {
     ['support', 'Support', icons.help || icons.info || icons.message],
     ['data', t('data') || 'Data', icons.database || icons.file],
   ];
+  const settingsSearch = String(state.settingsSearch || '').trim().toLowerCase();
+  const filteredTabs = settingsSearch
+    ? tabs.filter(([, label]) => String(label || '').toLowerCase().includes(settingsSearch))
+    : tabs;
+  const visibleTabs = filteredTabs.length ? filteredTabs : tabs;
+  const resolvedActive = visibleTabs.some(([id]) => id === active) ? active : visibleTabs[0][0];
   const panels = {
     profile: renderSettingsProfile(user, links),
     appearance: renderSettingsAppearance(user, settings),
@@ -4831,7 +5565,7 @@ function renderSettingsPage() {
     support: renderSupportPanel(),
     data: renderSettingsData()
   };
-  const activeLabel = (tabs.find(([id]) => id === active) || tabs[0])[1];
+  const activeLabel = (tabs.find(([id]) => id === resolvedActive) || tabs[0])[1];
   return `
     <section class="settings-shell settings-fullscreen view-${mobileView}">
       <aside class="settings-nav ${mobileView === 'panel' ? 'mobile-hidden' : ''}">
@@ -4843,14 +5577,34 @@ function renderSettingsPage() {
               <span>@${escapeHtml(user.handle || '')}</span>
             </div>
           </div>
+          <label class="admin-field" style="margin-top:12px">
+            <span>${currentLang() === 'ru' ? 'Язык интерфейса' : 'Interface language'}</span>
+            <select data-input="quick-lang-select">
+              <option value="en" ${currentLang() === 'en' ? 'selected' : ''}>English</option>
+              <option value="ru" ${currentLang() === 'ru' ? 'selected' : ''}>Русский</option>
+              <option value="uk" ${currentLang() === 'uk' ? 'selected' : ''}>Українська</option>
+              <option value="pt" ${currentLang() === 'pt' ? 'selected' : ''}>Português</option>
+              <option value="pl" ${currentLang() === 'pl' ? 'selected' : ''}>Polski</option>
+              <option value="fr" ${currentLang() === 'fr' ? 'selected' : ''}>Français</option>
+            </select>
+          </label>
+          <div class="search-control" style="margin-top:12px">
+            ${icons.search}
+            <input
+              type="search"
+              data-input="settings-search"
+              placeholder="${currentLang() === 'ru' ? 'Поиск по настройкам…' : 'Search settings…'}"
+              value="${escapeHtml(state.settingsSearch || '')}"
+            />
+          </div>
         </div>
         <div class="settings-nav-list">
-          ${tabs.map(([item, label, icon]) => `
-            <button class="settings-tab ${active === item ? 'active' : ''}" data-action="settings-tab" data-tab="${item}">
+          ${visibleTabs.map(([item, label, icon]) => `
+            <button class="settings-tab ${resolvedActive === item ? 'active' : ''}" data-action="settings-tab" data-tab="${item}">
               <span class="settings-tab-icon">${icon || ''}</span>
               <span class="settings-tab-label">${label}</span>
               <span class="settings-tab-chev">›</span>
-            </button>`).join('')}
+            </button>`).join('') || `<p class="muted" style="margin:8px 0 0">${currentLang() === 'ru' ? 'Ничего не найдено.' : 'Nothing found.'}</p>`}
         </div>
       </aside>
       <div class="settings-content ${mobileView === 'list' ? 'mobile-hidden' : ''}">
@@ -4858,7 +5612,7 @@ function renderSettingsPage() {
           <button class="icon-button compact settings-back" data-action="settings-mobile-back" aria-label="Back">${icons.chevronLeft || icons.arrowLeft || '‹'}</button>
           <h2>${activeLabel}</h2>
         </div>
-        <div class="settings-content-body">${panels[active] || panels.profile}</div>
+        <div class="settings-content-body">${panels[resolvedActive] || panels.profile}</div>
       </div>
     </section>`;
 }
@@ -5050,6 +5804,7 @@ function renderRoomChatThemeControls(room) {
       <div class="detail-actions">
         <button class="inline-button" type="submit">${currentLang() === 'ru' ? 'Применить' : 'Apply'}</button>
         <button class="soft-button compact" type="button" data-action="clear-room-chat-theme" data-room-slug="${room.slug}">${currentLang() === 'ru' ? 'Как везде' : 'Use global'}</button>
+        <button class="soft-button compact" type="button" data-action="nav" data-path="/settings?tab=chat">${currentLang() === 'ru' ? 'Глобальный фон' : 'Global background'}</button>
       </div>
     </form>
   </div>`;
@@ -5250,7 +6005,7 @@ function renderSettingsBilling() {
         <button class="primary-button" data-action="open-modal" data-modal="plans">${current ? (isRu ? 'Сменить план' : 'Change plan') : (isRu ? 'Посмотреть планы' : 'See plans')}</button>
       </div>
       <p class="muted" style="font-size:12px;margin:10px 0 0">${operator
-        ? (isRu ? 'Тариф всё ещё можно назначать пользователям из админки.' : 'You can still assign plans to users from the admin panel.')
+        ? (isRu ? 'Тариф всё ещё можно назначать пользователям из операционной панели.' : 'You can still assign plans to users from the operations console.')
         : (isRu ? 'Планы открывают больше сайтов и приоритетную модерацию. Отменить можно в любой момент.' : 'Plans unlock more site spaces and priority review. You can cancel anytime.')}</p>
     </div>
   </section>`;
@@ -5436,7 +6191,7 @@ function renderSwitchAccountModal() {
       ${otherAccounts.length ? `<div class="switch-account-list ${modalClass}">
         ${otherAccounts.map((account) => `
           <div class="switch-account-row">
-            <button class="switch-account" data-action="switch-account" data-token="${escapeHtml(account.sessionToken || '')}">
+            <button class="switch-account" data-action="switch-account" data-grant="${escapeHtml(account.grantId || '')}">
               ${account.avatarUrl ? `<img src="${escapeHtml(account.avatarUrl)}" alt="${escapeHtml(account.displayName || '')}" />` : `<span class="switch-account-initials">${(account.displayName || account.handle || '?').slice(0,2).toUpperCase()}</span>`}
               <div class="switch-account-meta">
                 <strong>${escapeHtml(account.displayName || '')}</strong>
@@ -5444,7 +6199,7 @@ function renderSwitchAccountModal() {
                 <em class="switch-account-status">Tap to switch</em>
               </div>
             </button>
-            <button class="icon-button compact ghost-button" data-action="remove-saved-account" data-id="${account.id}" title="Remove">${icons.close}</button>
+            <button class="icon-button compact ghost-button" data-action="remove-saved-account" data-grant="${escapeHtml(account.grantId || '')}" title="Remove">${icons.close}</button>
           </div>`).join('')}
       </div>` : '<p class="muted">No other accounts saved on this device.</p>'}
       <div class="switch-account-actions">
@@ -5453,6 +6208,71 @@ function renderSwitchAccountModal() {
         ${current ? `<button class="soft-button full-width drawer-logout" data-action="logout">${icons.close}<span>${t('signOut')}</span></button>` : ''}
       </div>
     </div>`;
+}
+
+function renderMediaLibraryContent(options = {}) {
+  const library = state.mediaLibrary || defaultMediaLibraryState();
+  const selectedFolderId = library.folders.some((item) => item.id === library.selectedFolderId) ? library.selectedFolderId : 'recent';
+  const tracks = (library.tracks || []).filter((item) => (item.folderId || 'recent') === selectedFolderId || selectedFolderId === 'recent');
+  const playback = state.voicePlayback || {};
+  return `<div class="media-library-modal ${options.page ? 'is-page' : ''}">
+      <div class="media-library-folders">
+        ${library.folders.map((folder) => `<button class="settings-tab ${selectedFolderId === folder.id ? 'active' : ''}" data-action="media-library-folder" data-folder-id="${escapeHtml(folder.id)}">${escapeHtml(folder.name)}</button>`).join('')}
+        <button class="soft-button compact" data-action="media-library-new-folder">${icons.plus}<span>${currentLang() === 'ru' ? 'Папка' : 'Folder'}</span></button>
+      </div>
+      <div class="media-library-main">
+        ${playback.url ? `<div class="settings-block">
+          <div class="inline-stack between">
+            <div>
+              <strong>${escapeHtml(playback.label || playback.title || 'Audio')}</strong>
+              <span class="muted" style="display:block;font-size:12px">${escapeHtml(playback.title || '')}</span>
+            </div>
+            <button class="soft-button compact" data-action="media-library-save-current">${icons.archive}<span>${currentLang() === 'ru' ? 'Сохранить в папку' : 'Save to folder'}</span></button>
+          </div>
+        </div>` : ''}
+        <div class="stack-list">
+          ${tracks.length ? tracks.map((track) => `<button class="tile media-library-track ${String(playback.url || '') === String(track.url || '') ? 'active' : ''}" data-action="play-library-track" data-track-id="${escapeHtml(track.id)}">
+            <div>
+              <strong>${escapeHtml(track.label || 'Audio')}</strong>
+              <span style="display:block;font-size:12px;color:var(--text-muted)">${escapeHtml(track.title || '')} · ${formatMediaDuration(track.duration || 0)}</span>
+            </div>
+          </button>`).join('') : `<p class="muted">${currentLang() === 'ru' ? 'Пока пусто.' : 'No saved media yet.'}</p>`}
+        </div>
+      </div>
+    </div>`;
+}
+function renderMediaLibraryModal() {
+  return `<div class="modal-head"><span class="eyebrow">media</span><h2>${currentLang() === 'ru' ? 'Медиатека' : 'Media library'}</h2></div>${renderMediaLibraryContent()}`;
+}
+function renderMediaLibraryPage() {
+  if (!currentUser() || isGuestSession()) return renderGate(currentLang() === 'ru' ? 'Создай аккаунт, чтобы пользоваться медиатекой.' : 'Create an account to use the media library.');
+  const room = state.chat.room;
+  const isRu = currentLang() === 'ru';
+  const backPath = state.chat.selectedSlug ? `/messages/${state.chat.selectedSlug}` : '/messages';
+  return `<section class="section-shell media-library-page-shell">
+    <div class="page-heading-row media-library-page-head">
+      <div>
+        <span class="eyebrow">media</span>
+        <h1>${isRu ? 'Медиатека' : 'Media library'}</h1>
+        <p class="muted">${isRu ? 'Отдельная страница для сохранённого аудио и быстрого доступа к медиа текущего чата.' : 'A dedicated page for saved audio and quick access to the current chat media.'}</p>
+      </div>
+      <div class="page-tools">
+        <button class="soft-button" data-action="nav" data-path="${escapeHtml(backPath)}">${icons.arrow}<span>${isRu ? 'Назад к чатам' : 'Back to chats'}</span></button>
+      </div>
+    </div>
+    <section class="section-shell media-library-page-card">
+      ${renderMediaLibraryContent({ page: true })}
+    </section>
+    ${room ? `<section class="section-shell split-grid media-library-room-grid">
+      <div>
+        <div class="section-heading"><h2>${isRu ? 'Медиа из текущего чата' : 'Current chat media'}</h2></div>
+        ${renderRoomMediaTab(room, 'media')}
+      </div>
+      <div>
+        <div class="section-heading"><h2>${isRu ? 'Голос и аудио' : 'Voice and audio'}</h2></div>
+        ${renderRoomMediaTab(room, 'voice')}
+      </div>
+    </section>` : `<section class="section-shell"><div class="detail-card"><p class="muted" style="margin:0">${isRu ? 'Открой чат, и здесь появится его медиа и голосовые сообщения.' : 'Open a chat to see its media and voice messages here.'}</p></div></section>`}`;
 }
 function renderChangePasswordModal() {
   const user = state.me?.user || currentUser();
@@ -5535,6 +6355,39 @@ function renderReportContentModal(modal) {
       </div>
     </form>`;
 }
+function renderMessageDeleteScopeModal(modal) {
+  const isRu = currentLang() === 'ru';
+  const ids = Array.from(new Set((modal.messageIds || []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0)));
+  const count = ids.length;
+  const messages = (state.chat.messages || []).filter((message) => ids.includes(Number(message.id || 0)));
+  const everyoneAllowed = Boolean(modal.canDeleteForEveryone && messages.length);
+  return `<div class="modal-head">
+    <span class="eyebrow">messages</span>
+    <h2>${isRu ? 'Удаление сообщений' : 'Delete messages'}</h2>
+    <p class="muted" style="margin:0">${count > 1
+      ? (isRu ? `Выбрано сообщений: ${count}.` : `Selected messages: ${count}.`)
+      : (isRu ? 'Выбери, где удалить сообщение.' : 'Choose where to delete this message.')}</p>
+  </div>
+  <div class="settings-form">
+    <div class="settings-block">
+      <strong>${isRu ? 'Удалить только у себя' : 'Delete for me only'}</strong>
+      <span class="muted" style="display:block;margin-top:4px">${isRu ? 'Сообщение исчезнет только в твоём интерфейсе и на твоих устройствах.' : 'The message disappears only in your interface and on your devices.'}</span>
+      <div class="modal-actions">
+        <button class="soft-button" type="button" data-action="close-modal">${isRu ? 'Отмена' : 'Cancel'}</button>
+        <button class="primary-button" type="button" data-action="confirm-delete-messages" data-scope="self">${icons.trash}<span>${isRu ? 'Удалить у себя' : 'Delete for me'}</span></button>
+      </div>
+    </div>
+    <div class="settings-block">
+      <strong>${isRu ? 'Удалить у всех' : 'Delete for everyone'}</strong>
+      <span class="muted" style="display:block;margin-top:4px">${everyoneAllowed
+        ? (isRu ? 'Сообщение будет помечено удалённым у всех участников чата.' : 'The message will be marked deleted for everyone in the chat.')
+        : (isRu ? 'Недоступно: у всех можно удалять только свои сообщения или сообщения при правах модерации.' : 'Unavailable: deleting for everyone is limited to your own messages or moderator-level rights.')}</span>
+      <div class="modal-actions">
+        <button class="danger-button" type="button" data-action="confirm-delete-messages" data-scope="everyone" ${everyoneAllowed ? '' : 'disabled'}>${icons.trash}<span>${isRu ? 'Удалить у всех' : 'Delete for everyone'}</span></button>
+      </div>
+    </div>
+  </div>`;
+}
 
 function renderModal() {
   if (!state.modal) return '';
@@ -5573,7 +6426,9 @@ function renderModalInner(modal) {
     case 'chat-room-settings': return renderChatRoomSettingsModal(modal);
     case 'crop-image': return renderCropModal(modal);
     case 'switch-account': return renderSwitchAccountModal();
+    case 'media-library': return renderMediaLibraryModal();
     case 'report-content': return renderReportContentModal(modal);
+    case 'message-delete-scope': return renderMessageDeleteScopeModal(modal);
     default: return '';
   }
 }
@@ -5673,7 +6528,7 @@ function renderEditSiteModal(modal) {
   const uploadInfo = site.uploadDiagnostics || null;
   const uploadCaps = currentSiteUploadCaps();
   const previewSite = { ...site, iconUrl: config.faviconUrl || config.logoUrl || site.iconUrl };
-  const canSubmitReview = site.visibility === 'public' && ['draft', 'rejected'].includes(site.reviewStatus || 'draft');
+  const canSubmitReview = site.visibility !== 'private' && ['draft', 'rejected'].includes(site.reviewStatus || 'draft');
   const reviewLabel = escapeHtml(String(site.reviewStatus || 'draft'));
   const uploadModeLabel = !isTemplate
     ? (site.uploadMode === 'archive'
@@ -5711,10 +6566,10 @@ function renderEditSiteModal(modal) {
         </div>
         <label><span>${t('summary')}</span><textarea name="summary" rows="3">${escapeHtml(site.summary || '')}</textarea></label>
         <p class="site-editor-note">${isTemplate
-          ? 'Public sites look more legitimate when they have a favicon, description, contact details and legal links before review.'
+          ? 'Sites with public or unlisted visibility stay visible only to you until approval. Add favicon, description, contact details and legal links before review.'
           : (currentLang() === 'ru'
-              ? 'Для uploaded imports важнее целостный архив, рабочие статические ссылки и понятные предупреждения совместимости, чем platform-level SEO поля.'
-              : 'For uploaded imports, a complete archive, working static links and clear compatibility warnings matter more than platform-level SEO fields.')}</p>
+              ? 'Для uploaded imports до публикации важны целостный архив, рабочие статические ссылки и чистая диагностика карантин-сканера.'
+              : 'For uploaded imports, a complete archive, working static links, and a clean quarantine-scan report matter before approval.')}</p>
       </fieldset>
 
       ${isTemplate ? `
@@ -5780,8 +6635,8 @@ function renderEditSiteModal(modal) {
       <fieldset class="settings-fieldset">
         <legend>${currentLang() === 'ru' ? 'Raw import mode' : 'Raw import mode'}</legend>
         <p class="site-editor-note">${currentLang() === 'ru'
-          ? 'Uploaded site теперь отдаётся как полноценная статика без platform-shell поверх дизайна. Меняй HTML/CSS/JS внутри архива или через Site Studio; server-side части только предупреждаются и не исполняются.'
-          : 'Uploaded sites are now served as a full static import with no platform shell layered over the design. Edit the real HTML/CSS/JS in the archive or in Site Studio; server-side parts are only flagged and never executed.'}</p>
+          ? 'Uploaded site теперь отдаётся как полноценная статика без platform-shell поверх дизайна. Меняй HTML/CSS/JS внутри архива или через Site Studio; server-side и исполняемые файлы блокируются до публикации.'
+          : 'Uploaded sites are now served as a full static import with no platform shell layered over the design. Edit the real HTML/CSS/JS in the archive or in Site Studio; server-side and executable files are blocked before publish.'}</p>
         <p class="site-editor-note">${currentLang() === 'ru'
           ? 'Локальные изображения могут быть автоматически сжаты для хранения, если сервер получает меньший файл без смены пути.'
           : 'Local images may be compressed automatically for storage when the server can store a smaller file without changing its path.'}</p>
@@ -6193,6 +7048,19 @@ function renderInviteModal(roomSlug) {
 function renderToasts() {
   return `<div class="toast-stack">${state.toasts.map((item) => `<div class="toast toast-${item.tone}">${escapeHtml(item.message)}</div>`).join('')}</div>`;
 }
+function renderContextMenu() {
+  const menu = state.contextMenu;
+  if (!menu) return '';
+  return `<div class="context-menu" style="left:${Math.max(8, Number(menu.x || 0))}px;top:${Math.max(8, Number(menu.y || 0))}px">
+    ${(menu.items || []).map((item) => {
+      const dataAttrs = Object.entries(item.data || {}).map(([key, value]) => {
+        const attrKey = String(key || '').replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+        return `data-${escapeHtml(attrKey)}="${escapeHtml(String(value))}"`;
+      }).join(' ');
+      return `<button class="context-menu-item ${item.danger ? 'danger' : ''}" data-action="${escapeHtml(item.action)}" ${item.value ? `data-value="${escapeHtml(item.value)}"` : ''} ${dataAttrs}>${escapeHtml(item.label)}</button>`;
+    }).join('')}
+  </div>`;
+}
 function renderHover() {
   // Hover card is now managed directly via DOM (see openHover/clearHover).
   // Returning empty string keeps compatibility with callers that include it in render().
@@ -6237,7 +7105,107 @@ function renderGate(copy) {
 
 // Track textarea draft across renders
 let _chatTextareaDraft = '';
+let _messageMouseSelectionDrag = null;
+let _messageTouchSelectionDrag = null;
+let _messageLongPress = null;
+let _suppressMessageClickUntil = 0;
 const BACKGROUND_RENDER_EDITABLE_SELECTOR = 'textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]), [contenteditable="true"]';
+
+function messageRowElementFromTarget(target) {
+  return target instanceof Element ? target.closest('.message-row[data-msg-id]') : null;
+}
+function canSelectMessageRow(row) {
+  return Boolean(row instanceof HTMLElement && row.dataset.canSelect === 'true' && Number(row.dataset.msgId || 0) > 0);
+}
+function isMessageGestureControl(target) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest('button, a, input, textarea, select, label, video, img, .voice-player, .reaction-btn, .reply-preview, .composer-audio-chip, [data-action]'));
+}
+function messageRowFromPoint(x, y) {
+  const target = document.elementFromPoint(Number(x || 0), Number(y || 0));
+  return messageRowElementFromTarget(target);
+}
+function applyMessageSelectionDragRow(row, mode = 'select') {
+  if (!canSelectMessageRow(row)) return;
+  const messageId = Number(row.dataset.msgId || 0);
+  const drag = _messageMouseSelectionDrag || _messageTouchSelectionDrag;
+  if (!drag) return;
+  if (drag.appliedIds.has(messageId)) return;
+  drag.appliedIds.add(messageId);
+  toggleMessageSelection(messageId, mode === 'select', { renderNow: false });
+  queueRender();
+}
+function suppressMessageClick(ms = 320) {
+  _suppressMessageClickUntil = Date.now() + Math.max(0, Number(ms || 0));
+}
+function shouldSuppressMessageClick() {
+  return _suppressMessageClickUntil > Date.now();
+}
+function stopMouseMessageSelectionDrag(renderNow = true) {
+  if (!_messageMouseSelectionDrag) return;
+  _messageMouseSelectionDrag = null;
+  document.body.classList.remove('message-select-dragging');
+  if (renderNow) queueRender();
+}
+function stopTouchMessageSelectionDrag(renderNow = true) {
+  if (!_messageTouchSelectionDrag) return;
+  _messageTouchSelectionDrag = null;
+  document.body.classList.remove('message-select-dragging');
+  suppressMessageClick();
+  if (renderNow) queueRender();
+}
+function cancelMessageLongPress() {
+  if (_messageLongPress?.timer) clearTimeout(_messageLongPress.timer);
+  _messageLongPress = null;
+}
+function openMessageTouchMenu(messageId, x, y) {
+  const room = state.chat.room;
+  const message = (state.chat.messages || []).find((item) => Number(item.id) === Number(messageId || 0));
+  if (!room || !message) return;
+  openContextMenuAt(x, y, messageMenuItems(message, room));
+  suppressMessageClick(420);
+}
+function startMouseMessageSelectionDrag(event, row) {
+  if (!canSelectMessageRow(row) || !state.chat.selectionMode || event.button !== 0) return;
+  const messageId = Number(row.dataset.msgId || 0);
+  const mode = selectedMessageIdSet().has(messageId) ? 'deselect' : 'select';
+  _messageMouseSelectionDrag = {
+    mode,
+    appliedIds: new Set()
+  };
+  document.body.classList.add('message-select-dragging');
+  applyMessageSelectionDragRow(row, mode);
+  suppressMessageClick(220);
+  event.preventDefault();
+}
+function startTouchMessageSelectionDrag(touch, row) {
+  if (!canSelectMessageRow(row) || !state.chat.selectionMode) return;
+  const messageId = Number(row.dataset.msgId || 0);
+  const mode = selectedMessageIdSet().has(messageId) ? 'deselect' : 'select';
+  _messageTouchSelectionDrag = {
+    identifier: Number(touch.identifier),
+    mode,
+    appliedIds: new Set()
+  };
+  document.body.classList.add('message-select-dragging');
+  applyMessageSelectionDragRow(row, mode);
+}
+function scheduleMessageLongPress(row, touch) {
+  if (!canSelectMessageRow(row)) return;
+  cancelMessageLongPress();
+  const messageId = Number(row.dataset.msgId || 0);
+  _messageLongPress = {
+    identifier: Number(touch.identifier),
+    startX: Number(touch.clientX || 0),
+    startY: Number(touch.clientY || 0),
+    timer: setTimeout(() => {
+      const active = _messageLongPress;
+      cancelMessageLongPress();
+      if (!active) return;
+      openMessageTouchMenu(messageId, active.startX, active.startY);
+    }, 420)
+  };
+}
 
 function escapeSelectorValue(value = '') {
   const raw = String(value || '');
@@ -6249,6 +7217,10 @@ function isEditableInteractionTarget(target) {
   return Boolean(target && typeof target.matches === 'function' && target.matches(BACKGROUND_RENDER_EDITABLE_SELECTOR));
 }
 
+function shouldHoldBackgroundRenderForFocusedInput() {
+  return false;
+}
+
 function beginBackgroundRenderHold(ms = 1200) {
   const holdMs = Math.max(0, Number(ms) || 0);
   if (!holdMs) return;
@@ -6257,6 +7229,7 @@ function beginBackgroundRenderHold(ms = 1200) {
 
 function isBackgroundRenderBlocked() {
   if (state.filePickerActive) return true;
+  if (shouldHoldBackgroundRenderForFocusedInput()) return true;
   return Number(state.renderHoldUntil || 0) > Date.now();
 }
 
@@ -6324,6 +7297,7 @@ function restoreInputFocusState(snapshot) {
 
 function renderMobileBottomNav() {
   const path = state.route.name;
+  const chatActive = path === 'messages' || path === 'media-library';
   const unread = Object.values(state.chat.unread || {}).reduce((a, b) => a + b, 0);
   if (!currentUser()) return '';
   if (isGuestSession()) {
@@ -6337,7 +7311,7 @@ function renderMobileBottomNav() {
   return `<nav class="mobile-bottom-nav" aria-label="Navigation">
     <a class="mobile-nav-btn ${path === 'home' ? 'active' : ''}" ${navAttrs('/')}>${icons.home}<span>Home</span></a>
     <a class="mobile-nav-btn ${path === 'feed' ? 'active' : ''}" ${navAttrs('/feed')}>${icons.feed}<span>Feed</span></a>
-    <a class="mobile-nav-btn ${path === 'messages' ? 'active' : ''}" ${navAttrs('/messages')}>${icons.message}${unread > 0 ? `<span class="nav-badge">${unread > 9 ? '9+' : unread}</span>` : ''}<span>Chat</span></a>
+    <a class="mobile-nav-btn ${chatActive ? 'active' : ''}" ${navAttrs('/messages')}>${icons.message}${unread > 0 ? `<span class="nav-badge">${unread > 9 ? '9+' : unread}</span>` : ''}<span>Chat</span></a>
     <a class="mobile-nav-btn ${path === 'discover' ? 'active' : ''}" ${navAttrs('/discover')}>${icons.search}<span>Explore</span></a>
     <button class="mobile-nav-btn ${['mail', 'sites', 'settings', 'admin', 'profile'].includes(path) ? 'active' : ''}" data-action="toggle-drawer">
       ${icons.menu}
@@ -6348,6 +7322,11 @@ function renderMobileBottomNav() {
 }
 
 function render(options = {}) {
+  if (state.renderFrame) {
+    cancelAnimationFrame(state.renderFrame);
+    state.renderFrame = null;
+  }
+  state.renderQueued = false;
   if (options?.background === true && isBackgroundRenderBlocked()) {
     state.backgroundRenderQueued = true;
     scheduleDeferredBackgroundRender();
@@ -6362,6 +7341,7 @@ function render(options = {}) {
     cancelAnimationFrame(state.backgroundRenderFrame);
     state.backgroundRenderFrame = null;
   }
+  syncLanguageFlags();
   setDocMeta();
   document.body.classList.toggle('drawer-open', state.drawerOpen);
   document.body.classList.toggle('modal-open', Boolean(state.modal));
@@ -6388,7 +7368,7 @@ function render(options = {}) {
   const guestBanner = state.guest || currentUser()?.roleInternal === 'guest'
     ? `<div class="guest-banner">${iconBadge('eye', 'neutral', 'banner-badge')}<span>You're browsing as a guest.</span><button class="text-link" data-action="open-modal" data-modal="auth" style="font-weight:700;text-decoration:underline">Create an account</button><span>to save everything.</span></div>`
     : '';
-  root.innerHTML = `<div class="app-shell route-${state.route.name}">${renderTopbar()}${renderGlobalAudioPlayer()}${verifyBanner}${guestBanner}<main class="page-wrap">${body}</main>${renderSiteFooter()}${renderMobileBottomNav()}${renderDrawer()}${renderModal()}${renderToasts()}${renderHover()}${renderLightbox()}</div>`;
+  root.innerHTML = `<div class="app-shell route-${state.route.name}">${renderTopbar()}${renderGlobalAudioPlayer()}${verifyBanner}${guestBanner}<main class="page-wrap">${body}</main>${renderSiteFooter()}${renderMobileBottomNav()}${renderDrawer()}${renderModal()}${renderToasts()}${renderHover()}${renderLightbox()}${renderContextMenu()}</div>`;
   root.firstElementChild?.classList.toggle('ui-animated', state.initialUiAnimated);
 
   // FIX: restore scroll position after render
@@ -6414,11 +7394,13 @@ function render(options = {}) {
     const top = Math.max(0, Number(state.pendingWindowScroll.top || 0));
     const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     const canFullyRestore = top <= maxScrollTop + 2;
-    window.scrollTo(0, canFullyRestore ? top : maxScrollTop);
+    const nextTop = canFullyRestore ? top : maxScrollTop;
+    if (Math.abs(getWindowScrollTop() - nextTop) > 1) window.scrollTo(0, nextTop);
     if (canFullyRestore || !state.loading) state.pendingWindowScroll = null;
   } else {
     const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-    window.scrollTo(0, Math.min(prevWindowScrollTop, maxScrollTop));
+    const nextTop = Math.min(prevWindowScrollTop, maxScrollTop);
+    if (Math.abs(getWindowScrollTop() - nextTop) > 1) window.scrollTo(0, nextTop);
   }
 
   // Restore textarea draft
@@ -6471,6 +7453,7 @@ function renderRoute() {
   switch (state.route.name) {
     case 'feed': return renderFeed();
     case 'messages': return renderMessagesPage();
+    case 'media-library': return renderMediaLibraryPage();
     case 'settings': return renderSettingsPage();
     case 'sites': return renderSitesPage();
     case 'site-studio': return renderSiteStudioPage();
@@ -6531,7 +7514,6 @@ async function handleAuth(form, mode) {
       method: 'POST',
       body: JSON.stringify(entries)
     });
-    saveAccountSession(payload.user, payload.sessionToken);
     state.bootstrap = null;
     state.meLoaded = false;
     state.drawerOpen = false;
@@ -6551,10 +7533,9 @@ async function handleAuth(form, mode) {
   }
 }
 
-async function switchAccount(sessionToken) {
+async function switchAccount(switchGrantId) {
   try {
-    const payload = await api('/api/auth/switch', { method: 'POST', body: JSON.stringify({ sessionToken }) });
-    saveAccountSession(payload.user, payload.sessionToken);
+    await api('/api/auth/switch', { method: 'POST', body: JSON.stringify({ switchGrantId }) });
     state.drawerOpen = false;
     state.bootstrap = null;
     state.meLoaded = false;
@@ -7220,7 +8201,7 @@ async function sendChatMessage(form) {
   const room = state.chat.room;
   const clientNonce = `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   state.chat.sending = true;
-  render(); // show disabled send button
+  queueRender();
   const payload = { body: bodyText, clientNonce };
   if (hasGallery) {
     payload.attachments = state.chat.attachments.map(a => ({
@@ -7299,7 +8280,12 @@ async function sendChatMessage(form) {
     state.chat.forceScrollBottom = true;
     render();
     scrollChatToBottom(true);
-    const response = await api(`/api/chat/rooms/${encodeURIComponent(state.chat.room.slug)}/messages`, { method: 'POST', body: JSON.stringify(payload) });
+    const hasMediaUpload = Boolean(payload.attachmentDataUrl || (Array.isArray(payload.attachments) && payload.attachments.length));
+    const response = hasMediaUpload
+      ? await uploadJson(`/api/chat/rooms/${encodeURIComponent(state.chat.room.slug)}/messages`, payload, (progress) => {
+          setChatUploadProgress(true, currentLang() === 'ru' ? 'Загрузка медиа' : 'Uploading media', progress * 100);
+        })
+      : await api(`/api/chat/rooms/${encodeURIComponent(state.chat.room.slug)}/messages`, { method: 'POST', body: JSON.stringify(payload) });
     const resolvedMessage = {
       ...normalizeMessageForViewer(response.item),
       pending: false,
@@ -7315,18 +8301,44 @@ async function sendChatMessage(form) {
     state.chat.replyingToMessage = null;
     state.chat.emojiPickerMsgId = null;
     state.chat.forceScrollBottom = true;
-    render();
+    clearChatUploadProgress();
+    queueRender();
     scrollChatToBottom(true);
   } catch (err) {
     // Restore draft on error
     textarea.value = bodyText;
     _chatTextareaDraft = bodyText;
     state.chat.messages = state.chat.messages.filter(m => m.clientNonce !== clientNonce && m.id !== clientNonce);
+    clearChatUploadProgress();
     throw err;
   } finally {
     state.chat.sending = false;
-    render();
+    queueBackgroundRender();
   }
+}
+async function deleteMessagesByScope(roomSlug, messageIds = [], scope = 'self') {
+  const slug = String(roomSlug || '').trim();
+  const ids = Array.from(new Set((Array.isArray(messageIds) ? messageIds : []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0)));
+  if (!slug || !ids.length) return;
+  if (ids.length === 1) {
+    await api(`/api/chat/rooms/${encodeURIComponent(slug)}/messages/${ids[0]}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ scope: scope === 'everyone' ? 'everyone' : 'self' })
+    });
+  } else {
+    await api(`/api/chat/rooms/${encodeURIComponent(slug)}/messages/delete`, {
+      method: 'POST',
+      body: JSON.stringify({ ids, scope: scope === 'everyone' ? 'everyone' : 'self' })
+    });
+  }
+  if (scope === 'everyone') {
+    markMessagesDeletedForEveryone(ids);
+  } else {
+    hideMessagesLocally(slug, ids);
+  }
+  clearMessageSelection({ renderNow: false });
+  closeModal();
+  queueRender();
 }
 function renderEmojiPicker() {
   return `<div class="emoji-picker-bar">
@@ -7411,8 +8423,73 @@ document.addEventListener('paste', async (event) => {
   const active = document.activeElement;
   if (active && !(active.id === 'chat-textarea' || active.closest?.('.chat-composer'))) return;
   event.preventDefault();
-  const added = await handleChatImageFiles(files);
+  const added = await handleChatMediaFiles(files);
   if (added) toast(`${added} image${added > 1 ? 's' : ''} pasted.`, 'success');
+});
+
+document.addEventListener('mousedown', (event) => {
+  const row = messageRowElementFromTarget(event.target);
+  if (!row) return;
+  if (state.chat.selectionMode) {
+    startMouseMessageSelectionDrag(event, row);
+  }
+});
+
+document.addEventListener('mousemove', (event) => {
+  if (!_messageMouseSelectionDrag) return;
+  if ((event.buttons & 1) !== 1) {
+    stopMouseMessageSelectionDrag();
+    return;
+  }
+  const row = messageRowFromPoint(event.clientX, event.clientY);
+  if (!row) return;
+  applyMessageSelectionDragRow(row, _messageMouseSelectionDrag.mode);
+});
+
+document.addEventListener('mouseup', () => {
+  stopMouseMessageSelectionDrag();
+});
+
+document.addEventListener('touchstart', (event) => {
+  const touch = event.changedTouches?.[0];
+  const row = messageRowElementFromTarget(event.target);
+  if (!touch || !row) return;
+  if (state.chat.selectionMode) {
+    event.preventDefault();
+    startTouchMessageSelectionDrag(touch, row);
+    return;
+  }
+  if (isMessageGestureControl(event.target)) return;
+  scheduleMessageLongPress(row, touch);
+}, { passive: false });
+
+document.addEventListener('touchmove', (event) => {
+  const touches = Array.from(event.changedTouches || []);
+  if (_messageLongPress) {
+    const touch = touches.find((item) => Number(item.identifier) === Number(_messageLongPress.identifier));
+    if (touch) {
+      const moved = Math.hypot(Number(touch.clientX || 0) - Number(_messageLongPress.startX || 0), Number(touch.clientY || 0) - Number(_messageLongPress.startY || 0));
+      if (moved > 12) cancelMessageLongPress();
+    }
+  }
+  if (_messageTouchSelectionDrag) {
+    const touch = touches.find((item) => Number(item.identifier) === Number(_messageTouchSelectionDrag.identifier));
+    if (!touch) return;
+    event.preventDefault();
+    const row = messageRowFromPoint(touch.clientX, touch.clientY);
+    if (!row) return;
+    applyMessageSelectionDragRow(row, _messageTouchSelectionDrag.mode);
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', () => {
+  cancelMessageLongPress();
+  stopTouchMessageSelectionDrag();
+});
+
+document.addEventListener('touchcancel', () => {
+  cancelMessageLongPress();
+  stopTouchMessageSelectionDrag();
 });
 
 window.addEventListener('focus', () => {
@@ -7425,6 +8502,20 @@ window.addEventListener('focus', () => {
 document.addEventListener('click', async (event) => {
   const et = event.target;
   if (!et || typeof et.closest !== 'function') return;
+  const messageRow = messageRowElementFromTarget(et);
+  if (state.contextMenu && !et.closest('.context-menu')) {
+    state.contextMenu = null;
+    queueRender();
+  }
+  if (messageRow && shouldSuppressMessageClick()) {
+    event.preventDefault();
+    return;
+  }
+  if (messageRow && state.chat.selectionMode) {
+    event.preventDefault();
+    if (canSelectMessageRow(messageRow)) toggleMessageSelection(Number(messageRow.dataset.msgId || 0));
+    return;
+  }
   // Close media picker on outside click
   if (state.chat.mediaPicker) {
     const inPicker = et.closest('.media-picker, [data-action="toggle-media-picker"]');
@@ -7638,6 +8729,7 @@ document.addEventListener('click', async (event) => {
         const tab = target.dataset.tab || 'profile';
         state.settingsTab = tab;
         state.settingsMobileView = 'panel';
+        persistRememberedSettingsTab(tab);
         if (state.route.name === 'settings') history.replaceState({}, '', `/settings?tab=${tab}`);
         render(); break;
       }
@@ -7676,11 +8768,13 @@ document.addEventListener('click', async (event) => {
         render();
         toast(currentLang() === 'ru' ? 'Все уведомления помечены как прочитанные.' : 'All notifications marked as read.', 'success');
         break;
-      case 'switch-account': await switchAccount(target.dataset.token); break;
+      case 'switch-account': await switchAccount(target.dataset.grant); break;
       case 'remove-saved-account': {
-        const removeId = Number(target.dataset.id);
-        state.savedAccounts = state.savedAccounts.filter(a => a.id !== removeId);
-        persistSavedAccounts();
+        const grantId = String(target.dataset.grant || '');
+        const response = await api(`/api/auth/saved-accounts/${encodeURIComponent(grantId)}`, { method: 'DELETE' });
+        state.savedAccounts = Array.isArray(response.savedAccounts)
+          ? response.savedAccounts
+          : state.savedAccounts.filter((account) => account.grantId !== grantId);
         render(); break;
       }
       case 'logout': await api('/api/auth/logout', { method: 'POST', body: '{}' }); closeSSE(); state.bootstrap = null; state.me = null; state.meLoaded = false; state.drawerOpen = false; navigate('/'); await loadBootstrap(); break;
@@ -7838,6 +8932,30 @@ document.addEventListener('click', async (event) => {
       case 'open-chat-settings':
         setModal({ type: 'chat-room-settings', roomSlug: target.dataset.slug || state.chat.room?.slug });
         break;
+      case 'select-message': {
+        const messageId = Number(target.dataset.msgId || 0);
+        if (!messageId) break;
+        toggleMessageSelection(messageId, true);
+        state.contextMenu = null;
+        break;
+      }
+      case 'clear-message-selection':
+        clearMessageSelection();
+        break;
+      case 'delete-selected-messages': {
+        const ids = selectedMessageIds();
+        if (!ids.length) break;
+        openMessageDeleteScope(ids);
+        break;
+      }
+      case 'confirm-delete-messages': {
+        const roomSlug = state.modal?.roomSlug || state.chat.room?.slug;
+        const ids = Array.from(new Set((state.modal?.messageIds || []).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0)));
+        if (!roomSlug || !ids.length) break;
+        await deleteMessagesByScope(roomSlug, ids, target.dataset.scope === 'everyone' ? 'everyone' : 'self');
+        toast(currentLang() === 'ru' ? 'Сообщения удалены.' : 'Messages deleted.', 'success');
+        break;
+      }
       case 'open-site-file': {
         const siteId = Number(state.route.siteId || state.sites.studio?.siteId || target.dataset.id || 0);
         const filePath = target.dataset.path;
@@ -7894,11 +9012,8 @@ document.addEventListener('click', async (event) => {
         render(); break;
       }
       case 'delete-message': {
-        if (!confirm('Delete this message?')) break;
-        await api(`/api/chat/rooms/${encodeURIComponent(target.dataset.roomSlug)}/messages/${target.dataset.msgId}`, { method: 'DELETE', body: '{}' });
-        const di = state.chat.messages.findIndex(m => m.id === Number(target.dataset.msgId));
-        if (di >= 0) { state.chat.messages[di] = { ...state.chat.messages[di], deleted: true, displayBody: '[deleted]' }; }
-        render(); break;
+        openMessageDeleteScope([target.dataset.msgId]);
+        break;
       }
       case 'send-sticker': state.chat.pendingStickerId = Number(target.dataset.id); state.chat.stickerPicker = false; render(); break;
       case 'attach-chat-image': activateFilePickerHold(); document.getElementById('chat-file-input')?.click(); break;
@@ -7923,6 +9038,76 @@ document.addEventListener('click', async (event) => {
             kind: target.dataset.voiceKind || 'voice'
           }
         );
+        break;
+      case 'close-voice-playback':
+        stopVoicePlayback(true);
+        state.voicePlayback = { key: '', url: '', playing: false, currentTime: 0, duration: 0, speed: Number(state.chat.voiceSpeed || 1), title: '', label: '', kind: 'voice', queue: [] };
+        queueRender();
+        break;
+      case 'prev-voice-track':
+        stepVoicePlayback(-1);
+        break;
+      case 'next-voice-track':
+        stepVoicePlayback(1);
+        break;
+      case 'open-media-library':
+        state.contextMenu = null;
+        navigate('/media-library');
+        break;
+      case 'media-library-folder':
+        state.mediaLibrary = { ...(state.mediaLibrary || defaultMediaLibraryState()), selectedFolderId: target.dataset.folderId || 'recent' };
+        persistMediaLibrary();
+        queueRender();
+        break;
+      case 'media-library-new-folder': {
+        const name = prompt(currentLang() === 'ru' ? 'Название папки' : 'Folder name');
+        if (!name) break;
+        const folderId = `folder-${Date.now().toString(36)}`;
+        state.mediaLibrary = {
+          ...(state.mediaLibrary || defaultMediaLibraryState()),
+          folders: [...((state.mediaLibrary?.folders) || defaultMediaLibraryState().folders), { id: folderId, name: String(name).slice(0, 40) }],
+          selectedFolderId: folderId
+        };
+        persistMediaLibrary();
+        queueRender();
+        break;
+      }
+      case 'media-library-save-current': {
+        const folderId = state.mediaLibrary?.selectedFolderId || 'recent';
+        const playback = state.voicePlayback || {};
+        if (!playback.url) break;
+        const track = normalizeLibraryTrack({
+          id: String(playback.key || playback.url),
+          url: playback.url,
+          duration: playback.duration || 0,
+          title: playback.title || '',
+          label: playback.label || '',
+          kind: playback.kind || 'audio',
+          folderId
+        });
+        const tracks = Array.isArray(state.mediaLibrary?.tracks) ? state.mediaLibrary.tracks.filter((item) => !(String(item.url) === track.url && String(item.folderId || 'recent') === folderId)) : [];
+        state.mediaLibrary = { ...(state.mediaLibrary || defaultMediaLibraryState()), tracks: [track, ...tracks].slice(0, 300) };
+        persistMediaLibrary();
+        queueRender();
+        break;
+      }
+      case 'play-library-track': {
+        const track = (state.mediaLibrary?.tracks || []).find((item) => String(item.id) === String(target.dataset.trackId || ''));
+        if (!track) break;
+        await toggleVoicePlayback(track.id || track.url, track.url, Number(track.duration || 0), {
+          title: track.title || voicePlaybackLabel(track.kind || 'audio'),
+          label: track.label || 'Audio',
+          kind: track.kind || 'audio',
+          queue: (state.mediaLibrary?.tracks || [])
+            .filter((item) => String(item.folderId || 'recent') === String(state.mediaLibrary?.selectedFolderId || 'recent'))
+            .map((item) => ({ key: item.id || item.url, url: item.url, duration: item.duration || 0, title: item.title || '', label: item.label || '', kind: item.kind || 'audio' }))
+        });
+        break;
+      }
+      case 'copy-context-value':
+        if (target.dataset.value) await navigator.clipboard.writeText(target.dataset.value);
+        state.contextMenu = null;
+        queueRender();
         break;
       case 'set-voice-speed':
         setVoicePlaybackSpeed(Number(target.dataset.speed || 1));
@@ -8233,8 +9418,8 @@ document.addEventListener('click', async (event) => {
         const decision = target.dataset.decision === 'rejected' ? 'rejected' : 'approved';
         if (!siteId) break;
         const note = prompt(currentLang() === 'ru'
-          ? (decision === 'approved' ? 'Комментарий для владельца сайта (необязательно):' : 'Причина отклонения сайта:')
-          : (decision === 'approved' ? 'Optional note for the site owner:' : 'Reason for rejecting this site:')) || '';
+          ? (decision === 'approved' ? 'Комментарий для автора сайта (необязательно):' : 'Причина отклонения сайта:')
+          : (decision === 'approved' ? 'Optional note for the site author:' : 'Reason for rejecting this site:')) || '';
         await api(`/api/admin/sites/${siteId}/review`, { method: 'PATCH', body: JSON.stringify({ decision, note }) });
         await loadAdminData();
         render();
@@ -8409,6 +9594,28 @@ document.addEventListener('click', async (event) => {
   }
 });
 
+document.addEventListener('contextmenu', (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const voicePlayer = target.closest('[data-voice-player]');
+  const messageRow = target.closest('.message-row');
+  if (!voicePlayer && !messageRow) return;
+  event.preventDefault();
+  if (messageRow && canSelectMessageRow(messageRow)) {
+    state.contextMenu = null;
+    toggleMessageSelection(Number(messageRow.dataset.msgId || 0), null, { renderNow: false });
+    suppressMessageClick(280);
+    queueRender();
+    return;
+  }
+  const items = [
+    { action: 'open-media-library', label: currentLang() === 'ru' ? 'Открыть медиатеку' : 'Open media library' }
+  ];
+  const voiceUrl = voicePlayer?.dataset.voiceUrl || '';
+  if (voiceUrl) items.push({ action: 'copy-context-value', label: currentLang() === 'ru' ? 'Копировать ссылку' : 'Copy link', value: voiceUrl });
+  openContextMenuAt(event.clientX, event.clientY, items);
+});
+
 document.addEventListener('change', async (event) => {
   const input = event.target;
   if (!input || typeof input.matches !== 'function') return;
@@ -8430,7 +9637,7 @@ document.addEventListener('change', async (event) => {
     if (input.matches('#chat-file-input')) {
       const files = Array.from(input.files || []);
       if (!files.length) return;
-      await handleChatImageFiles(files);
+      await handleChatMediaFiles(files);
       input.value = '';
     }
     if (input.matches('input[type="file"][data-action="site-file-pick"]')) {
@@ -8472,6 +9679,35 @@ function readFileAsDataURL(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+function readFileAsDataURLWithProgress(file, onProgress = null) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof onProgress === 'function') onProgress(1);
+      resolve(reader.result);
+    };
+    reader.onerror = reject;
+    reader.onprogress = (event) => {
+      if (!event.lengthComputable || typeof onProgress !== 'function') return;
+      onProgress(Math.max(0, Math.min(1, event.loaded / event.total)));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function setChatUploadProgress(active, label = '', percent = 0) {
+  state.chat.upload = {
+    active: Boolean(active),
+    label: String(label || ''),
+    percent: Math.max(0, Math.min(100, Math.round(Number(percent || 0))))
+  };
+  queueRender();
+}
+
+function clearChatUploadProgress() {
+  setChatUploadProgress(false, '', 0);
 }
 
 let _cropBinding = null;
@@ -8594,6 +9830,11 @@ document.addEventListener('input', async (event) => {
     await loadAdminPosts(input.value);
     render();
   }
+  if (input.matches('[data-input="settings-search"]')) {
+    state.settingsSearch = String(input.value || '').slice(0, 80);
+    persistRememberedSettingsSearch(state.settingsSearch);
+    render();
+  }
   if (input.matches('[data-input="quick-lang-select"]')) {
     localStorage.setItem('jb_lang', input.value);
     if (state.me?.user) state.me.user.languagePreference = input.value;
@@ -8641,7 +9882,6 @@ document.addEventListener('submit', async (event) => {
         const email = String(d.get('email') || '').trim();
         const displayName = String(d.get('displayName') || '').trim();
         const payload = await api('/api/auth/login-code', { method: 'POST', body: JSON.stringify({ email, displayName, code: d.get('code') }) });
-        saveAccountSession(payload.user, payload.sessionToken);
         state.bootstrap = null;
         state.meLoaded = false;
         state.drawerOpen = false;
@@ -9107,6 +10347,7 @@ function connectSSE() {
         if (state.typing[state.chat.room.slug]) {
           delete state.typing[state.chat.room.slug][normalized.author?.id];
         }
+        syncCurrentRoomPreview();
         queueBackgroundRender();
         scrollChatToBottom(false);
       });
@@ -9127,6 +10368,7 @@ function connectSSE() {
       if (idx >= 0) {
         const displayBody = updated.deleted ? '[deleted]' : (updated.body || state.chat.messages[idx].displayBody);
         state.chat.messages[idx] = { ...updated, displayBody };
+        syncCurrentRoomPreview();
         queueBackgroundRender();
       }
     }
@@ -9138,9 +10380,18 @@ function connectSSE() {
       const idx = state.chat.messages.findIndex(m => m.id === id);
       if (idx >= 0) {
         state.chat.messages[idx] = { ...state.chat.messages[idx], deleted: true, body: '', displayBody: '[deleted]' };
+        setSelectedMessageIds(selectedMessageIds().filter((item) => Number(item) !== Number(id)), { renderNow: false });
+        syncCurrentRoomPreview();
         queueBackgroundRender();
       }
     }
+  });
+
+  es.addEventListener('messages_hidden', (e) => {
+    const { ids, roomSlug } = JSON.parse(e.data);
+    if (!roomSlug || !Array.isArray(ids)) return;
+    hideMessagesLocally(roomSlug, ids);
+    if (isVisibleChatRoomBySlug(roomSlug)) queueBackgroundRender();
   });
 
   es.addEventListener('message_pinned', (e) => {
@@ -9239,6 +10490,8 @@ async function boot() {
     if (!localStorage.getItem('jb_lang')) {
       localStorage.setItem('jb_lang', currentLang());
     }
+    syncLanguageFlags();
+    installTelemetry();
     await routeLoad();
     render();
     requestAnimationFrame(() => {

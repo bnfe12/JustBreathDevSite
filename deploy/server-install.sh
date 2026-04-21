@@ -6,7 +6,7 @@
 #   1. Проверяет наличие Node 20+, ставит через NodeSource если нет
 #   2. Ставит nginx и certbot
 #   3. Ставит npm-зависимости проекта
-#   4. Генерирует .env с рандомными ADMIN_TOKEN/паролями
+#   4. Генерирует .env с рандомными паролями
 #   5. Кладёт systemd unit и запускает его
 #   6. Кладёт nginx конфиг и перезагружает nginx
 #   7. (опционально) Получает Let's Encrypt сертификат
@@ -69,14 +69,13 @@ log "Конфигурация .env"
 if [[ -f "$APP_DIR/.env" ]]; then
   warn ".env уже существует — не перезаписываю. Проверьте секреты вручную."
 else
-  ADMIN_TOKEN=$(openssl rand -hex 32)
   OWNER_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 20)
   BRAND_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 20)
   cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-  sed -i "s|^ADMIN_TOKEN=.*|ADMIN_TOKEN=$ADMIN_TOKEN|" "$APP_DIR/.env"
   sed -i "s|^OWNER_PASSWORD=.*|OWNER_PASSWORD=$OWNER_PASS|" "$APP_DIR/.env"
   sed -i "s|^BRAND_PASSWORD=.*|BRAND_PASSWORD=$BRAND_PASS|" "$APP_DIR/.env"
   sed -i "s|^APP_URL=.*|APP_URL=https://$DOMAIN|" "$APP_DIR/.env"
+  sed -i "s|^UPLOADED_SITES_ORIGIN=.*|UPLOADED_SITES_ORIGIN=https://sites.$DOMAIN|" "$APP_DIR/.env"
   chmod 600 "$APP_DIR/.env"
   ok ".env создан (chmod 600)"
   echo
@@ -86,7 +85,6 @@ else
   printf  "  ║  Owner handle:    Tcheler%*s║\n" $((38)) " "
   printf  "  ║  Owner password:  %-44s ║\n" "$OWNER_PASS"
   printf  "  ║  Brand password:  %-44s ║\n" "$BRAND_PASS"
-  printf  "  ║  Admin token:     %-44s ║\n" "${ADMIN_TOKEN:0:40}..."
   echo "  ╚═══════════════════════════════════════════════════════════════╝"
   echo
 fi
@@ -149,10 +147,10 @@ fi
 if [[ "$SKIP_NGINX" != "1" && "$SKIP_TLS" != "1" ]]; then
   log "Let's Encrypt сертификат для $DOMAIN"
   if [[ ! -d "/etc/letsencrypt/live/$DOMAIN" ]]; then
-    warn "убедитесь, что A-запись $DOMAIN указывает на этот сервер"
+    warn "убедитесь, что A-записи $DOMAIN и sites.$DOMAIN указывают на этот сервер"
     read -r -p "  продолжить с certbot? [y/N] " ans
     if [[ "${ans,,}" == "y" ]]; then
-      certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" --non-interactive --agree-tos --email "admin@$DOMAIN" --redirect || warn "certbot не удался — проверьте DNS"
+      certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" -d "sites.$DOMAIN" --non-interactive --agree-tos --email "admin@$DOMAIN" --redirect || warn "certbot не удался — проверьте DNS"
     fi
   else
     ok "сертификат уже существует"

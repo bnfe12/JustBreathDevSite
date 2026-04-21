@@ -18,7 +18,6 @@ In your repo → Settings → Secrets → Actions, add:
 | `DEPLOY_SSH_KEY` | Private SSH key that can access your server |
 | `DEPLOY_HOST` | Your server IP or domain |
 | `DEPLOY_USER` | SSH username (e.g. `ubuntu`) |
-| `ADMIN_TOKEN` | Random secret for maintenance API |
 
 ## 3. Server SSH setup
 
@@ -35,17 +34,11 @@ echo "ssh-rsa AAAA... your-key" >> ~/.ssh/authorized_keys
 
 ## 5. Maintenance mode
 
-Manual toggle via Admin panel → or API:
+Manual toggle via the private operations session in `/admin`:
 
 ```bash
-# Enable maintenance (users see maintenance page)
-curl -X POST https://justbreath.life/api/admin/maintenance \
-  -H 'Content-Type: application/json' \
-  -d '{"token":"YOUR_ADMIN_TOKEN","enabled":true}'
-
-# Disable
-curl -X POST https://justbreath.life/api/admin/maintenance \
-  -d '{"token":"YOUR_ADMIN_TOKEN","enabled":false}'
+# Sign in with the private operations account in the browser, then use the maintenance toggle in /admin.
+# Do not expose a shared maintenance API token in CI, docs, or automation.
 ```
 
 ## 6. .env.example fields
@@ -57,6 +50,5 @@ OWNER_HANDLE=Tcheler
 OWNER_EMAIL=andrexarlay@gmail.com
 OWNER_PASSWORD=change_this_in_production
 BRAND_PASSWORD=change_this_in_production
-ADMIN_TOKEN=generate_random_32_chars
 TENOR_API_KEY=           # Optional: for GIF search
 ```

@@ -30,8 +30,9 @@ For Russian-language anti-patterns and step-by-step examples, also read [SITE_CR
 - the archive must still contain `index.html`
 - if more than one `index.html` exists, the root one wins
 - imported archive sites are now served as full static bundles without platform wrapping over the original design
-- server code inside the archive is still not executed
-- if backend/API code is detected, the import still succeeds and the site shows compatibility warnings instead of rejecting the upload
+- archive packages are staged in quarantine before publish
+- executable and server-side files are blocked before storage
+- public or unlisted launch remains visible only to the site author until approval
 - local images may be compressed automatically for storage when the server can keep the same path with a smaller file
 - after changing the server code, restart the server so the new upload path is actually used
 
@@ -81,8 +82,9 @@ The imported site is then served as a raw static bundle:
 
 - original HTML / CSS / JS structure is preserved as closely as possible
 - local download links and bundled assets stay inside the imported site path
-- server-side handlers are never executed
-- backend-dependent features are reported as compatibility warnings instead of blocking the import
+- archive files are staged in quarantine before the final bundle is published
+- executable and server-side files are rejected before storage
+- suspicious patterns can still surface as review warnings for manual approval
 
 Supported immediately:
 
@@ -101,6 +103,7 @@ Creator sites on justbreath are treated as static sites.
 
 That means:
 
+- uploaded packages are hosted on a separate site origin from the main app
 - no site-local authentication
 - no custom user database
 - no embedded comment backend
@@ -367,7 +370,7 @@ Keep that JSON route only for compatibility or smaller automation clients. Large
 
 Chat rooms can now behave like Telegram channels:
 
-- owners/admins/moderators can publish
+- elevated room roles can publish
 - members keep read-only access
 - subscription-gated rooms still enforce plan access before join/post
 

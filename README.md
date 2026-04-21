@@ -1,7 +1,7 @@
 # justbreath.life
 
 Social platform: profiles, creator sites, real-time chat (DM/groups/workspaces),
-internal mail, content feed, e2ee, admin panel. **No frameworks** — vanilla JS SPA
+internal mail, content feed, e2ee, operations tools. **No frameworks** — vanilla JS SPA
 + Node.js Express + flat-file JSON store.
 
 ---
@@ -11,7 +11,9 @@ internal mail, content feed, e2ee, admin panel. **No frameworks** — vanilla JS
 ```bash
 npm install
 cp .env.example .env
-# Edit .env as needed. For an empty clean start keep DEMO_SEED_MODE=off.
+# For local dev set APP_URL=http://localhost:8080
+# Uploaded-site isolation will then auto-derive http://sites.localhost:8080 unless you set UPLOADED_SITES_ORIGIN explicitly.
+# For an empty clean start keep DEMO_SEED_MODE=off.
 # If the live store is outside the repo, set DATA_DIR=/absolute/path/to/data
 # and optionally BACKUPS_DIR=/absolute/path/to/backups
 node server/index.js
@@ -22,12 +24,12 @@ node server/index.js
 
 ## Documentation Index
 
-Core docs are intentionally split by responsibility so deployment, creator-site work, and security hardening do not get mixed together:
+Core docs are intentionally split by responsibility so deployment, creator-site work, and runtime operations do not get mixed together:
 
 - Platform overview and local runbook: [README.md](README.md)
 - Creator-site imports, archive rules, Site Studio, review prep: [SITE_CREATION_GUIDE.md](SITE_CREATION_GUIDE.md)
 - Production proxy, nginx, TLS, restart, large uploads: [deploy/DEPLOY.md](deploy/DEPLOY.md)
-- Security model, hardening checklist, why secrets must not live in client code: [SECURITY.md](SECURITY.md)
+- Runtime checklist and deployment notes: [SECURITY.md](SECURITY.md)
 
 If you mirror the project to GitHub, keep this section near the top of the repository README so docs remain visible immediately instead of getting buried under the feature list.
 
@@ -45,11 +47,9 @@ If you are building or importing creator sites into justbreath, start here:
 
 Use `Template site` for simple static pages, `Single HTML` only for one-file uploads, and `Archive package` for real exported builds with `css/`, `js/`, `img/`, or extra pages. Archive imports support `zip`, `tar`, `tgz`, `tar.gz`, and `7z` when the server extractor is available. `Site Studio` is for editing uploaded text files after deploy.
 
-Uploaded archive sites open through a launch screen first. That screen explains that the creator site runs in its own isolated surface, shows the creator profile link, and offers a local "remember this decision on this device" checkbox before the site opens directly next time.
+Archive packages now pass a quarantine/safety scan before they are stored, and public or unlisted launch stays visible only to the site author until approval.
 
 Large archive uploads now show a visible client-side progress state during binary upload and then switch into a server-side processing phase, so a 20 MB+ import no longer looks like a silent hang.
-
-Archive-based creator sites now load through the guarded launch flow while still opening the real entry file inside the sandboxed iframe. That preserves warning / consent UX and keeps CSS, JS, images, multi-page exports, and relative asset paths working like a normal static host instead of degrading into raw text.
 
 ---
 
@@ -63,39 +63,13 @@ Recent chat-media changes are important because they change how the UI behaves u
 - Voice recording now has an explicit live state with a visible timer and recording banner, so there is no ambiguity about whether the microphone is actually recording.
 - If a future change reintroduces interval-based full renders during media playback, treat that as a regression. Chat playback must stay incremental, not page-wide.
 
-## Current Product Notes
-
-Recent live fixes that matter for anyone deploying or reviewing the repo:
-
-- Admin panel now has a real owner control center: telemetry, site review queue, richer platform controls, ad-slot management, user role / badge editing, and cleaner audit actions.
-- Chat replies are server-linked again. New messages now persist `replyToId`, so replies no longer break as detached messages.
-- Account switcher no longer shows the current profile twice and scales better when many saved accounts exist on one device.
-- Accent color chips use rounded-square swatches instead of compressed circles.
-- Imported archive sites keep the launch / warning boundary but open the actual static entrypoint, so full custom builds work with their own relative assets.
-
 ---
 
-## Security Posture
+## Deployment Notes
 
-This project should not rely on hiding client code, obfuscating random modules, or "encrypting the frontend" as a security strategy. Real protections live in server behavior and deployment:
+This project is designed around server-enforced sessions, isolated uploaded-site hosting, rate limits, reverse-proxy controls, and a review gate for externally reachable creator sites.
 
-- keep secrets, tokens, signing material, and admin checks on the server only
-- enforce secure cookies, TLS, reverse-proxy limits, and CSP headers
-- reject cross-site write requests on cookie-authenticated API routes
-- rate-limit login, registration, telemetry, and heavy archive upload paths
-- isolate uploaded creator sites and review archive imports before approval
-
-The expanded checklist and rationale live in [SECURITY.md](SECURITY.md).
-
-## Repository Hygiene
-
-This GitHub mirror is meant to contain source and documentation only.
-
-- Never commit `.env`, production secrets, OAuth credentials, SMTP passwords, or admin tokens.
-- Never commit live `data/store.json`, uploaded media, extracted creator-site bundles, or backup snapshots.
-- Keep runtime state outside the repository or ignored by git.
-- Treat `/tmp/JustBreathDevSite` or any deployment mirror as a publish target, not as a place to stage secrets.
-- Before every push, re-check `.gitignore`, review `git status`, and ensure only source/docs/config that are safe to expose are being committed.
+The expanded checklist lives in [SECURITY.md](SECURITY.md).
 
 Questions about docs or the repository: `justbreath.business.mail@gmail.com` and <https://github.com/bnfe12>.
 
@@ -114,8 +88,8 @@ not base64), creator sites, projects, posts/devlogs, e2ee for personal DMs,
 bot tokens, push notifications, sticker packs, GIF search, sign-in by password,
 email code, or Google.
 
-**Owner only**: `/admin` — stats, user management (ban/verify), ad slots,
-verification queue, site review queue, telemetry, maintenance mode, and richer platform controls.
+**Operations surface**: `/admin` — stats, user management (ban/verify), ad slots,
+verification queue, maintenance mode.
 
 Guest mode is read-only. Chats, mail, publishing, sites, and settings require
 an account.
@@ -129,14 +103,14 @@ Site creation workflow, Site Studio, archive handling, and AI/static-site rules 
 Before exposing to real users:
 
 ### 1. Secrets
-- [ ] Set strong `OWNER_PASSWORD` (default `12345678` is **not** safe)
+- [ ] Set strong primary account password (`OWNER_PASSWORD`; default `12345678` is **not** safe)
 - [ ] Set strong `BRAND_PASSWORD`
-- [ ] Generate `ADMIN_TOKEN`: `openssl rand -hex 32`
+- [ ] Keep `/admin` limited to the primary operations session; maintenance mode is no longer token-driven
 
 ### 2. Email delivery
 Configure SMTP in `.env` so verification, password-reset, and sign-in codes actually reach users:
 - [ ] `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
-- Without SMTP, codes print to server console only — fine for dev, broken for users.
+- Without SMTP, codes print to server console only. Acceptable only for isolated local development, never for shared staging or production.
 
 ### 2b. Google sign-in
 - [ ] Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`
@@ -147,8 +121,10 @@ Configure SMTP in `.env` so verification, password-reset, and sign-in codes actu
 
 ### 3. HTTPS + reverse proxy
 - [ ] Put nginx (config in `deploy/`) in front of Node, terminate TLS there
+- [ ] Point both `justbreath.life` and `sites.justbreath.life` to the server
+- [ ] Set `UPLOADED_SITES_ORIGIN=https://sites.justbreath.life` in `.env`
 - [ ] Set `secure: true` on session cookies (search `setSessionCookie` in `server/index.js`)
-- [ ] Issue Let's Encrypt cert: `certbot --nginx -d justbreath.life`
+- [ ] Issue Let's Encrypt cert: `certbot --nginx -d justbreath.life -d www.justbreath.life -d sites.justbreath.life`
 - [ ] Keep `client_max_body_size 1g` and `proxy_request_buffering off` on archive binary routes if operators need large archive imports
 
 ### 4. Process management

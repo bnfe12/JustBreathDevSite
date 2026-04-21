@@ -74,7 +74,7 @@ Never ship raw store objects to the client — always go through the `publicUser
 
 `.env` is read by a **hand-rolled** parser in `server/index.js` — there is no `dotenv` dependency. `.env.example` is the source of truth for supported keys. Notable groups:
 
-- Core: `PORT, APP_URL, SITE_NAME, DATA_DIR, BACKUPS_DIR, DEMO_SEED_MODE, ADMIN_TOKEN`
+- Core: `PORT, APP_URL, SITE_NAME, DATA_DIR, BACKUPS_DIR, DEMO_SEED_MODE`
 - OAuth: `GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI`, `DISCORD_CLIENT_ID/SECRET/REDIRECT_URI`
 - SMTP: `SMTP_HOST/PORT/USER/PASS/FROM` — when `SMTP_HOST` is empty, codes print to `server.log` instead of being emailed (intended for dev).
 - Telegram bridge: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` — endpoints at `/api/integrations/telegram/*` are currently scaffolded (status `'preview'`) and return "coming soon" on link. Webhook endpoint is reserved.

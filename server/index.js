@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import net from 'node:net';
 import tls from 'node:tls';
 import { createHash, randomBytes } from 'node:crypto';
-import { gunzipSync } from 'node:zlib';
+import { createGunzip } from 'node:zlib';
 import { mkdtempSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -62,6 +62,7 @@ const PORT = Number(process.env.PORT || 8080);
 const SITE_NAME = process.env.SITE_NAME || 'justbreath.life';
 const BRAND_WORDMARK = process.env.BRAND_WORDMARK || 'justbreath';
 const APP_URL = process.env.APP_URL || '';
+const RAW_UPLOADED_SITES_ORIGIN = String(process.env.UPLOADED_SITES_ORIGIN || '');
 const ADSENSE_CLIENT_ID = String(process.env.ADSENSE_CLIENT_ID || 'ca-pub-3877248886432419');
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || '');
 const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || '');
@@ -72,7 +73,11 @@ const DISCORD_REDIRECT_URI = String(process.env.DISCORD_REDIRECT_URI || '');
 const SESSION_COOKIE = 'jb_sid';
 const GOOGLE_OAUTH_COOKIE = 'jb_google_oauth';
 const DISCORD_OAUTH_COOKIE = 'jb_discord_oauth';
+const SWITCH_DEVICE_COOKIE = 'jb_device';
+const SITE_PREVIEW_COOKIE = 'jb_site_preview';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const SWITCH_GRANT_TTL_MS = 1000 * 60 * 60 * 24 * 90;
+const SITE_PREVIEW_TTL_MS = 1000 * 60 * 10;
 const GOOGLE_OAUTH_TTL_MS = 1000 * 60 * 10;
 const DISCORD_OAUTH_TTL_MS = 1000 * 60 * 10;
 const SITE_UPLOAD_LIMIT_BYTES = 1 * 1024 * 1024;
@@ -80,10 +85,14 @@ const SITE_ZIP_LIMIT_BYTES = 5 * 1024 * 1024;
 const OPERATOR_SITE_ZIP_LIMIT_BYTES = 512 * 1024 * 1024;
 const SITE_ARCHIVE_EXPANDED_LIMIT_BYTES = 30 * 1024 * 1024;
 const OPERATOR_SITE_ARCHIVE_EXPANDED_LIMIT_BYTES = 1536 * 1024 * 1024;
+const MAX_ARCHIVE_FILE_COUNT = 4000;
 const IMAGE_UPLOAD_LIMIT_BYTES = 900 * 1024;
+const CHAT_MEDIA_UPLOAD_LIMIT_BYTES = 24 * 1024 * 1024;
 const DISCORD_SUPPORT_URL = String(process.env.DISCORD_SUPPORT_URL || '');
 const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || '');
 const TELEGRAM_BOT_USERNAME = String(process.env.TELEGRAM_BOT_USERNAME || '');
+const NODE_ENV = String(process.env.NODE_ENV || 'development').toLowerCase();
+const ALLOW_DEV_EMAIL_LOG = String(process.env.ALLOW_DEV_EMAIL_LOG || '').toLowerCase() === '1';
 
 const OWNER_HANDLE = String(process.env.OWNER_HANDLE || 'Tcheler');
 const OWNER_DISPLAY_NAME = String(process.env.OWNER_DISPLAY_NAME || 'Tcheler');
@@ -129,7 +138,7 @@ function hasInternalRole(user, roles = []) {
   return ensureArray(roles).includes(String(user?.roleInternal || ''));
 }
 function isOwnerUser(user) {
-  return hasInternalRole(user, ['owner', 'admin']);
+  return hasInternalRole(user, ['owner']);
 }
 function isOperatorUser(user) {
   return hasInternalRole(user, ['owner', 'admin']);
@@ -233,6 +242,47 @@ function createToken() { return randomBytes(24).toString('hex'); }
 function createInviteCode() { return randomBytes(6).toString('base64url'); }
 function avatarText(value) { return String(value || '?').trim().slice(0, 2).toUpperCase(); }
 function isGuestUser(user) { return String(user?.roleInternal || '') === 'guest'; }
+function normalizeOrigin(raw = '') {
+  try {
+    const url = new URL(String(raw || '').trim());
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    return url.origin;
+  } catch {
+    return '';
+  }
+}
+function originHost(origin = '') {
+  try {
+    return new URL(origin).host.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+function isLoopbackHost(raw = '') {
+  const host = String(raw || '').toLowerCase().split(':')[0].trim();
+  return host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '[::1]';
+}
+function derivedUploadedSitesOrigin(appOrigin = '') {
+  const normalized = normalizeOrigin(appOrigin);
+  if (!normalized) return '';
+  try {
+    const url = new URL(normalized);
+    if (!isLoopbackHost(url.host)) return '';
+    if (url.hostname === '127.0.0.1' || url.hostname === '[::1]') url.hostname = 'sites.localhost';
+    else if (!url.hostname.startsWith('sites.')) url.hostname = `sites.${url.hostname}`;
+    return url.origin;
+  } catch {
+    return '';
+  }
+}
+function resolveUploadedSitesOrigin(appOrigin = '', raw = '') {
+  const configured = normalizeOrigin(raw);
+  if (configured && originHost(configured) !== originHost(appOrigin)) return configured;
+  return derivedUploadedSitesOrigin(appOrigin);
+}
+const APP_ORIGIN = normalizeOrigin(APP_URL) || `http://localhost:${PORT}`;
+const UPLOADED_SITES_ORIGIN = resolveUploadedSitesOrigin(APP_ORIGIN, RAW_UPLOADED_SITES_ORIGIN);
+const UPLOADED_SITES_ISOLATION_ENABLED = Boolean(UPLOADED_SITES_ORIGIN && originHost(UPLOADED_SITES_ORIGIN) !== originHost(APP_ORIGIN));
 function uniqueHandle(store, base) {
   const fallback = cleanHandle(base) || `user${Number(store.seq.users || 0) + 1}`;
   const normalized = fallback.slice(0, 32) || `user${Number(store.seq.users || 0) + 1}`;
@@ -329,6 +379,57 @@ function sanitizeChatThemeMap(raw) {
     if (theme) out[slug] = theme;
   }
   return out;
+}
+function sanitizeHiddenMessageMap(raw) {
+  const out = {};
+  const source = ensureObject(raw);
+  for (const [key, value] of Object.entries(source)) {
+    const slug = slugify(key);
+    if (!slug) continue;
+    const ids = Array.from(new Set(ensureArray(value).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0))).slice(-4000);
+    if (ids.length) out[slug] = ids;
+  }
+  return out;
+}
+function hiddenMessageIdsForRoom(user, roomSlug = '') {
+  const slug = slugify(roomSlug);
+  if (!slug) return [];
+  const map = sanitizeHiddenMessageMap(user?.settings?.hiddenMessageIdsByRoom);
+  return Array.isArray(map[slug]) ? map[slug] : [];
+}
+function messageHiddenForUser(user, roomSlug = '', messageId = 0) {
+  return hiddenMessageIdsForRoom(user, roomSlug).includes(Number(messageId));
+}
+function hideMessagesForUser(user, roomSlug = '', messageIds = []) {
+  const slug = slugify(roomSlug);
+  if (!slug || !user) return [];
+  if (!user.settings || typeof user.settings !== 'object') user.settings = {};
+  user.settings.hiddenMessageIdsByRoom = sanitizeHiddenMessageMap(user.settings.hiddenMessageIdsByRoom);
+  const existing = Array.isArray(user.settings.hiddenMessageIdsByRoom[slug]) ? user.settings.hiddenMessageIdsByRoom[slug] : [];
+  const next = Array.from(new Set(existing.concat(ensureArray(messageIds).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0)))).slice(-4000);
+  if (next.length) user.settings.hiddenMessageIdsByRoom[slug] = next;
+  return next;
+}
+function visibleRoomMessagesForUser(store, roomId, user = null, roomSlug = '') {
+  return store.messages.filter((item) => Number(item.roomId) === Number(roomId) && !messageHiddenForUser(user, roomSlug, item.id));
+}
+function canDeleteMessageForEveryone(room, authUserId, message) {
+  const role = room.memberRoles?.[String(authUserId)] || 'member';
+  return Number(message.userId) === Number(authUserId) || ['owner', 'admin', 'moderator'].includes(role);
+}
+function softDeleteMessage(message) {
+  if (!message || message.deletedAt) return false;
+  message.deletedAt = nowIso();
+  message.body = '';
+  message.attachment = null;
+  message.attachments = [];
+  message.ciphertext = '';
+  message.iv = '';
+  message.stickerId = null;
+  message.confirmedAt = null;
+  message.confirmedByUserId = null;
+  message.updatedAt = nowIso();
+  return true;
 }
 
 const SITE_THEME_PRESETS = {
@@ -515,6 +616,7 @@ function emptyStore() {
     readReceipts: [],    // { userId, roomId, lastReadMessageId, updatedAt }
     reports: [],         // { id, reporterUserId, targetType, targetId, targetLabel, targetUrl, targetOwnerUserId, reason, details, status, resolutionNote, createdAt, updatedAt, resolvedAt, resolvedByUserId }
     deletionJobs: [],    // { id, targetType, targetId, targetLabel, targetUrl, targetOwnerUserId, createdAt, updatedAt, deleteAfter, scheduledByUserId, note }
+    accountSwitchGrants: [], // { id, deviceHash, userId, createdAt, updatedAt, lastUsedAt, expiresAt }
     rateLimits: {}       // { key: { count, resetAt } } — in-memory, not persisted
   };
 }
@@ -575,7 +677,8 @@ function userDefaults(user) {
       showTyping: settings.showTyping !== false,
       messageStyle: ['soft', 'glass', 'minimal'].includes(settings.messageStyle) ? settings.messageStyle : 'soft',
       chatThemeGlobal: sanitizeChatTheme(settings.chatThemeGlobal, null),
-      chatThemesByRoom: sanitizeChatThemeMap(settings.chatThemesByRoom)
+      chatThemesByRoom: sanitizeChatThemeMap(settings.chatThemesByRoom),
+      hiddenMessageIdsByRoom: sanitizeHiddenMessageMap(settings.hiddenMessageIdsByRoom)
     },
     security: {
       publicKeyJwk: security.publicKeyJwk || null,
@@ -776,10 +879,28 @@ function sanitizeSiteImportReport(raw = {}) {
     afterBytes: Math.max(0, Number(item?.afterBytes || 0)),
     bytesSaved: Math.max(0, Number(item?.bytesSaved || 0))
   })).filter((item) => item.path && item.beforeBytes > 0 && item.afterBytes > 0).slice(0, 200);
+  const securityWarnings = ensureArray(source.securityWarnings).map((item) => ({
+    path: safeSiteBundlePath(item?.path || ''),
+    code: sanitizeText(item?.code || '', 40),
+    message: sanitizeText(item?.message || '', 240),
+    severity: ['warning', 'blocked'].includes(String(item?.severity || 'warning')) ? String(item?.severity || 'warning') : 'warning'
+  })).filter((item) => item.path && item.message).slice(0, 80);
+  const antivirusFindings = ensureArray(source.antivirus?.findings).map((item) => ({
+    path: safeSiteBundlePath(item?.path || ''),
+    signature: sanitizeText(item?.signature || '', 180)
+  })).filter((item) => item.path || item.signature).slice(0, 20);
   return {
     scannedImageCount: Math.max(0, Number(source.scannedImageCount || optimizedAssets.length || 0)),
     optimizedBytesSaved: Math.max(0, Number(source.optimizedBytesSaved || optimizedAssets.reduce((sum, item) => sum + item.bytesSaved, 0))),
-    optimizedAssets
+    optimizedAssets,
+    scannedFileCount: Math.max(0, Number(source.scannedFileCount || 0)),
+    securityWarnings,
+    antivirus: {
+      engine: sanitizeText(source.antivirus?.engine || '', 40),
+      scanned: Boolean(source.antivirus?.scanned),
+      infected: Boolean(source.antivirus?.infected),
+      findings: antivirusFindings
+    }
   };
 }
 
@@ -809,6 +930,22 @@ function siteDefaults(site) {
     createdAt: site.createdAt || nowIso(),
     updatedAt: site.updatedAt || site.createdAt || nowIso()
   };
+}
+
+function siteIsApproved(site) {
+  return String(site?.reviewStatus || 'draft') === 'approved';
+}
+
+function siteNeedsLaunchReview(site) {
+  return Boolean(site && String(site.visibility || 'private') !== 'private');
+}
+
+function siteAppearsInPublicDirectory(site) {
+  return Boolean(site && String(site.visibility || '') === 'public' && siteIsApproved(site));
+}
+
+function siteIsExternallyReachable(site) {
+  return Boolean(site && ['public', 'unlisted'].includes(String(site.visibility || '')) && siteIsApproved(site));
 }
 
 function stickerPackDefaults(pack) {
@@ -945,6 +1082,15 @@ function migrateStore(raw = {}) {
     scheduledByUserId: Number(item.scheduledByUserId || 0),
     note: sanitizeText(item.note || '', 300)
   })).filter((item) => item.id && item.targetId && item.deleteAfter);
+  merged.accountSwitchGrants = ensureArray(raw.accountSwitchGrants).map((item) => ({
+    id: sanitizeText(item.id || '', 120),
+    deviceHash: sanitizeText(item.deviceHash || '', 120),
+    userId: Number(item.userId || 0),
+    createdAt: item.createdAt || nowIso(),
+    updatedAt: item.updatedAt || item.createdAt || nowIso(),
+    lastUsedAt: item.lastUsedAt || item.updatedAt || item.createdAt || nowIso(),
+    expiresAt: item.expiresAt || futureIso(SWITCH_GRANT_TTL_MS)
+  })).filter((item) => item.id && item.deviceHash && item.userId);
   merged.seq = { ...store.seq, ...(raw.seq || {}) };
 
   const maxMap = {
@@ -1074,6 +1220,64 @@ function bundleFilesFromArchive(files = [], indexPath = '') {
 const IMPORT_OPTIMIZABLE_RASTER_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const IMPORT_IMAGE_EXTENSIONS = new Set([...IMPORT_OPTIMIZABLE_RASTER_EXTENSIONS, '.svg']);
 const UPLOADED_SITE_TEXT_TRANSFORM_EXTENSIONS = new Set(['.html', '.htm', '.css', '.js', '.mjs', '.cjs']);
+const SITE_ARCHIVE_TEXT_SCAN_EXTENSIONS = new Set(['.html', '.htm', '.css', '.js', '.mjs', '.cjs', '.json', '.txt', '.md', '.svg', '.xml', '.webmanifest']);
+const SITE_ARCHIVE_SCAN_TEXT_LIMIT_BYTES = 256 * 1024;
+const SITE_ARCHIVE_BLOCKED_EXTENSIONS = new Map([
+  ['.php', 'PHP files are not allowed in hosted static site archives.'],
+  ['.phtml', 'PHP files are not allowed in hosted static site archives.'],
+  ['.phar', 'PHP archives are not allowed in hosted static site archives.'],
+  ['.cgi', 'Server-side CGI files are not allowed in hosted static site archives.'],
+  ['.pl', 'Perl CGI files are not allowed in hosted static site archives.'],
+  ['.py', 'Python server files are not allowed in hosted static site archives.'],
+  ['.rb', 'Ruby server files are not allowed in hosted static site archives.'],
+  ['.jsp', 'Server-rendered JSP files are not allowed in hosted static site archives.'],
+  ['.jspx', 'Server-rendered JSP files are not allowed in hosted static site archives.'],
+  ['.asp', 'Server-rendered ASP files are not allowed in hosted static site archives.'],
+  ['.aspx', 'Server-rendered ASP files are not allowed in hosted static site archives.'],
+  ['.exe', 'Executable binaries are not allowed in uploaded archives.'],
+  ['.dll', 'Executable binaries are not allowed in uploaded archives.'],
+  ['.so', 'Executable binaries are not allowed in uploaded archives.'],
+  ['.dylib', 'Executable binaries are not allowed in uploaded archives.'],
+  ['.msi', 'Installer binaries are not allowed in uploaded archives.'],
+  ['.apk', 'Application binaries are not allowed in uploaded archives.'],
+  ['.jar', 'Application binaries are not allowed in uploaded archives.'],
+  ['.war', 'Application binaries are not allowed in uploaded archives.'],
+  ['.bat', 'Shell or command scripts are not allowed in uploaded archives.'],
+  ['.cmd', 'Shell or command scripts are not allowed in uploaded archives.'],
+  ['.ps1', 'Shell or command scripts are not allowed in uploaded archives.'],
+  ['.sh', 'Shell or command scripts are not allowed in uploaded archives.'],
+  ['.bash', 'Shell or command scripts are not allowed in uploaded archives.'],
+  ['.zsh', 'Shell or command scripts are not allowed in uploaded archives.']
+]);
+const SITE_ARCHIVE_BLOCKED_BASENAMES = new Map([
+  ['.env', 'Environment files are not allowed in uploaded archives.'],
+  ['.env.local', 'Environment files are not allowed in uploaded archives.'],
+  ['.htaccess', 'Server configuration files are not allowed in uploaded archives.'],
+  ['web.config', 'Server configuration files are not allowed in uploaded archives.'],
+  ['authorized_keys', 'SSH key files are not allowed in uploaded archives.'],
+  ['id_rsa', 'Private key files are not allowed in uploaded archives.'],
+  ['id_ed25519', 'Private key files are not allowed in uploaded archives.']
+]);
+const SITE_ARCHIVE_BLOCKED_PATH_SEGMENTS = new Map([
+  ['.git', 'Git metadata is not allowed in uploaded archives.'],
+  ['.svn', 'VCS metadata is not allowed in uploaded archives.'],
+  ['.ssh', 'SSH files are not allowed in uploaded archives.'],
+  ['.aws', 'Cloud credential directories are not allowed in uploaded archives.']
+]);
+const SITE_ARCHIVE_WARNING_PATTERNS = [
+  {
+    code: 'obfuscated-js',
+    message: 'Potentially obfuscated JavaScript was detected. Review this archive carefully before approval.',
+    extensions: new Set(['.html', '.htm', '.js', '.mjs', '.cjs']),
+    regex: /\b(?:eval\s*\(\s*(?:atob|unescape)|new\s+Function\s*\(|document\.write\s*\(\s*unescape|String\.fromCharCode\s*\()/i
+  },
+  {
+    code: 'credential-form',
+    message: 'Password-style form fields were detected. Review this archive carefully before approval to rule out credential capture.',
+    extensions: new Set(['.html', '.htm']),
+    regex: /<input[^>]+type=["']password["']/i
+  }
+];
 
 function importedImageMimeType(ext = '') {
   return {
@@ -1176,9 +1380,96 @@ async function optimizeImportedSiteFiles(files = []) {
   };
 }
 
+function pushArchiveScanEntry(list, seen, entry) {
+  const item = {
+    path: safeSiteBundlePath(entry?.path || ''),
+    code: sanitizeText(entry?.code || '', 40),
+    message: sanitizeText(entry?.message || '', 240),
+    severity: ['warning', 'blocked'].includes(String(entry?.severity || 'warning')) ? String(entry?.severity || 'warning') : 'warning'
+  };
+  if (!item.path || !item.code || !item.message) return;
+  const key = `${item.severity}:${item.code}:${item.path}`;
+  if (seen.has(key)) return;
+  seen.add(key);
+  list.push(item);
+}
+
+function scanImportedSiteFiles(files = []) {
+  const blocked = [];
+  const securityWarnings = [];
+  const blockedSeen = new Set();
+  const warningSeen = new Set();
+  let scannedFileCount = 0;
+  for (const file of files) {
+    const relativePath = safeSiteBundlePath(file?.path || '');
+    if (!relativePath) continue;
+    scannedFileCount += 1;
+    const lowerPath = relativePath.toLowerCase();
+    const baseName = path.posix.basename(lowerPath);
+    const ext = path.posix.extname(lowerPath);
+    const segments = lowerPath.split('/');
+    for (const [segment, message] of SITE_ARCHIVE_BLOCKED_PATH_SEGMENTS.entries()) {
+      if (segments.includes(segment)) {
+        pushArchiveScanEntry(blocked, blockedSeen, { path: relativePath, code: 'blocked-path', message, severity: 'blocked' });
+      }
+    }
+    if (SITE_ARCHIVE_BLOCKED_BASENAMES.has(baseName)) {
+      pushArchiveScanEntry(blocked, blockedSeen, { path: relativePath, code: 'blocked-name', message: SITE_ARCHIVE_BLOCKED_BASENAMES.get(baseName), severity: 'blocked' });
+    }
+    if (SITE_ARCHIVE_BLOCKED_EXTENSIONS.has(ext)) {
+      pushArchiveScanEntry(blocked, blockedSeen, { path: relativePath, code: 'blocked-ext', message: SITE_ARCHIVE_BLOCKED_EXTENSIONS.get(ext), severity: 'blocked' });
+    }
+    if (!SITE_ARCHIVE_TEXT_SCAN_EXTENSIONS.has(ext)) continue;
+    const sourceText = Buffer.isBuffer(file?.content)
+      ? file.content.subarray(0, SITE_ARCHIVE_SCAN_TEXT_LIMIT_BYTES).toString('utf8')
+      : String(file?.content || '').slice(0, SITE_ARCHIVE_SCAN_TEXT_LIMIT_BYTES);
+    if (!sourceText) continue;
+    if (/<\?(?:php|=)/i.test(sourceText)) {
+      pushArchiveScanEntry(blocked, blockedSeen, {
+        path: relativePath,
+        code: 'php-inline',
+        message: 'Inline PHP code is not allowed in hosted static site archives.',
+        severity: 'blocked'
+      });
+    }
+    for (const pattern of SITE_ARCHIVE_WARNING_PATTERNS) {
+      if (pattern.extensions && !pattern.extensions.has(ext)) continue;
+      if (!pattern.regex.test(sourceText)) continue;
+      pushArchiveScanEntry(securityWarnings, warningSeen, {
+        path: relativePath,
+        code: pattern.code,
+        message: pattern.message,
+        severity: 'warning'
+      });
+    }
+  }
+  return { scannedFileCount, blocked, securityWarnings };
+}
+
 function uploadedSiteBasePath(owner, site) {
   const ownerHandle = owner?.handleCanonical || canonicalHandle(owner?.handle || '');
   return ownerHandle && site?.slug ? `/@${ownerHandle}/${site.slug}/` : '/';
+}
+
+function uploadedSiteAssetPath(owner, site, raw = '') {
+  const relativePath = safeSiteBundlePath(raw);
+  if (!relativePath) return uploadedSiteBasePath(owner, site);
+  return `${uploadedSiteBasePath(owner, site)}${relativePath}`;
+}
+
+function uploadedSitePublicUrl(owner, site, raw = '') {
+  const assetPath = safeSiteBundlePath(raw)
+    ? uploadedSiteAssetPath(owner, site, raw)
+    : uploadedSiteBasePath(owner, site);
+  return UPLOADED_SITES_ORIGIN ? `${UPLOADED_SITES_ORIGIN}${assetPath}` : assetPath;
+}
+
+function sitePublicUrl(owner, site) {
+  if (!owner || !site) return '';
+  const ownerHandle = owner.handleCanonical || canonicalHandle(owner.handle || '');
+  if (!ownerHandle || !site.slug) return '';
+  if (site.mode === 'upload') return uploadedSitePublicUrl(owner, site);
+  return `${APP_ORIGIN}/@${ownerHandle}/${site.slug}`;
 }
 
 function uploadedSiteBundleFileSet(site, limit = 4000) {
@@ -1249,15 +1540,20 @@ function transformUploadedSiteTextAsset(site, owner, assetPath = '', sourceText 
   return next;
 }
 
-function clearUploadedSiteResponseHeaders(res) {
-  res.removeHeader('Content-Security-Policy');
-  res.removeHeader('X-Frame-Options');
-}
-
 function readUploadedSiteEntryHtml(site) {
   const assetAbsPath = siteUsesBundle(site) ? siteBundleAbsPath(site, 'index.html') : resolveDataPath(site.htmlPath);
   if (!assetAbsPath || !existsSync(assetAbsPath)) return '';
   return readFileSync(assetAbsPath, 'utf8');
+}
+
+function sendUploadedSiteAssetResponse(res, site, owner, assetPath, assetAbsPath) {
+  const ext = path.posix.extname(assetPath).toLowerCase();
+  if (UPLOADED_SITE_TEXT_TRANSFORM_EXTENSIONS.has(ext)) {
+    const inner = readFileSync(assetAbsPath, 'utf8');
+    return res.type(ext === '.css' ? 'css' : ext === '.html' || ext === '.htm' ? 'html' : 'application/javascript')
+      .send(transformUploadedSiteTextAsset(site, owner, assetPath, inner));
+  }
+  return res.sendFile(assetAbsPath);
 }
 
 function uploadedSiteEntryPath(site) {
@@ -1308,10 +1604,10 @@ function ensureSiteFile(siteId, html) {
   return `sites/${fileName}`;
 }
 
-function ensureSiteBundle(siteId, files = [], options = {}) {
+function stageSiteBundle(siteId, files = [], options = {}) {
   const dirName = siteBundleDirName(siteId);
-  const bundleAbsPath = path.join(sitesDir, dirName);
-  rmSync(bundleAbsPath, { recursive: true, force: true });
+  const stageRoot = path.join(sitesDir, `.stage-${dirName}-${randomBytes(6).toString('hex')}`);
+  const bundleAbsPath = path.join(stageRoot, dirName);
   mkdirSync(bundleAbsPath, { recursive: true });
   const maxExpandedBytes = Number.isFinite(options.maxExpandedBytes)
     ? Number(options.maxExpandedBytes)
@@ -1335,8 +1631,144 @@ function ensureSiteBundle(siteId, files = [], options = {}) {
   return {
     htmlPath: `sites/${dirName}/index.html`,
     bundleRoot: `sites/${dirName}`,
-    files: written
+    files: written,
+    stageRoot,
+    stageBundleAbsPath: bundleAbsPath,
+    finalBundleAbsPath: path.join(sitesDir, dirName)
   };
+}
+
+function cleanupStagedSiteBundle(stage) {
+  if (!stage?.stageRoot || !existsSync(stage.stageRoot)) return;
+  try {
+    rmSync(stage.stageRoot, { recursive: true, force: true });
+  } catch {}
+}
+
+function publishStagedSiteBundle(stage) {
+  if (!stage?.stageBundleAbsPath || !stage?.finalBundleAbsPath) throw new Error('Staged site bundle is incomplete.');
+  const finalBundleAbsPath = stage.finalBundleAbsPath;
+  const backupAbsPath = existsSync(finalBundleAbsPath)
+    ? path.join(sitesDir, `.backup-${path.basename(finalBundleAbsPath)}-${randomBytes(6).toString('hex')}`)
+    : '';
+  try {
+    if (backupAbsPath) renameSync(finalBundleAbsPath, backupAbsPath);
+    renameSync(stage.stageBundleAbsPath, finalBundleAbsPath);
+    if (backupAbsPath && existsSync(backupAbsPath)) rmSync(backupAbsPath, { recursive: true, force: true });
+    return {
+      htmlPath: stage.htmlPath,
+      bundleRoot: stage.bundleRoot,
+      files: stage.files
+    };
+  } catch (error) {
+    if (backupAbsPath && existsSync(backupAbsPath) && !existsSync(finalBundleAbsPath)) {
+      try { renameSync(backupAbsPath, finalBundleAbsPath); } catch {}
+    }
+    throw error;
+  } finally {
+    cleanupStagedSiteBundle(stage);
+    if (backupAbsPath && existsSync(backupAbsPath)) {
+      try { rmSync(backupAbsPath, { recursive: true, force: true }); } catch {}
+    }
+  }
+}
+
+function ensureSiteBundle(siteId, files = [], options = {}) {
+  const stage = stageSiteBundle(siteId, files, options);
+  try {
+    return publishStagedSiteBundle(stage);
+  } catch (error) {
+    cleanupStagedSiteBundle(stage);
+    throw error;
+  }
+}
+
+function preferredClamScanBinary() {
+  const envBinary = sanitizeText(process.env.CLAMSCAN_BINARY || '', 500);
+  const candidates = [envBinary, '/usr/bin/clamscan', '/usr/local/bin/clamscan'].filter(Boolean);
+  return candidates.find((candidate) => existsSync(candidate)) || '';
+}
+
+function runAntivirusScanOnBundle(absDir = '') {
+  const binary = preferredClamScanBinary();
+  if (!binary || !absDir) {
+    return { engine: '', scanned: false, infected: false, findings: [] };
+  }
+  const result = spawnSync(binary, ['--recursive', '--infected', '--no-summary', absDir], { encoding: 'utf8' });
+  if (![0, 1].includes(Number(result.status))) {
+    const err = new Error((result.stderr || result.stdout || '').trim() || 'Antivirus scan failed.');
+    err.statusCode = 503;
+    throw err;
+  }
+  const findings = String(result.stdout || '').split(/\r?\n/).map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed.endsWith(' FOUND')) return null;
+    const body = trimmed.slice(0, -' FOUND'.length);
+    const separatorIndex = body.indexOf(':');
+    const rawPath = separatorIndex >= 0 ? body.slice(0, separatorIndex).trim() : '';
+    const signature = separatorIndex >= 0 ? body.slice(separatorIndex + 1).trim() : 'malware';
+    const relativePath = rawPath ? path.relative(absDir, rawPath).replace(/\\/g, '/') : '';
+    return {
+      path: safeSiteBundlePath(relativePath) || safeSiteBundlePath(path.posix.basename(rawPath)),
+      signature: sanitizeText(signature || 'malware', 180)
+    };
+  }).filter(Boolean);
+  return {
+    engine: 'clamscan',
+    scanned: true,
+    infected: Number(result.status) === 1,
+    findings
+  };
+}
+
+function createArchiveSecurityError(message, rawImportReport = {}, blockedEntries = []) {
+  const err = new Error(message);
+  err.statusCode = 400;
+  err.importReport = sanitizeSiteImportReport(rawImportReport);
+  err.securityBlocked = ensureArray(blockedEntries).map((item) => ({
+    path: safeSiteBundlePath(item?.path || ''),
+    code: sanitizeText(item?.code || '', 40),
+    message: sanitizeText(item?.message || '', 240),
+    severity: 'blocked'
+  })).filter((item) => item.path && item.message);
+  return err;
+}
+
+async function finalizeExtractedArchiveSiteBundle(siteId, files = [], options = {}) {
+  const optimized = await optimizeImportedSiteFiles(files);
+  const heuristic = scanImportedSiteFiles(optimized.files);
+  const rawImportReport = {
+    ...optimized.importReport,
+    scannedFileCount: heuristic.scannedFileCount,
+    securityWarnings: heuristic.securityWarnings
+  };
+  if (heuristic.blocked.length) {
+    const first = heuristic.blocked[0];
+    throw createArchiveSecurityError(`${first.message}${first.path ? ` (${first.path})` : ''}`, rawImportReport, heuristic.blocked);
+  }
+  const stage = stageSiteBundle(siteId, optimized.files, options);
+  try {
+    const antivirus = runAntivirusScanOnBundle(stage.stageBundleAbsPath);
+    rawImportReport.antivirus = antivirus;
+    if (antivirus.infected) {
+      const findings = ensureArray(antivirus.findings).map((item) => ({
+        path: item.path,
+        code: 'antivirus',
+        message: `Antivirus detected ${item.signature || 'malware'}.`,
+        severity: 'blocked'
+      }));
+      const first = findings[0] || { message: 'Archive upload was blocked by antivirus.', path: '' };
+      throw createArchiveSecurityError(`${first.message}${first.path ? ` (${first.path})` : ''}`, rawImportReport, findings);
+    }
+    return {
+      ...publishStagedSiteBundle(stage),
+      importReport: sanitizeSiteImportReport(rawImportReport)
+    };
+  } catch (error) {
+    cleanupStagedSiteBundle(stage);
+    if (!error.importReport) error.importReport = sanitizeSiteImportReport(rawImportReport);
+    throw error;
+  }
 }
 
 async function extractZipSiteBundle(siteId, zipBuffer, options = {}) {
@@ -1344,18 +1776,24 @@ async function extractZipSiteBundle(siteId, zipBuffer, options = {}) {
   const maxArchiveBytes = Number.isFinite(options.maxArchiveBytes)
     ? Number(options.maxArchiveBytes)
     : SITE_ZIP_LIMIT_BYTES;
+  const maxExpandedBytes = Number.isFinite(options.maxExpandedBytes)
+    ? Number(options.maxExpandedBytes)
+    : SITE_ARCHIVE_EXPANDED_LIMIT_BYTES;
   if (zipBuffer.length > maxArchiveBytes) throw new Error(`ZIP file must stay under ${archiveLimitLabel(maxArchiveBytes)}.`);
   const zip = new AdmZip(zipBuffer);
-  const files = zip.getEntries()
-    .filter((entry) => !entry.isDirectory)
-    .map((entry) => ({ path: entry.entryName, content: entry.getData() }));
+  const entries = zip.getEntries().filter((entry) => !entry.isDirectory);
+  if (entries.length > MAX_ARCHIVE_FILE_COUNT) throw new Error('Archive contains too many files.');
+  let declaredExpandedBytes = 0;
+  for (const entry of entries) {
+    const unixMode = Number((entry?.attr || 0) >>> 16);
+    if ((unixMode & 0o170000) === 0o120000) throw new Error('Archives with symlinks are not supported.');
+    declaredExpandedBytes += Math.max(0, Number(entry.header?.size || 0));
+    if (declaredExpandedBytes > maxExpandedBytes) throw new Error('Archive expands to an unsupported size.');
+  }
+  const files = entries.map((entry) => ({ path: entry.entryName, content: entry.getData() }));
   const indexPath = preferredArchiveIndexPath(files.map((file) => file.path));
   if (!indexPath) throw new Error('ZIP must contain an index.html file.');
-  const optimized = await optimizeImportedSiteFiles(bundleFilesFromArchive(files, indexPath));
-  return {
-    ...ensureSiteBundle(siteId, optimized.files, options),
-    importReport: optimized.importReport
-  };
+  return await finalizeExtractedArchiveSiteBundle(siteId, bundleFilesFromArchive(files, indexPath), options);
 }
 
 function parseTarOctal(raw = '') {
@@ -1364,8 +1802,12 @@ function parseTarOctal(raw = '') {
   return Number.parseInt(cleaned, 8) || 0;
 }
 
-function extractTarEntries(buffer) {
+function extractTarEntries(buffer, options = {}) {
   const files = [];
+  const maxExpandedBytes = Number.isFinite(options.maxExpandedBytes)
+    ? Number(options.maxExpandedBytes)
+    : SITE_ARCHIVE_EXPANDED_LIMIT_BYTES;
+  let totalBytes = 0;
   let offset = 0;
   while (offset + 512 <= buffer.length) {
     const header = buffer.subarray(offset, offset + 512);
@@ -1382,6 +1824,9 @@ function extractTarEntries(buffer) {
       offset = dataStart + Math.ceil(size / 512) * 512;
       continue;
     }
+    totalBytes += size;
+    if (totalBytes > maxExpandedBytes) throw new Error('Archive expands to an unsupported size.');
+    if (files.length >= MAX_ARCHIVE_FILE_COUNT) throw new Error('Archive contains too many files.');
     files.push({ path: entryName, content: Buffer.from(buffer.subarray(dataStart, dataEnd)) });
     offset = dataStart + Math.ceil(size / 512) * 512;
   }
@@ -1390,30 +1835,95 @@ function extractTarEntries(buffer) {
 
 async function extractTarSiteBundle(siteId, archiveBuffer, options = {}) {
   if (!archiveBuffer?.length) throw new Error('Archive file data required.');
-  const files = extractTarEntries(archiveBuffer);
+  const files = extractTarEntries(archiveBuffer, options);
   const indexPath = preferredArchiveIndexPath(files.map((file) => file.path));
   if (!indexPath) throw new Error('Archive must contain an index.html file.');
-  const optimized = await optimizeImportedSiteFiles(bundleFilesFromArchive(files, indexPath));
-  return {
-    ...ensureSiteBundle(siteId, optimized.files, options),
-    importReport: optimized.importReport
-  };
+  return await finalizeExtractedArchiveSiteBundle(siteId, bundleFilesFromArchive(files, indexPath), options);
 }
 
-function readArchiveDirFiles(absRoot, dir = absRoot) {
+function readArchiveDirFiles(absRoot, dir = absRoot, state = null) {
+  const counters = state || { totalBytes: 0, fileCount: 0, maxExpandedBytes: SITE_ARCHIVE_EXPANDED_LIMIT_BYTES, maxFiles: MAX_ARCHIVE_FILE_COUNT };
   const files = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const absPath = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) {
+      throw new Error('Archives with symlinks are not supported.');
+    }
     if (entry.isDirectory()) {
-      files.push(...readArchiveDirFiles(absRoot, absPath));
+      files.push(...readArchiveDirFiles(absRoot, absPath, counters));
       continue;
     }
+    if (!entry.isFile()) {
+      throw new Error('Archive contains an unsupported filesystem entry.');
+    }
+    if (counters.fileCount >= counters.maxFiles) throw new Error('Archive contains too many files.');
+    const content = readFileSync(absPath);
+    counters.fileCount += 1;
+    counters.totalBytes += content.length;
+    if (counters.totalBytes > counters.maxExpandedBytes) throw new Error('Archive expands to an unsupported size.');
     files.push({
       path: path.relative(absRoot, absPath).replace(/\\/g, '/'),
-      content: readFileSync(absPath)
+      content
     });
   }
   return files;
+}
+
+function inspect7zArchive(binary, archivePath, options = {}) {
+  const maxExpandedBytes = Number.isFinite(options.maxExpandedBytes)
+    ? Number(options.maxExpandedBytes)
+    : SITE_ARCHIVE_EXPANDED_LIMIT_BYTES;
+  const result = spawnSync(binary, ['l', '-slt', archivePath], { encoding: 'utf8' });
+  if (result.status !== 0) {
+    throw new Error((result.stderr || result.stdout || '').trim() || 'Could not inspect 7z archive.');
+  }
+  const lines = String(result.stdout || '').split(/\r?\n/);
+  let totalBytes = 0;
+  let fileCount = 0;
+  let currentPath = '';
+  let currentSize = 0;
+  let currentIsDir = false;
+  const flush = () => {
+    if (!currentPath || currentPath === archivePath || currentPath === path.basename(archivePath)) {
+      currentPath = '';
+      currentSize = 0;
+      currentIsDir = false;
+      return;
+    }
+    if (!currentIsDir) {
+      fileCount += 1;
+      totalBytes += Math.max(0, currentSize);
+      if (fileCount > MAX_ARCHIVE_FILE_COUNT) throw new Error('Archive contains too many files.');
+      if (totalBytes > maxExpandedBytes) throw new Error('Archive expands to an unsupported size.');
+    }
+    currentPath = '';
+    currentSize = 0;
+    currentIsDir = false;
+  };
+  for (const rawLine of lines) {
+    const line = String(rawLine || '');
+    if (!line.trim()) {
+      flush();
+      continue;
+    }
+    if (line.startsWith('Path = ')) {
+      flush();
+      currentPath = line.slice('Path = '.length).trim();
+      continue;
+    }
+    if (line.startsWith('Size = ')) {
+      currentSize = Number.parseInt(line.slice('Size = '.length).trim(), 10) || 0;
+      continue;
+    }
+    if (line.startsWith('Folder = ')) {
+      currentIsDir = line.slice('Folder = '.length).trim() === '+';
+      continue;
+    }
+    if (line.startsWith('Attributes = ') && /\bD\b/i.test(line.slice('Attributes = '.length))) {
+      currentIsDir = true;
+    }
+  }
+  flush();
 }
 
 function preferred7zipBinary() {
@@ -1432,6 +1942,9 @@ async function extract7zSiteBundle(siteId, archiveBuffer, options = {}) {
   const maxArchiveBytes = Number.isFinite(options.maxArchiveBytes)
     ? Number(options.maxArchiveBytes)
     : SITE_ZIP_LIMIT_BYTES;
+  const maxExpandedBytes = Number.isFinite(options.maxExpandedBytes)
+    ? Number(options.maxExpandedBytes)
+    : SITE_ARCHIVE_EXPANDED_LIMIT_BYTES;
   if (archiveBuffer?.length > maxArchiveBytes) throw new Error(`Archive file must stay under ${archiveLimitLabel(maxArchiveBytes)}.`);
   const binary = preferred7zipBinary();
   if (!binary) {
@@ -1444,21 +1957,37 @@ async function extract7zSiteBundle(siteId, archiveBuffer, options = {}) {
     const outDir = path.join(tempRoot, 'out');
     mkdirSync(outDir, { recursive: true });
     writeFileSync(archivePath, archiveBuffer);
+    inspect7zArchive(binary, archivePath, { maxExpandedBytes });
     const result = spawnSync(binary, ['x', archivePath, `-o${outDir}`, '-y'], { encoding: 'utf8' });
     if (result.status !== 0) {
       throw new Error((result.stderr || result.stdout || '').trim() || 'Could not extract 7z archive.');
     }
-    const files = readArchiveDirFiles(outDir);
+    const files = readArchiveDirFiles(outDir, outDir, { totalBytes: 0, fileCount: 0, maxExpandedBytes, maxFiles: MAX_ARCHIVE_FILE_COUNT });
     const indexPath = preferredArchiveIndexPath(files.map((file) => file.path));
     if (!indexPath) throw new Error('Archive must contain an index.html file.');
-    const optimized = await optimizeImportedSiteFiles(bundleFilesFromArchive(files, indexPath));
-    return {
-      ...ensureSiteBundle(siteId, optimized.files, options),
-      importReport: optimized.importReport
-    };
+    return await finalizeExtractedArchiveSiteBundle(siteId, bundleFilesFromArchive(files, indexPath), options);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
+}
+
+function gunzipBufferLimited(buffer, maxExpandedBytes = SITE_ARCHIVE_EXPANDED_LIMIT_BYTES) {
+  return new Promise((resolve, reject) => {
+    const gunzip = createGunzip();
+    const chunks = [];
+    let totalBytes = 0;
+    gunzip.on('data', (chunk) => {
+      totalBytes += chunk.length;
+      if (totalBytes > maxExpandedBytes) {
+        gunzip.destroy(new Error('Archive expands to an unsupported size.'));
+        return;
+      }
+      chunks.push(chunk);
+    });
+    gunzip.on('end', () => resolve(Buffer.concat(chunks, totalBytes)));
+    gunzip.on('error', reject);
+    gunzip.end(buffer);
+  });
 }
 
 async function extractArchiveSiteBundle(siteId, archiveBuffer, archiveName = '', options = {}) {
@@ -1470,8 +1999,11 @@ async function extractArchiveSiteBundle(siteId, archiveBuffer, archiveName = '',
   if (looksLike7z || fileName.endsWith('.7z')) return await extract7zSiteBundle(siteId, archiveBuffer, options);
   const maybeTar = looksLikeGzip || fileName.endsWith('.tgz') || fileName.endsWith('.tar.gz') || fileName.endsWith('.tar');
   if (maybeTar) {
+    const maxExpandedBytes = Number.isFinite(options.maxExpandedBytes)
+      ? Number(options.maxExpandedBytes)
+      : SITE_ARCHIVE_EXPANDED_LIMIT_BYTES;
     const tarBuffer = looksLikeGzip || fileName.endsWith('.tgz') || fileName.endsWith('.tar.gz')
-      ? gunzipSync(archiveBuffer)
+      ? await gunzipBufferLimited(archiveBuffer, maxExpandedBytes)
       : archiveBuffer;
     return await extractTarSiteBundle(siteId, tarBuffer, options);
   }
@@ -1791,7 +2323,7 @@ function saveDataImage(dataUrl, prefix = 'asset') {
 }
 
 function saveDataAudio(dataUrl, prefix = 'voice') {
-  const value = safeDataUrl(dataUrl, IMAGE_UPLOAD_LIMIT_BYTES * 4, 'audio');
+  const value = safeDataUrl(dataUrl, CHAT_MEDIA_UPLOAD_LIMIT_BYTES * 2, 'audio');
   if (!value) return '';
   const match = value.match(/^data:(audio\/[a-zA-Z0-9.+-]+)(?:;[a-zA-Z0-9=.+-]+)*;base64,(.+)$/);
   if (!match) return '';
@@ -1801,6 +2333,11 @@ function saveDataAudio(dataUrl, prefix = 'voice') {
   const absPath = path.join(uploadsDir, fileName);
   writeFileSync(absPath, Buffer.from(match[2], 'base64'));
   return `/media/${fileName}`;
+}
+
+function saveDataVideo(dataUrl, prefix = 'video') {
+  const stored = saveDataMedia(dataUrl, prefix, { maxLength: CHAT_MEDIA_UPLOAD_LIMIT_BYTES * 2, allowedKinds: ['video'] });
+  return stored.url || '';
 }
 
 function saveDataMedia(dataUrl, prefix = 'asset', options = {}) {
@@ -1958,13 +2495,16 @@ function buildIsolatedSiteHtml({ title, eyebrow, summary, body, accent = '#8b5cf
 </html>`;
 }
 
-function siteWatermarkHtml(store, owner, site, innerHtml) {
+function siteWatermarkHtml(store, owner, site, innerHtml, options = {}) {
   const renderedInner = ensureDoctype(innerHtml);
   const meta = siteMetaPayload(store, site, owner, renderedInner);
   const { config } = meta;
   const profilePath = `/@${owner?.handleCanonical || canonicalHandle(owner?.handle)}`;
   const launchEntryPath = uploadedSiteEntryPath(site);
-  const launchUrl = sanitizeSiteUrl(`${uploadedSiteBasePath(owner, site)}${launchEntryPath}`, 800);
+  const previewSuffix = options?.previewToken
+    ? `${uploadedSitePublicUrl(owner, site, launchEntryPath).includes('?') ? '&' : '?'}previewToken=${encodeURIComponent(options.previewToken)}`
+    : '';
+  const launchUrl = sanitizeSiteUrl(`${uploadedSitePublicUrl(owner, site, launchEntryPath)}${previewSuffix}`, 1000);
   const launchIcon = meta.iconUrl
     ? `<span class="launch-site-icon"><img src="${meta.iconUrl}" alt="${escapeHtmlValue(site.title || 'Site')}" /></span>`
     : `<span class="launch-site-icon fallback">${escapeHtmlValue(avatarText(site.title || 'S'))}</span>`;
@@ -2039,7 +2579,7 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
   </style>
 </head>
 <body>
-  <iframe id="site-frame" class="frame" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads" referrerpolicy="strict-origin" loading="eager"></iframe>
+  <iframe id="site-frame" class="frame" referrerpolicy="strict-origin" loading="eager"></iframe>
   <div id="launch" class="launch">
     <div class="launch-card">
       <div class="launch-brand">${launchIcon}<div><div class="launch-kicker">${escapeHtmlValue(config.brandName || BRAND_WORDMARK)}</div><h1>${escapeHtmlValue(site.title || 'Creator site')}</h1></div></div>
@@ -2380,7 +2920,7 @@ function friendshipState(store, aId, bId) {
 function userScore(store, userId) {
   const posts = store.posts.filter((item) => Number(item.userId) === Number(userId) && item.status === 'published');
   const projects = store.projects.filter((item) => Number(item.userId) === Number(userId) && item.visibility === 'public');
-  const sites = store.sites.filter((item) => Number(item.userId) === Number(userId) && item.visibility === 'public');
+  const sites = store.sites.filter((item) => Number(item.userId) === Number(userId) && siteAppearsInPublicDirectory(item));
   const messages = store.messages.filter((item) => Number(item.userId) === Number(userId)).length;
   const comments = store.comments.filter((item) => Number(item.userId) === Number(userId)).length;
   const likes = store.likes.filter((like) => posts.some((post) => post.id === like.postId)).length;
@@ -2432,7 +2972,7 @@ function publicUser(store, user, viewerUserId = null) {
     score,
     stats: {
       projects: store.projects.filter((item) => Number(item.userId) === Number(user.id) && item.visibility === 'public').length,
-      sites: store.sites.filter((item) => Number(item.userId) === Number(user.id) && item.visibility === 'public').length,
+      sites: store.sites.filter((item) => Number(item.userId) === Number(user.id) && siteAppearsInPublicDirectory(item)).length,
       posts: store.posts.filter((item) => Number(item.userId) === Number(user.id) && item.status === 'published').length,
       followers: followerCount,
       following: followingCount,
@@ -2530,7 +3070,9 @@ function publicComment(store, comment, viewerUserId = null) {
 
 function publicProject(store, project, viewerUserId = null) {
   const owner = store.users.find((item) => Number(item.id) === Number(project.userId));
-  const site = project.siteId ? store.sites.find((item) => Number(item.id) === Number(project.siteId)) : store.sites.find((item) => Number(item.projectId) === Number(project.id) && item.visibility === 'public');
+  const site = project.siteId
+    ? store.sites.find((item) => Number(item.id) === Number(project.siteId) && (Number(viewerUserId || 0) === Number(item.userId) || siteAppearsInPublicDirectory(item)))
+    : store.sites.find((item) => Number(item.projectId) === Number(project.id) && (Number(viewerUserId || 0) === Number(item.userId) || siteAppearsInPublicDirectory(item)));
   return {
     id: project.id,
     slug: project.slug,
@@ -2554,6 +3096,8 @@ function publicSite(store, site, viewerUserId = null) {
   const isOwner = viewerUserId && Number(viewerUserId) === Number(site.userId);
   const normalizedConfig = sanitizeSiteConfig(site.templateConfig || {});
   const ownerHandle = owner?.handleCanonical || canonicalHandle(owner?.handle);
+  const launchPath = site.mode === 'upload' ? uploadedSiteBasePath(owner, site) : `/@${ownerHandle}/${site.slug}`;
+  const publicUrl = sitePublicUrl(owner, site) || `${APP_ORIGIN}${launchPath}`;
   return {
     id: site.id,
     slug: site.slug,
@@ -2570,14 +3114,17 @@ function publicSite(store, site, viewerUserId = null) {
     updatedAt: site.updatedAt,
     owner: publicUser(store, owner, viewerUserId),
     iconUrl: siteIconUrl(store, site, owner),
-    path: site.mode === 'upload' ? `/@${ownerHandle}/${site.slug}/` : `/@${ownerHandle}/${site.slug}`,
+    path: launchPath,
+    url: publicUrl,
+    hostedOnSeparateOrigin: Boolean(site.mode === 'upload' && UPLOADED_SITES_ISOLATION_ENABLED),
+    isolatedOrigin: site.mode === 'upload' ? (UPLOADED_SITES_ORIGIN || '') : '',
     launchInfo: {
       title: site.title,
       summary: site.summary || normalizedConfig.body || '',
       ownerName: owner?.displayName || ownerHandle || 'Creator',
       ownerHandle,
       ownerProfilePath: `/@${ownerHandle}`,
-      moderationNote: 'This site is moderated by justbreath, but it keeps its own design, rules and interaction patterns inside an isolated surface.',
+      moderationNote: 'This site is moderated by justbreath, but uploaded sites are hosted on a separate origin so they cannot run inside the main app context.',
       environmentNote: 'You are about to enter a creator-controlled environment that may look and behave differently from the main platform.'
     },
     projectId: site.projectId,
@@ -2675,6 +3222,61 @@ function moderationTargetMeta(store, targetType, targetId = null) {
   };
 }
 
+function internalModerationReporterUserId(store) {
+  const brand = store.users.find((item) => item.handleCanonical === canonicalHandle(BRAND_HANDLE));
+  if (brand?.id) return Number(brand.id);
+  const owner = store.users.find((item) => item.handleCanonical === canonicalHandle(OWNER_HANDLE));
+  return owner?.id ? Number(owner.id) : 0;
+}
+
+function queueBlockedSiteUploadReport(store, authUser, error, context = {}) {
+  if (!store || !authUser || !ensureArray(error?.securityBlocked).length) return null;
+  if (!store.reports) store.reports = [];
+  if (!store.seq?.reports) store.seq.reports = Number(store.seq?.reports || 0);
+  const reporterUserId = internalModerationReporterUserId(store);
+  if (!reporterUserId) return null;
+  const archiveName = sanitizeText(context.archiveName || '', 160);
+  const action = sanitizeText(context.action || 'site-upload', 60);
+  const findings = ensureArray(error.securityBlocked)
+    .slice(0, 8)
+    .map((item) => `${item.path || 'unknown'}: ${item.message || 'blocked'}`)
+    .join('; ');
+  const details = sanitizeText([
+    `Action: ${action}.`,
+    archiveName ? `Archive: ${archiveName}.` : '',
+    findings ? `Scanner: ${findings}.` : '',
+    error?.message ? `Error: ${error.message}` : ''
+  ].filter(Boolean).join(' '), 1600);
+  const targetUrl = authUser.handleCanonical ? `/@${authUser.handleCanonical}` : '';
+  const targetLabel = sanitizeText(`Blocked archive upload by @${authUser.handleCanonical || canonicalHandle(authUser.handle || 'member')}`, 180);
+  const existing = store.reports.find((item) => (
+    item.status === 'open'
+    && item.reason === 'Blocked archive upload'
+    && Number(item.targetOwnerUserId || 0) === Number(authUser.id || 0)
+    && item.details === details
+  ));
+  if (existing) return existing;
+  const report = {
+    id: nextId(store, 'reports'),
+    reporterUserId,
+    targetType: 'other',
+    targetId: null,
+    targetLabel,
+    targetUrl,
+    targetOwnerUserId: Number(authUser.id || 0),
+    reason: 'Blocked archive upload',
+    details,
+    status: 'open',
+    resolutionNote: '',
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    resolvedAt: null,
+    resolvedByUserId: null
+  };
+  store.reports.push(report);
+  return report;
+}
+
 function adminReportPayload(store, report, viewerUserId = null) {
   if (!report) return null;
   const reporter = store.users.find((item) => Number(item.id) === Number(report.reporterUserId));
@@ -2749,6 +3351,7 @@ function removeUserAccountFromStore(store, userId) {
   const deletedPostIds = new Set(store.posts.filter((item) => Number(item.userId) === numericUserId).map((item) => Number(item.id)));
   const deletedMessageIds = new Set(store.messages.filter((item) => Number(item.userId) === numericUserId).map((item) => Number(item.id)));
   store.sessions = store.sessions.filter((item) => Number(item.userId) !== numericUserId);
+  removeAccountSwitchGrantsForUser(store, numericUserId);
   store.likes = store.likes.filter((item) => Number(item.userId) !== numericUserId && !deletedPostIds.has(Number(item.postId)));
   store.comments = store.comments.filter((item) => Number(item.userId) !== numericUserId && !deletedPostIds.has(Number(item.postId)));
   store.posts = store.posts.filter((item) => Number(item.userId) !== numericUserId);
@@ -2954,10 +3557,12 @@ function publicWorkspace(store, workspace, authUserId = null) {
 }
 
 function publicRoom(store, room, authUserId = null) {
+  const viewer = authUserId ? (store.users.find((item) => Number(item.id) === Number(authUserId)) || null) : null;
   const author = store.users.find((item) => Number(item.id) === Number(room.createdByUserId));
   const workspace = room.workspaceId ? store.workspaces.find((item) => Number(item.id) === Number(room.workspaceId)) : null;
-  const messageCount = store.messages.filter((item) => Number(item.roomId) === Number(room.id)).length;
-  const lastMessage = store.messages.filter((item) => Number(item.roomId) === Number(room.id)).sort((a, b) => sortDateDesc(a, b))[0] || null;
+  const visibleMessages = viewer ? visibleRoomMessagesForUser(store, room.id, viewer, room.slug) : store.messages.filter((item) => Number(item.roomId) === Number(room.id));
+  const messageCount = visibleMessages.length;
+  const lastMessage = visibleMessages.sort((a, b) => sortDateDesc(a, b))[0] || null;
   const otherUser = room.kind === 'direct' && authUserId ? store.users.find((item) => Number(item.id) === Number(getOtherUserId(room, authUserId))) : null;
   const title = room.kind === 'direct' && otherUser ? otherUser.displayName : room.title;
   const description = room.kind === 'direct' && otherUser ? (room.surface === 'work' ? 'Work direct chat' : 'Personal direct chat') : room.description;
@@ -3004,7 +3609,9 @@ function publicRoom(store, room, authUserId = null) {
       muted: room.mutedByUserIds.includes(Number(authUserId))
     },
     otherUser: otherUser ? publicUser(store, otherUser, authUserId) : null,
-    lastMessagePreview: (lastMessage && !premiumLocked) ? (lastMessage.encrypted ? 'Encrypted message' : (lastMessage.body || (lastMessage.attachment?.name ? `[${lastMessage.attachment.name}]` : ''))) : ''
+    lastMessagePreview: (lastMessage && !premiumLocked)
+      ? (lastMessage.deletedAt ? '[deleted]' : (lastMessage.encrypted ? 'Encrypted message' : (lastMessage.body || (lastMessage.attachment?.name ? `[${lastMessage.attachment.name}]` : ''))))
+      : ''
   };
 }
 
@@ -3087,7 +3694,7 @@ function extractSiteAssetUrl(innerHtml = '', kind = 'icon') {
   return sanitizeSiteAssetUrl(imageMatch?.[1] || '', 1600);
 }
 
-function resolveSiteAssetUrl(raw, origin = APP_URL || 'https://justbreath.life') {
+function resolveSiteAssetUrl(raw, origin = APP_ORIGIN) {
   const value = String(raw || '').trim();
   if (!value) return '';
   if (/^(https?:\/\/|data:image\/)/i.test(value)) return value;
@@ -3098,9 +3705,7 @@ function resolveSiteAssetUrl(raw, origin = APP_URL || 'https://justbreath.life')
 function siteBundledAssetUrl(owner, site, raw = '') {
   const relativePath = safeSiteBundlePath(raw);
   if (!relativePath || !siteUsesBundle(site)) return '';
-  const ownerHandle = owner?.handleCanonical || canonicalHandle(owner?.handle || '');
-  if (!ownerHandle || !site?.slug) return '';
-  return `/@${ownerHandle}/${site.slug}/${relativePath}`;
+  return uploadedSitePublicUrl(owner, site, relativePath);
 }
 
 function siteIconLinks(meta) {
@@ -3129,26 +3734,30 @@ function siteIconUrl(store, site, owner, innerHtml = '') {
 
 function siteMetaPayload(store, site, owner, innerHtml = '') {
   const config = sanitizeSiteConfig(site?.templateConfig || {});
-  const origin = (APP_URL || 'https://justbreath.life').replace(/\/+$/, '');
+  const origin = site?.mode === 'upload' ? (UPLOADED_SITES_ORIGIN || APP_ORIGIN) : APP_ORIGIN;
   const ownerHandle = owner?.handleCanonical || canonicalHandle(owner?.handle || '');
-  const canonicalRaw = config.canonicalUrl || `/@${ownerHandle}/${site.slug}`;
-  const canonical = resolveSiteAssetUrl(canonicalRaw, origin) || `${origin}/@${ownerHandle}/${site.slug}`;
+  const canonicalFallback = site?.mode === 'upload'
+    ? uploadedSitePublicUrl(owner, site)
+    : `${APP_ORIGIN}/@${ownerHandle}/${site.slug}`;
+  const canonicalRaw = config.canonicalUrl || (site?.mode === 'upload' ? uploadedSiteBasePath(owner, site) : `/@${ownerHandle}/${site.slug}`);
+  const canonical = resolveSiteAssetUrl(canonicalRaw, origin) || canonicalFallback;
   const titlePlain = config.seoTitle || site.title || 'Creator site';
   const descriptionPlain = config.seoDescription || site.summary || config.body || `A creator site by @${ownerHandle} on ${BRAND_WORDMARK}.`;
   const indexingMode = config.indexingMode === 'index'
     ? 'index, follow, max-image-preview:large'
     : config.indexingMode === 'noindex'
       ? 'noindex, follow'
-      : (site.visibility === 'public' ? 'index, follow, max-image-preview:large' : 'noindex, follow');
+      : (siteAppearsInPublicDirectory(site) ? 'index, follow, max-image-preview:large' : 'noindex, follow');
   const iconUrl = siteIconUrl(store, site, owner, innerHtml);
   const resolvedIcon = resolveSiteAssetUrl(iconUrl, origin) || `${origin}/logo.png`;
   const ogImageUrl = config.ogImageUrl || iconUrl || `${origin}/logo.png`;
   const resolvedOgImage = resolveSiteAssetUrl(ogImageUrl, origin) || `${origin}/logo.png`;
   const legalName = config.legalName || owner?.displayName || ownerHandle || BRAND_WORDMARK;
+  const ownerProfileUrl = `${APP_ORIGIN}/@${ownerHandle}`;
   const publisher = {
     '@type': config.schemaType,
     name: legalName,
-    url: `${origin}/@${ownerHandle}`
+    url: ownerProfileUrl
   };
   if (config.logoUrl) {
     const publisherLogo = resolveSiteAssetUrl(config.logoUrl, origin);
@@ -3188,9 +3797,10 @@ function siteMetaPayload(store, site, owner, innerHtml = '') {
     jsonLd,
     ownerName: escapeHtmlValue(owner?.displayName || ownerHandle || 'Creator'),
     ownerProfilePath: `/@${ownerHandle}`,
-    launchSummary: escapeHtmlValue(site.summary || config.body || 'This is an isolated creator site inside justbreath.'),
-    launchWarning: 'This site is moderated, but it can keep its own rules, layouts and design language. Some controls may differ from the main platform.',
-    launchEnvironment: 'You are entering a separate creator-managed environment inside justbreath.'
+    ownerProfileUrl,
+    launchSummary: escapeHtmlValue(site.summary || config.body || 'This creator site runs on a separate site-hosting origin from the main platform.'),
+    launchWarning: 'This site keeps its own layout, navigation and JavaScript. It is separated from the main app origin, so some platform controls may not appear inside it.',
+    launchEnvironment: 'You are about to open a creator-managed site hosted separately from the main justbreath app.'
   };
 }
 
@@ -3527,6 +4137,10 @@ function readSessionToken(req) {
   return cookie.parse(req.headers.cookie || '')[SESSION_COOKIE] || null;
 }
 
+function readSwitchDeviceToken(req) {
+  return cookie.parse(req.headers.cookie || '')[SWITCH_DEVICE_COOKIE] || '';
+}
+
 function readGoogleOAuthCookie(req) {
   const raw = cookie.parse(req.headers.cookie || '')[GOOGLE_OAUTH_COOKIE] || '';
   if (!raw) return null;
@@ -3541,9 +4155,41 @@ function readGoogleOAuthCookie(req) {
   }
 }
 
+function requestForwardedValue(req, headerName, fallback = '') {
+  const raw = String(req.get(headerName) || fallback || '').split(',')[0].trim();
+  return raw;
+}
+
+function requestProto(req) {
+  return requestForwardedValue(req, 'x-forwarded-proto', req.secure ? 'https' : 'http') || 'http';
+}
+
+function requestHost(req) {
+  return requestForwardedValue(req, 'x-forwarded-host', req.get('host') || `localhost:${PORT}`).toLowerCase();
+}
+
+function requestOrigin(req) {
+  return `${requestProto(req)}://${requestHost(req)}`;
+}
+
+function hostMatchesOrigin(host = '', origin = '') {
+  return String(host || '').trim().toLowerCase() === originHost(origin);
+}
+
+function isUploadedSiteOriginRequest(req) {
+  return UPLOADED_SITES_ISOLATION_ENABLED && hostMatchesOrigin(requestHost(req), UPLOADED_SITES_ORIGIN);
+}
+
+function cookieSecure(req) {
+  return requestProto(req) === 'https';
+}
+
 function sessionCookieOptions(req, maxAgeMs) {
-  const secure = req.secure || req.get('x-forwarded-proto') === 'https';
-  return { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: Math.floor(maxAgeMs / 1000) };
+  return { httpOnly: true, sameSite: 'lax', secure: cookieSecure(req), path: '/', maxAge: Math.floor(maxAgeMs / 1000) };
+}
+
+function switchDeviceCookieOptions(req, maxAgeMs) {
+  return { httpOnly: true, sameSite: 'lax', secure: cookieSecure(req), path: '/', maxAge: Math.floor(maxAgeMs / 1000) };
 }
 
 function appendSetCookie(res, value) {
@@ -3561,8 +4207,104 @@ function setSessionCookie(req, res, token) {
 }
 
 function clearSessionCookie(req, res) {
-  const secure = req.secure || req.get('x-forwarded-proto') === 'https';
-  appendSetCookie(res, cookie.serialize(SESSION_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: 0 }));
+  appendSetCookie(res, cookie.serialize(SESSION_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure: cookieSecure(req), path: '/', maxAge: 0 }));
+}
+
+function setSwitchDeviceCookie(req, res, token) {
+  appendSetCookie(res, cookie.serialize(SWITCH_DEVICE_COOKIE, token, switchDeviceCookieOptions(req, SWITCH_GRANT_TTL_MS)));
+}
+
+function clearSwitchDeviceCookie(req, res) {
+  appendSetCookie(res, cookie.serialize(SWITCH_DEVICE_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure: cookieSecure(req), path: '/', maxAge: 0 }));
+}
+
+function ensureSwitchDeviceToken(req, res) {
+  const current = sanitizeText(readSwitchDeviceToken(req), 120);
+  if (current) {
+    setSwitchDeviceCookie(req, res, current);
+    return current;
+  }
+  const token = createToken();
+  setSwitchDeviceCookie(req, res, token);
+  return token;
+}
+
+function switchDeviceHash(token = '') {
+  return hashToken(`switch:${token}`);
+}
+
+function cleanupAccountSwitchGrants(store) {
+  const now = Date.now();
+  const validUserIds = new Set(store.users.map((user) => Number(user.id)));
+  store.accountSwitchGrants = ensureArray(store.accountSwitchGrants).filter((grant) => {
+    if (!grant?.id || !grant?.deviceHash || !grant?.userId) return false;
+    if (!validUserIds.has(Number(grant.userId))) return false;
+    return new Date(grant.expiresAt || 0).getTime() > now;
+  });
+}
+
+function removeAccountSwitchGrantsForUser(store, userId) {
+  const numericUserId = Number(userId || 0);
+  store.accountSwitchGrants = ensureArray(store.accountSwitchGrants).filter((grant) => Number(grant.userId) !== numericUserId);
+}
+
+function rememberUserForDevice(req, res, store, userId) {
+  const numericUserId = Number(userId || 0);
+  const user = store.users.find((item) => Number(item.id) === numericUserId);
+  if (!user || isGuestUser(user)) return null;
+  cleanupAccountSwitchGrants(store);
+  const deviceToken = ensureSwitchDeviceToken(req, res);
+  const deviceHash = switchDeviceHash(deviceToken);
+  const now = nowIso();
+  let grant = store.accountSwitchGrants.find((item) => item.deviceHash === deviceHash && Number(item.userId) === numericUserId);
+  if (!grant) {
+    grant = { id: createToken(), deviceHash, userId: numericUserId, createdAt: now, updatedAt: now, lastUsedAt: now, expiresAt: futureIso(SWITCH_GRANT_TTL_MS) };
+    store.accountSwitchGrants.push(grant);
+  } else {
+    grant.updatedAt = now;
+    grant.lastUsedAt = now;
+    grant.expiresAt = futureIso(SWITCH_GRANT_TTL_MS);
+  }
+  const sameDevice = store.accountSwitchGrants
+    .filter((item) => item.deviceHash === deviceHash)
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+  const keepIds = new Set(sameDevice.slice(0, 8).map((item) => item.id));
+  store.accountSwitchGrants = store.accountSwitchGrants.filter((item) => item.deviceHash !== deviceHash || keepIds.has(item.id));
+  return grant;
+}
+
+function savedAccountsPayload(store, req, currentUserId = null) {
+  cleanupAccountSwitchGrants(store);
+  const deviceToken = sanitizeText(readSwitchDeviceToken(req), 120);
+  if (!deviceToken) return [];
+  const deviceHash = switchDeviceHash(deviceToken);
+  return store.accountSwitchGrants
+    .filter((grant) => grant.deviceHash === deviceHash)
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+    .map((grant) => {
+      const user = store.users.find((item) => Number(item.id) === Number(grant.userId));
+      if (!user || user.bannedAt) return null;
+      return {
+        id: user.id,
+        grantId: grant.id,
+        handle: user.handle,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        avatarText: avatarText(user.displayName || user.handle),
+        email: user.email || '',
+        current: Number(currentUserId || 0) === Number(user.id)
+      };
+    })
+    .filter(Boolean);
+}
+
+function removeSavedAccountGrant(store, req, grantId = '') {
+  const deviceToken = sanitizeText(readSwitchDeviceToken(req), 120);
+  if (!deviceToken) return false;
+  const deviceHash = switchDeviceHash(deviceToken);
+  const before = ensureArray(store.accountSwitchGrants).length;
+  store.accountSwitchGrants = ensureArray(store.accountSwitchGrants).filter((grant) => !(grant.deviceHash === deviceHash && grant.id === grantId));
+  return store.accountSwitchGrants.length !== before;
 }
 
 function setGoogleOAuthCookie(req, res, payload) {
@@ -3571,8 +4313,7 @@ function setGoogleOAuthCookie(req, res, payload) {
 }
 
 function clearGoogleOAuthCookie(req, res) {
-  const secure = req.secure || req.get('x-forwarded-proto') === 'https';
-  appendSetCookie(res, cookie.serialize(GOOGLE_OAUTH_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: 0 }));
+  appendSetCookie(res, cookie.serialize(GOOGLE_OAUTH_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure: cookieSecure(req), path: '/', maxAge: 0 }));
 }
 
 function readDiscordOAuthCookie(req) {
@@ -3595,8 +4336,7 @@ function setDiscordOAuthCookie(req, res, payload) {
 }
 
 function clearDiscordOAuthCookie(req, res) {
-  const secure = req.secure || req.get('x-forwarded-proto') === 'https';
-  appendSetCookie(res, cookie.serialize(DISCORD_OAUTH_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: 0 }));
+  appendSetCookie(res, cookie.serialize(DISCORD_OAUTH_COOKIE, '', { httpOnly: true, sameSite: 'lax', secure: cookieSecure(req), path: '/', maxAge: 0 }));
 }
 
 function discordCallbackUrl(req) {
@@ -3651,12 +4391,10 @@ async function getGoogleDiscovery() {
 }
 
 function requestBaseUrl(req) {
-  const proto = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
-  const host = req.get('x-forwarded-host') || req.get('host') || `localhost:${PORT}`;
-  const requestUrl = `${proto}://${host}`;
-  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host)) return requestUrl;
-  if (APP_URL) return APP_URL.replace(/\/+$/, '');
-  return requestUrl;
+  const requestUrl = requestOrigin(req);
+  if (isUploadedSiteOriginRequest(req)) return UPLOADED_SITES_ORIGIN || requestUrl;
+  if (isLoopbackHost(requestHost(req))) return requestUrl;
+  return APP_ORIGIN || requestUrl;
 }
 
 function googleCallbackUrl(req) {
@@ -3721,6 +4459,16 @@ function rateLimit(key, maxPerMinute) {
   return false;
 }
 
+function requestClientIp(req) {
+  return String(req.ip || req.socket.remoteAddress || requestForwardedValue(req, 'x-real-ip', 'unknown') || 'unknown').split(',')[0].trim() || 'unknown';
+}
+
+function rateLimitKey(req, prefix, subject = '') {
+  const normalizedSubject = String(subject || '').trim().toLowerCase();
+  const subjectHash = normalizedSubject ? `:${hashToken(normalizedSubject).slice(0, 16)}` : '';
+  return `${prefix}:${requestClientIp(req)}${subjectHash}`;
+}
+
 function requestHasTrustedWriteOrigin(req) {
   const origin = String(req.get('origin') || '').trim();
   const referer = String(req.get('referer') || '').trim();
@@ -3730,18 +4478,49 @@ function requestHasTrustedWriteOrigin(req) {
   return true;
 }
 
+function isUploadedSitePathRequest(req) {
+  return /^\/@[^/]+\/[^/]+(?:\/.*)?$/.test(String(req.path || ''));
+}
+
 app.use(express.json({ limit: '1gb' }));
 app.use((req, res, next) => {
+  const siteOriginRequest = isUploadedSiteOriginRequest(req);
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  if (siteOriginRequest) {
+    res.setHeader('Referrer-Policy', 'strict-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+    res.setHeader('Origin-Agent-Cluster', '?1');
+    if (cookieSecure(req)) {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    }
+    if (APP_ORIGIN) {
+      res.setHeader('Content-Security-Policy', `frame-ancestors ${APP_ORIGIN}`);
+    }
+    return next();
+  }
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
   res.setHeader('Origin-Agent-Cluster', '?1');
-  if (req.secure || req.get('x-forwarded-proto') === 'https') {
+  if (cookieSecure(req)) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
+  const frameSrc = [
+    "'self'",
+    'https://www.googletagmanager.com',
+    'https://pagead2.googlesyndication.com',
+    'https://googleads.g.doubleclick.net',
+    'https://tpc.googlesyndication.com',
+    'https://ep1.adtrafficquality.google',
+    'https://ep2.adtrafficquality.google',
+    'https://www.google.com',
+    'https://fundingchoicesmessages.google.com'
+  ];
+  if (UPLOADED_SITES_ISOLATION_ENABLED) frameSrc.push(UPLOADED_SITES_ORIGIN);
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://www.googletagservices.com https://www.googletagmanager.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://fundingchoicesmessages.google.com",
@@ -3750,11 +4529,24 @@ app.use((req, res, next) => {
     "img-src 'self' data: blob: https:",
     "media-src 'self' data: blob: https:",
     "connect-src 'self' https://api.giphy.com https://discord.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://csi.gstatic.com https://www.google.com https://fundingchoicesmessages.google.com",
-    "frame-src 'self' https://www.googletagmanager.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://www.google.com https://fundingchoicesmessages.google.com",
+    `frame-src ${frameSrc.join(' ')}`,
     "object-src 'none'",
     "base-uri 'self'"
   ].join('; '));
   next();
+});
+
+app.use((req, res, next) => {
+  if (!isUploadedSiteOriginRequest(req)) return next();
+  if (req.path.startsWith('/media/')) return next();
+  if (isUploadedSitePathRequest(req)) return next();
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API is not served from the uploaded-site host.' });
+  }
+  if (['GET', 'HEAD'].includes(req.method)) {
+    return res.redirect(308, `${APP_ORIGIN}${req.originalUrl}`);
+  }
+  return res.status(404).type('text/plain').send('Uploaded site host serves creator sites only.');
 });
 
 app.use((req, res, next) => {
@@ -3798,13 +4590,7 @@ function requireMember(req, res, next) {
 // ── Maintenance mode ──────────────────────────────────────────────────────────
 let _maintenanceMode = false;
 
-app.post('/api/admin/maintenance', (req, res) => {
-  const sessionOwner = req.authUser && isOwnerUser(req.authUser);
-  if (!sessionOwner) {
-    const token = String(req.body?.token || '');
-    const adminToken = process.env.ADMIN_TOKEN || '';
-    if (!adminToken || token !== adminToken) return res.status(403).json({ error: 'Invalid token.' });
-  }
+app.post('/api/admin/maintenance', requireAuth, requireOwner, (req, res) => {
   _maintenanceMode = Boolean(req.body?.enabled);
   console.log(`[maintenance] mode: ${_maintenanceMode}`);
   res.json({ ok: true, maintenance: _maintenanceMode });
@@ -3977,6 +4763,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
     autoCreateDefaultSite(store, user);
     createSessionForUser(req, res, store, user.id);
+    rememberUserForDevice(req, res, store, user.id);
     saveStore(store);
     res.redirect(next);
   } catch (error) {
@@ -4097,6 +4884,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
 
     autoCreateDefaultSite(store, user);
     createSessionForUser(req, res, store, user.id);
+    rememberUserForDevice(req, res, store, user.id);
     saveStore(store);
     res.redirect(next);
   } catch (error) {
@@ -4162,8 +4950,8 @@ app.post('/api/integrations/telegram/webhook', (req, res) => {
 });
 
 app.post('/api/auth/register', (req, res) => {
-  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').toString().split(',')[0].trim();
-  if (rateLimit(`reg:${ip}`, 3)) return res.status(429).json({ error: 'Too many registrations from this IP. Try again later.' });
+  const ip = requestClientIp(req);
+  if (rateLimit(rateLimitKey(req, 'reg', sanitizeText(req.body?.email || '', 120)), 3)) return res.status(429).json({ error: 'Too many registrations from this IP. Try again later.' });
   const store = loadStore();
   const displayName = sanitizeText(req.body?.displayName, 60);
   const email = sanitizeText(req.body?.email, 120).toLowerCase();
@@ -4206,14 +4994,14 @@ app.post('/api/auth/register', (req, res) => {
   });
   store.users.push(user);
   autoCreateDefaultSite(store, user);
-  const sessionToken = createSessionForUser(req, res, store, user.id);
+  createSessionForUser(req, res, store, user.id);
+  rememberUserForDevice(req, res, store, user.id);
   saveStore(store);
-  res.status(201).json({ user: mePayload(store, user).user, sessionToken });
+  res.status(201).json({ user: mePayload(store, user).user });
 });
 
 app.post('/api/auth/login', (req, res) => {
-  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').toString().split(',')[0].trim();
-  if (rateLimit(`login:${ip}`, 10)) return res.status(429).json({ error: 'Too many login attempts. Try again in a minute.' });
+  if (rateLimit(rateLimitKey(req, 'login', sanitizeText(req.body?.identity || '', 120)), 10)) return res.status(429).json({ error: 'Too many login attempts. Try again in a minute.' });
   const store = loadStore();
   const identity = sanitizeText(req.body?.identity || '', 120).toLowerCase();
   const password = String(req.body?.password || '');
@@ -4221,24 +5009,29 @@ app.post('/api/auth/login', (req, res) => {
   const user = store.users.find((item) => item.handleCanonical === canonicalHandle(identity) || String(item.email || '').toLowerCase() === identity);
   if (!user || !user.passwordHash || !bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Invalid credentials.' });
   if (user.bannedAt) return res.status(403).json({ error: 'This account has been suspended.' });
-  const sessionToken = createSessionForUser(req, res, store, user.id);
+  createSessionForUser(req, res, store, user.id);
+  rememberUserForDevice(req, res, store, user.id);
   saveStore(store);
-  res.json({ user: mePayload(store, user).user, sessionToken });
+  res.json({ user: mePayload(store, user).user });
 });
 
 
 app.post('/api/auth/switch', (req, res) => {
   const store = loadStore();
-  const token = sanitizeText(req.body?.sessionToken, 128);
-  if (!token) return res.status(400).json({ error: 'Session token is required.' });
-  store.sessions = store.sessions.filter((session) => new Date(session.expiresAt) > new Date());
-  const session = store.sessions.find((entry) => entry.tokenHash === hashToken(token));
-  if (!session) return res.status(401).json({ error: 'Session not found.' });
-  const user = store.users.find((item) => Number(item.id) === Number(session.userId));
+  const grantId = sanitizeText(req.body?.switchGrantId || '', 128);
+  if (!grantId) return res.status(400).json({ error: 'Saved-account grant is required.' });
+  cleanupAccountSwitchGrants(store);
+  const deviceToken = sanitizeText(readSwitchDeviceToken(req), 120);
+  if (!deviceToken) return res.status(401).json({ error: 'This device is not authorized for account switching.' });
+  const grant = store.accountSwitchGrants.find((entry) => entry.id === grantId && entry.deviceHash === switchDeviceHash(deviceToken));
+  if (!grant) return res.status(401).json({ error: 'Saved account not found on this device.' });
+  const user = store.users.find((item) => Number(item.id) === Number(grant.userId));
   if (!user) return res.status(404).json({ error: 'User not found.' });
-  setSessionCookie(req, res, token);
+  if (user.bannedAt) return res.status(403).json({ error: 'This account has been suspended.' });
+  createSessionForUser(req, res, store, user.id);
+  rememberUserForDevice(req, res, store, user.id);
   saveStore(store);
-  res.json({ user: mePayload(store, user).user, sessionToken: token });
+  res.json({ user: mePayload(store, user).user });
 });
 
 app.post('/api/auth/logout', (req, res) => {
@@ -4253,6 +5046,16 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ ok: true });
 });
 
+app.delete('/api/auth/saved-accounts/:grantId', (req, res) => {
+  const store = loadStore();
+  cleanupAccountSwitchGrants(store);
+  const removed = removeSavedAccountGrant(store, req, sanitizeText(req.params.grantId || '', 128));
+  if (removed) saveStore(store);
+  const remaining = savedAccountsPayload(store, req, req.authUser?.id || null);
+  if (!remaining.length) clearSwitchDeviceCookie(req, res);
+  res.json({ ok: removed, savedAccounts: remaining });
+});
+
 app.get('/api/bootstrap', (req, res) => {
   const store = loadStore();
   const viewerId = req.authUser?.id || null;
@@ -4262,12 +5065,11 @@ app.get('/api/bootstrap', (req, res) => {
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
   const publicProjects = store.projects.filter((item) => item.visibility === 'public').map((item) => publicProject(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'updatedAt'));
-  const publicSites = store.sites.filter((item) => item.visibility === 'public').map((item) => publicSite(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'updatedAt'));
+  const publicSites = store.sites.filter((item) => siteAppearsInPublicDirectory(item)).map((item) => publicSite(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'updatedAt'));
   const feed = store.posts.filter((item) => item.status === 'published' && item.kind === 'quick').map((item) => publicPost(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'publishedAt'));
   const devlogs = store.posts.filter((item) => item.status === 'published' && item.kind === 'devlog').map((item) => publicPost(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'publishedAt'));
   const openRooms = store.rooms.filter((room) => room.visibility === 'open').map((room) => publicRoom(store, room, viewerId)).sort((a, b) => sortDateDesc(a, b, 'lastActivityAt'));
   const me = req.authUser ? mePayload(store, store.users.find((u) => Number(u.id) === Number(req.authUser.id))) : null;
-  const sessionToken = req.authUser ? readSessionToken(req) : '';
   res.json({
     meta: {
       siteName: SITE_NAME,
@@ -4296,7 +5098,7 @@ app.get('/api/bootstrap', (req, res) => {
         { code: 'STD', label: 'Studio' }
       ]
     },
-    sessionToken,
+    savedAccounts: savedAccountsPayload(store, req, viewerId),
     session: me?.user || null,
     me,
     home: {
@@ -4327,7 +5129,7 @@ app.get('/api/search/all', (req, res) => {
     .map((user) => publicUser(store, user, viewerId))
     .filter(Boolean);
   const projectList = store.projects.filter((item) => item.visibility === 'public').map((item) => publicProject(store, item, viewerId));
-  const siteList = store.sites.filter((item) => item.visibility === 'public').map((item) => publicSite(store, item, viewerId));
+  const siteList = store.sites.filter((item) => siteAppearsInPublicDirectory(item)).map((item) => publicSite(store, item, viewerId));
   const scoreText = (haystack) => q ? String(haystack || '').toLowerCase().includes(q) : true;
   const payload = {
     users: userList.filter((item) => !q || [item.displayName, item.handle, item.bio, ...(item.badges || [])].join(' ').toLowerCase().includes(q)),
@@ -4413,7 +5215,7 @@ app.get('/api/public/profile/:handle', (req, res) => {
   if (!userCanOpenPublicProfile(user, req.authUser?.id)) return res.status(404).json({ error: 'Profile not found.' });
   const profile = publicUser(store, user, req.authUser?.id);
   const projects = store.projects.filter((item) => Number(item.userId) === Number(user.id) && item.visibility === 'public').map((item) => publicProject(store, item, req.authUser?.id));
-  const sites = store.sites.filter((item) => Number(item.userId) === Number(user.id) && item.visibility === 'public').map((item) => publicSite(store, item, req.authUser?.id));
+  const sites = store.sites.filter((item) => Number(item.userId) === Number(user.id) && siteAppearsInPublicDirectory(item)).map((item) => publicSite(store, item, req.authUser?.id));
   const posts = store.posts.filter((item) => Number(item.userId) === Number(user.id) && item.status === 'published').map((item) => publicPost(store, item, req.authUser?.id)).sort((a, b) => sortDateDesc(a, b, 'publishedAt'));
   const verification = store.verificationRequests.filter((item) => Number(item.userId) === Number(user.id)).sort((a, b) => sortDateDesc(a, b))[0] || null;
   res.json({ profile, projects, sites, posts, verification, canMessage: req.authUser ? profile.relation?.following || user.privacy.allowDirectMessages !== 'followers' : false });
@@ -4461,7 +5263,7 @@ app.get('/api/public/sites', (req, res) => {
   const store = loadStore();
   const q = sanitizeText(req.query.q || '', 120).toLowerCase();
   const sort = String(req.query.sort || 'date');
-  let items = store.sites.filter((item) => item.visibility === 'public').map((item) => publicSite(store, item, req.authUser?.id));
+  let items = store.sites.filter((item) => siteAppearsInPublicDirectory(item)).map((item) => publicSite(store, item, req.authUser?.id));
   if (q) items = items.filter((item) => [item.title, item.summary, item.owner?.displayName, item.owner?.handle].join(' ').toLowerCase().includes(q));
   if (sort === 'popularity') items.sort((a, b) => (b.owner?.score || 0) - (a.owner?.score || 0));
   else items.sort((a, b) => sortDateDesc(a, b, 'updatedAt'));
@@ -4471,6 +5273,28 @@ app.get('/api/public/sites', (req, res) => {
 app.get('/api/chat/bootstrap', requireAuth, (req, res) => {
   const store = loadStore();
   const userId = req.authUser.id;
+  const selfSlug = `dm-personal-${canonicalHandle(req.authUser.handle)}--self`;
+  if (!store.rooms.some((room) => room.kind === 'direct' && room.surface === 'personal' && room.slug === selfSlug)) {
+    store.rooms.push(roomDefaults({
+      id: nextId(store, 'rooms'),
+      workspaceId: null,
+      slug: selfSlug,
+      title: 'Saved messages',
+      description: 'Personal saved messages',
+      kind: 'direct',
+      surface: 'personal',
+      visibility: 'private',
+      createdByUserId: userId,
+      ownerUserId: userId,
+      memberIds: [Number(userId)],
+      memberRoles: { [userId]: 'owner' },
+      tags: ['dm', 'self'],
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      lastActivityAt: nowIso()
+    }));
+    saveStore(store);
+  }
   const workspaces = store.workspaces.filter((workspace) => workspace.memberIds.includes(Number(userId)) || workspace.visibility === 'open').map((workspace) => publicWorkspace(store, workspace, userId));
   const rooms = store.rooms.filter((room) => roomAppearsInChatList(room, userId)).map((room) => publicRoom(store, room, userId)).sort((a, b) => sortDateDesc(a, b, 'lastActivityAt'));
   const selectedRoom = rooms.find((room) => !room.state.archived) || rooms[0] || null;
@@ -4514,7 +5338,7 @@ app.post('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
   const stickerId = req.body?.stickerId ? Number(req.body.stickerId) : null;
   const requestedReplyToId = Number(req.body?.replyToId || 0);
   const attachmentName = sanitizeText(req.body?.attachmentName, 90);
-  const attachmentDataUrl = safeDataUrl(req.body?.attachmentDataUrl, IMAGE_UPLOAD_LIMIT_BYTES * 4, ['image', 'audio']);
+  const attachmentDataUrl = safeDataUrl(req.body?.attachmentDataUrl, CHAT_MEDIA_UPLOAD_LIMIT_BYTES * 2, ['image', 'audio', 'video']);
   const attachmentType = sanitizeText(req.body?.attachmentType || '', 30);
   const encrypted = Boolean(req.body?.encrypted && ['personal', 'work'].includes(room.surface));
   const clientNonce = sanitizeText(req.body?.clientNonce || '', 80);
@@ -4525,17 +5349,20 @@ app.post('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
     if (!raw || typeof raw !== 'object') continue;
     const rawName = sanitizeText(raw.name || '', 90);
     if (raw.dataUrl) {
-      const dataUrl = safeDataUrl(raw.dataUrl, IMAGE_UPLOAD_LIMIT_BYTES * 4, ['image', 'audio']);
+      const dataUrl = safeDataUrl(raw.dataUrl, CHAT_MEDIA_UPLOAD_LIMIT_BYTES * 2, ['image', 'audio', 'video']);
       if (!dataUrl) continue;
       const isAudio = raw.type === 'audio' || /^data:audio\//.test(dataUrl);
+      const isVideo = raw.type === 'video' || /^data:video\//.test(dataUrl);
       const stored = isAudio
         ? saveDataAudio(dataUrl, `voice-${room.id}`)
-        : saveDataImage(dataUrl, `chat-${room.id}`);
+        : isVideo
+          ? saveDataVideo(dataUrl, `video-${room.id}`)
+          : saveDataImage(dataUrl, `chat-${room.id}`);
       if (!stored) continue;
       attachments.push({
-        name: rawName || (isAudio ? 'Voice message' : 'Image'),
+        name: rawName || (isAudio ? 'Voice message' : isVideo ? 'Video' : 'Image'),
         url: stored,
-        type: isAudio ? 'audio' : 'image',
+        type: isAudio ? 'audio' : isVideo ? 'video' : 'image',
         width: Number(raw.width || 0),
         height: Number(raw.height || 0),
         duration: Number(raw.duration || 0),
@@ -4555,14 +5382,17 @@ app.post('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
   if (!attachments.length) {
     if (attachmentDataUrl) {
       const isAudio = attachmentType === 'audio' || /^data:audio\//.test(attachmentDataUrl);
+      const isVideo = attachmentType === 'video' || /^data:video\//.test(attachmentDataUrl);
       const stored = isAudio
         ? saveDataAudio(attachmentDataUrl, `voice-${room.id}`)
-        : saveDataImage(attachmentDataUrl, `chat-${room.id}`);
+        : isVideo
+          ? saveDataVideo(attachmentDataUrl, `video-${room.id}`)
+          : saveDataImage(attachmentDataUrl, `chat-${room.id}`);
       if (stored) {
         attachment = {
-          name: attachmentName || (isAudio ? 'Voice message' : 'Image'),
+          name: attachmentName || (isAudio ? 'Voice message' : isVideo ? 'Video' : 'Image'),
           url: stored,
-          type: isAudio ? 'audio' : 'image',
+          type: isAudio ? 'audio' : isVideo ? 'video' : 'image',
           width: Number(req.body?.attachmentWidth || 0),
           height: Number(req.body?.attachmentHeight || 0),
           duration: Number(req.body?.attachmentDuration || 0),
@@ -4625,12 +5455,17 @@ app.post('/api/chat/direct/:handle', requireAuth, (req, res) => {
   const target = store.users.find((item) => item.handleCanonical === canonicalHandle(req.params.handle));
   if (!target) return res.status(404).json({ error: 'User not found.' });
   const surface = req.body?.surface === 'work' ? 'work' : 'personal';
+  const selfRoom = Number(target.id) === Number(req.authUser.id);
   const allowDM = String(target.privacy?.allowDirectMessages || 'everyone');
   if (allowDM === 'nobody') return res.status(403).json({ error: 'This user is not accepting direct messages.' });
   if (allowDM === 'followers' && !followsUser(store, req.authUser.id, target.id) && Number(req.authUser.id) !== Number(target.id)) return res.status(403).json({ error: 'Follow this user before starting a direct message.' });
-  const members = [Number(req.authUser.id), Number(target.id)].sort((a, b) => a - b);
+  const members = selfRoom
+    ? [Number(req.authUser.id)]
+    : [Number(req.authUser.id), Number(target.id)].sort((a, b) => a - b);
   const memberSet = new Set(members);
-  const slug = `dm-${surface}-${[canonicalHandle(req.authUser.handle), target.handleCanonical].sort().join('--')}`;
+  const slug = selfRoom
+    ? `dm-${surface}-${canonicalHandle(req.authUser.handle)}--self`
+    : `dm-${surface}-${[canonicalHandle(req.authUser.handle), target.handleCanonical].sort().join('--')}`;
   let room = store.rooms.find((item) => {
     if (item.kind !== 'direct' || item.surface !== surface) return false;
     if (!Array.isArray(item.memberIds)) return false;
@@ -4644,15 +5479,17 @@ app.post('/api/chat/direct/:handle', requireAuth, (req, res) => {
       id: nextId(store, 'rooms'),
       workspaceId: null,
       slug,
-      title: target.displayName,
-      description: surface === 'work' ? 'Work direct chat' : 'Personal direct chat',
+      title: selfRoom ? 'Saved messages' : target.displayName,
+      description: selfRoom
+        ? (surface === 'work' ? 'Personal workspace notes' : 'Personal saved messages')
+        : (surface === 'work' ? 'Work direct chat' : 'Personal direct chat'),
       kind: 'direct',
       surface,
       visibility: 'private',
       createdByUserId: req.authUser.id,
       ownerUserId: req.authUser.id,
       memberIds: members,
-      memberRoles: { [req.authUser.id]: 'owner', [target.id]: 'member' },
+      memberRoles: selfRoom ? { [req.authUser.id]: 'owner' } : { [req.authUser.id]: 'owner', [target.id]: 'member' },
       tags: surface === 'work' ? ['work'] : ['dm'],
       createdAt: nowIso(),
       updatedAt: nowIso(),
@@ -5068,7 +5905,8 @@ app.patch('/api/me/preferences', requireAuth, (req, res) => {
       }, user.settings.chatThemeGlobal || null);
       return nextTheme || user.settings.chatThemeGlobal || null;
     })(),
-    chatThemesByRoom: sanitizeChatThemeMap(user.settings.chatThemesByRoom)
+    chatThemesByRoom: sanitizeChatThemeMap(user.settings.chatThemesByRoom),
+    hiddenMessageIdsByRoom: sanitizeHiddenMessageMap(user.settings.hiddenMessageIdsByRoom)
   };
   user.updatedAt = nowIso();
   saveStore(store);
@@ -5633,7 +6471,7 @@ function siteImportCapabilitiesPayload(user = null) {
     studioEditableExtensions: Array.from(SITE_STUDIO_EDITABLE_EXTENSIONS),
     notes: [
       'index.html must exist at archive root',
-      'server-side code is imported as static files only',
+      'server-side and executable files are blocked before publish',
       'local bundled assets and extra pages are supported'
     ]
   };
@@ -5740,8 +6578,9 @@ app.post('/api/me/sites/upload-archive-binary', requireAuth, requireMember, asyn
   const limit = userSiteLimit(req.authUser);
   if (userSites.length >= limit) return res.status(403).json({ error: `Site limit reached (\${limit}). Upgrade to create more.`, upgradeRequired: true });
   let upload = null;
+  let payload = {};
   try {
-    const payload = readArchiveBinaryMeta(req);
+    payload = readArchiveBinaryMeta(req);
     upload = await streamArchiveRequestToTempFile(req, { limitBytes: siteArchiveByteLimit(req.authUser) });
     const site = await createArchiveSiteFromBinaryRequest(store, req, upload, payload);
     store.sites.push(site);
@@ -5750,6 +6589,7 @@ app.post('/api/me/sites/upload-archive-binary', requireAuth, requireMember, asyn
   } catch (err) {
     req.resume();
     console.error('[sites/upload-archive-binary]', err.message);
+    if (queueBlockedSiteUploadReport(store, req.authUser, err, { action: 'site-upload-binary', archiveName: payload.archiveName || payload.zipName || '' })) saveStore(store);
     res.status(err.statusCode || 400).json({ error: err.message || 'Could not read archive.' });
   } finally {
     cleanupTempArchiveUpload(upload);
@@ -5784,14 +6624,16 @@ app.put('/api/me/sites/:id/archive-binary', requireAuth, requireMember, async (r
   if (!site) return res.status(404).json({ error: 'Site not found.' });
   let touchedContent = false;
   let upload = null;
+  let payload = {};
   try {
-    const payload = readArchiveBinaryMeta(req);
+    payload = readArchiveBinaryMeta(req);
     touchedContent = applySitePatchFields(site, payload);
     upload = await streamArchiveRequestToTempFile(req, { limitBytes: siteArchiveByteLimit(req.authUser) });
     await applyArchiveBufferToSite(site, req, readFileSync(upload.tempPath), payload.archiveName || '');
     touchedContent = true;
   } catch (error) {
     req.resume();
+    if (queueBlockedSiteUploadReport(store, req.authUser, error, { action: 'site-update-binary', archiveName: payload.archiveName || payload.zipName || '' })) saveStore(store);
     return res.status(error.statusCode || 400).json({ error: error.message || 'Could not read archive.' });
   } finally {
     cleanupTempArchiveUpload(upload);
@@ -5807,6 +6649,7 @@ app.post('/api/me/sites/:id/submit-review', requireAuth, requireMember, (req, re
   const store = loadStore();
   const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
   if (!site) return res.status(404).json({ error: 'Site not found.' });
+  if (!siteNeedsLaunchReview(site)) return res.status(400).json({ error: 'Private sites do not need launch approval.' });
   if (site.reviewStatus === 'pending') return res.status(400).json({ error: 'Already submitted for review.' });
   if (site.reviewStatus === 'approved') return res.status(400).json({ error: 'Site is already approved.' });
   site.reviewStatus = 'pending';
@@ -5828,6 +6671,7 @@ async function handleSiteArchiveUpload(req, res) {
     res.status(201).json({ site: ownerSiteDetails(store, site, req.authUser.id) });
   } catch (err) {
     console.error('[sites/upload-archive]', err.message);
+    if (queueBlockedSiteUploadReport(store, req.authUser, err, { action: 'site-upload-form', archiveName: req.body?.archiveName || req.body?.zipName || '' })) saveStore(store);
     res.status(err.statusCode || 400).json({ error: err.message || 'Could not read archive.' });
   }
 }
@@ -5844,8 +6688,9 @@ app.post('/api/me/sites/upload-bundle-binary', requireAuth, requireMember, async
   const limit = userSiteLimit(req.authUser);
   if (userSites.length >= limit) return res.status(403).json({ error: `Site limit reached (\${limit}). Upgrade to create more.`, upgradeRequired: true });
   let upload = null;
+  let payload = {};
   try {
-    const payload = readArchiveBinaryMeta(req);
+    payload = readArchiveBinaryMeta(req);
     upload = await streamArchiveRequestToTempFile(req, { limitBytes: siteArchiveByteLimit(req.authUser) });
     const site = await createArchiveSiteFromBinaryRequest(store, req, upload, payload);
     store.sites.push(site);
@@ -5853,6 +6698,7 @@ app.post('/api/me/sites/upload-bundle-binary', requireAuth, requireMember, async
     res.status(201).json({ site: ownerSiteDetails(store, site, req.authUser.id) });
   } catch (err) {
     req.resume();
+    if (queueBlockedSiteUploadReport(store, req.authUser, err, { action: 'site-upload-bundle-binary', archiveName: payload.archiveName || payload.zipName || '' })) saveStore(store);
     res.status(err.statusCode || 400).json({ error: err.message || 'Could not read archive.' });
   } finally {
     cleanupTempArchiveUpload(upload);
@@ -6074,45 +6920,121 @@ function findSiteByHandleAndSlug(store, handleValue, slugValue) {
 }
 
 function canViewSite(site, owner, authUserId = null) {
-  return Boolean(site && owner && (
-    site.visibility === 'public'
-    || site.visibility === 'unlisted'
-    || Number(authUserId || 0) === Number(owner.id || 0)
-  ));
+  if (!site || !owner) return false;
+  if (Number(authUserId || 0) === Number(owner.id || 0)) return true;
+  return siteIsExternallyReachable(site);
+}
+
+const _sitePreviewTokens = new Map();
+
+function cleanupSitePreviewTokens() {
+  const now = Date.now();
+  for (const [token, entry] of _sitePreviewTokens.entries()) {
+    if (!entry || Number(entry.expiresAt || 0) <= now) _sitePreviewTokens.delete(token);
+  }
+}
+
+function readSitePreviewToken(req) {
+  return cookie.parse(req.headers.cookie || '')[SITE_PREVIEW_COOKIE] || '';
+}
+
+function setSitePreviewCookie(req, res, site, owner, token) {
+  appendSetCookie(res, cookie.serialize(SITE_PREVIEW_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: cookieSecure(req),
+    path: uploadedSiteBasePath(owner, site),
+    maxAge: Math.floor(SITE_PREVIEW_TTL_MS / 1000)
+  }));
+}
+
+function clearSitePreviewCookie(req, res, site, owner) {
+  appendSetCookie(res, cookie.serialize(SITE_PREVIEW_COOKIE, '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: cookieSecure(req),
+    path: uploadedSiteBasePath(owner, site),
+    maxAge: 0
+  }));
+}
+
+function createSitePreviewToken(site, userId) {
+  cleanupSitePreviewTokens();
+  const token = createToken();
+  _sitePreviewTokens.set(token, {
+    siteId: Number(site?.id || 0),
+    userId: Number(userId || 0),
+    expiresAt: Date.now() + SITE_PREVIEW_TTL_MS
+  });
+  return token;
+}
+
+function validateSitePreviewToken(token, site) {
+  cleanupSitePreviewTokens();
+  const entry = _sitePreviewTokens.get(token);
+  if (!entry || Number(entry.siteId) !== Number(site?.id || 0)) return false;
+  if (Number(entry.expiresAt || 0) <= Date.now()) {
+    _sitePreviewTokens.delete(token);
+    return false;
+  }
+  entry.expiresAt = Date.now() + SITE_PREVIEW_TTL_MS;
+  return true;
+}
+
+function requestHasSitePreviewAccess(req, res, site, owner) {
+  const queryToken = sanitizeText(req.query?.previewToken || '', 128);
+  if (queryToken && validateSitePreviewToken(queryToken, site)) {
+    setSitePreviewCookie(req, res, site, owner, queryToken);
+    return true;
+  }
+  const cookieToken = sanitizeText(readSitePreviewToken(req), 128);
+  if (cookieToken && validateSitePreviewToken(cookieToken, site)) return true;
+  if (cookieToken) clearSitePreviewCookie(req, res, site, owner);
+  return false;
+}
+
+function canViewUploadedSiteRequest(req, res, site, owner) {
+  return canViewSite(site, owner, req.authUser?.id) || requestHasSitePreviewAccess(req, res, site, owner);
 }
 
 app.get(/^\/@([^/]+)\/([^/]+)\/(.*)$/, (req, res, next) => {
   const store = loadStore();
   const { owner, site } = findSiteByHandleAndSlug(store, req.params[0], req.params[1]);
-  if (!owner || !site || !canViewSite(site, owner, req.authUser?.id)) return next();
+  if (!owner || !site || !canViewUploadedSiteRequest(req, res, site, owner)) return next();
   if (site.mode !== 'upload') return next();
   const rawAssetPath = String(req.params[2] || '');
-  if (!rawAssetPath) {
-    const inner = readUploadedSiteEntryHtml(site);
-    if (!inner) return next();
-    return res.type('html').send(siteWatermarkHtml(store, owner, site, inner));
+  const query = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  if (!isUploadedSiteOriginRequest(req)) {
+    if (!UPLOADED_SITES_ISOLATION_ENABLED) {
+      return res.status(503).type('text/plain').send('Uploaded site hosting is not configured on a separate origin.');
+    }
+    if (!rawAssetPath) {
+      const inner = readUploadedSiteEntryHtml(site);
+      if (!inner) return next();
+      const previewToken = !canViewSite(site, owner, null) && Number(req.authUser?.id || 0) === Number(owner.id || 0)
+        ? createSitePreviewToken(site, req.authUser.id)
+        : '';
+      return res.type('html').send(siteWatermarkHtml(store, owner, site, inner, { previewToken }));
+    }
+    return res.redirect(308, `${uploadedSitePublicUrl(owner, site, rawAssetPath)}${query}`);
   }
-  const assetPath = rawAssetPath ? safeSiteBundlePath(rawAssetPath) : 'index.html';
+  const assetPath = rawAssetPath ? safeSiteBundlePath(rawAssetPath) : uploadedSiteEntryPath(site);
   if (!assetPath) return next();
   if (!siteUsesBundle(site) && assetPath !== 'index.html') return next();
   const assetAbsPath = siteUsesBundle(site) ? siteBundleAbsPath(site, assetPath) : resolveDataPath(site.htmlPath);
   if (!assetAbsPath || !existsSync(assetAbsPath)) return next();
-  clearUploadedSiteResponseHeaders(res);
-  const ext = path.posix.extname(assetPath).toLowerCase();
-  if (UPLOADED_SITE_TEXT_TRANSFORM_EXTENSIONS.has(ext)) {
-    const inner = readFileSync(assetAbsPath, 'utf8');
-    return res.type(ext === '.css' ? 'css' : ext === '.html' || ext === '.htm' ? 'html' : 'application/javascript')
-      .send(transformUploadedSiteTextAsset(site, owner, assetPath, inner));
-  }
-  return res.sendFile(assetAbsPath);
+  return sendUploadedSiteAssetResponse(res, site, owner, assetPath, assetAbsPath);
 });
 
 app.get(/^\/@([^/]+)\/([^/]+)$/, (req, res, next) => {
   const store = loadStore();
   const { owner, site } = findSiteByHandleAndSlug(store, req.params[0], req.params[1]);
-  if (!owner || !site || !canViewSite(site, owner, req.authUser?.id)) return next();
+  if (!owner || !site || !canViewUploadedSiteRequest(req, res, site, owner)) return next();
   if (site.mode === 'upload') {
     const query = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+    if (isUploadedSiteOriginRequest(req)) {
+      return res.redirect(308, `${uploadedSitePublicUrl(owner, site)}${query}`);
+    }
     return res.redirect(308, `${req.path}/${query}`);
   }
   const inner = buildTemplateSiteHtml(store, site, owner);
@@ -6185,20 +7107,52 @@ app.delete('/api/chat/rooms/:slug/messages/:id', requireAuth, (req, res) => {
   if (room.kind !== 'direct' && !room.memberIds.includes(Number(req.authUser.id))) return res.status(403).json({ error: 'Join this room first.' });
   const message = store.messages.find(m => Number(m.id) === Number(req.params.id));
   if (!message || Number(message.roomId) !== Number(room.id)) return res.status(404).json({ error: 'Message not found.' });
-  const role = room.memberRoles?.[String(req.authUser.id)] || 'member';
-  const canDelete = Number(message.userId) === Number(req.authUser.id) || ['owner','admin','moderator'].includes(role);
-  if (!canDelete) return res.status(403).json({ error: 'Not allowed.' });
-  // Soft delete — keep record, blank content
-  message.deletedAt = nowIso();
-  message.body = '';
-  message.attachment = null;
-  message.ciphertext = '';
-  message.iv = '';
-  message.stickerId = null;
-  message.updatedAt = nowIso();
+  const user = store.users.find((item) => Number(item.id) === Number(req.authUser.id));
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+  const scope = req.body?.scope === 'everyone' ? 'everyone' : 'self';
+  if (scope === 'self') {
+    hideMessagesForUser(user, room.slug, [message.id]);
+    user.updatedAt = nowIso();
+    saveStore(store);
+    sseSend(req.authUser.id, 'messages_hidden', { ids: [message.id], roomId: room.id, roomSlug: room.slug });
+    return res.json({ ok: true, scope, id: message.id, user: mePayload(store, user).user });
+  }
+  if (!canDeleteMessageForEveryone(room, req.authUser.id, message)) return res.status(403).json({ error: 'Not allowed.' });
+  softDeleteMessage(message);
   saveStore(store);
   sseBroadcastRoom(store, room.id, 'message_deleted', { id: message.id, roomId: room.id, roomSlug: room.slug });
-  res.json({ ok: true });
+  res.json({ ok: true, scope, id: message.id });
+});
+
+app.post('/api/chat/rooms/:slug/messages/delete', requireAuth, (req, res) => {
+  const store = loadStore();
+  const room = store.rooms.find((item) => item.slug === slugify(req.params.slug));
+  if (!room || !roomAccessible(room, req.authUser.id)) return res.status(404).json({ error: 'Room not found.' });
+  if (room.kind !== 'direct' && !room.memberIds.includes(Number(req.authUser.id))) return res.status(403).json({ error: 'Join this room first.' });
+  const user = store.users.find((item) => Number(item.id) === Number(req.authUser.id));
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+  const ids = Array.from(new Set(ensureArray(req.body?.ids).map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0))).slice(0, 100);
+  if (!ids.length) return res.status(400).json({ error: 'Select at least one message.' });
+  const messages = ids
+    .map((id) => store.messages.find((item) => Number(item.id) === id && Number(item.roomId) === Number(room.id)))
+    .filter(Boolean);
+  if (!messages.length) return res.status(404).json({ error: 'Message not found.' });
+  const scope = req.body?.scope === 'everyone' ? 'everyone' : 'self';
+  if (scope === 'self') {
+    hideMessagesForUser(user, room.slug, messages.map((item) => item.id));
+    user.updatedAt = nowIso();
+    saveStore(store);
+    sseSend(req.authUser.id, 'messages_hidden', { ids: messages.map((item) => item.id), roomId: room.id, roomSlug: room.slug });
+    return res.json({ ok: true, scope, ids: messages.map((item) => item.id), user: mePayload(store, user).user });
+  }
+  const forbidden = messages.find((item) => !canDeleteMessageForEveryone(room, req.authUser.id, item));
+  if (forbidden) return res.status(403).json({ error: 'Not allowed to delete one or more messages for everyone.' });
+  for (const message of messages) softDeleteMessage(message);
+  saveStore(store);
+  for (const message of messages) {
+    sseBroadcastRoom(store, room.id, 'message_deleted', { id: message.id, roomId: room.id, roomSlug: room.slug });
+  }
+  res.json({ ok: true, scope, ids: messages.map((item) => item.id) });
 });
 
 // ── Message reactions ─────────────────────────────────────────────────────────
@@ -6371,7 +7325,7 @@ app.patch('/api/chat/rooms/:slug/members/:userId', requireAuth, (req, res) => {
   const targetId = Number(req.params.userId);
   if (!room.memberIds.includes(targetId)) return res.status(404).json({ error: 'Not a member.' });
   const targetRole = room.memberRoles?.[String(targetId)] || 'member';
-  if (targetRole === 'owner' && myRole !== 'owner') return res.status(403).json({ error: 'Only the owner can change another owner.' });
+  if (targetRole === 'owner' && myRole !== 'owner') return res.status(403).json({ error: 'Only the primary platform account can change another protected manager.' });
   const nextRole = req.body?.role;
   if (!['admin', 'moderator', 'member'].includes(nextRole)) return res.status(400).json({ error: 'Invalid role.' });
   room.memberRoles[String(targetId)] = nextRole;
@@ -6388,7 +7342,7 @@ app.delete('/api/chat/rooms/:slug/members/:userId', requireAuth, (req, res) => {
   const targetId = Number(req.params.userId);
   const isSelf = targetId === Number(req.authUser.id);
   const targetRole = room.memberRoles?.[String(targetId)] || 'member';
-  if (targetRole === 'owner' && myRole !== 'owner') return res.status(403).json({ error: 'Only the owner can remove another owner.' });
+  if (targetRole === 'owner' && myRole !== 'owner') return res.status(403).json({ error: 'Only the primary platform account can remove another protected manager.' });
   if (!isSelf && !['owner','admin','moderator'].includes(myRole)) return res.status(403).json({ error: 'Need moderator role.' });
   room.memberIds = room.memberIds.filter(id => Number(id) !== targetId);
   delete room.memberRoles[String(targetId)];
@@ -6590,6 +7544,10 @@ app.patch('/api/me/password', requireAuth, (req, res) => {
   }
   if (String(newPassword).length < 8) return res.status(400).json({ error: 'New password must be 8+ characters.' });
   user.passwordHash = bcrypt.hashSync(newPassword, 12);
+  store.sessions = store.sessions.filter((session) => Number(session.userId) !== Number(user.id));
+  removeAccountSwitchGrantsForUser(store, user.id);
+  createSessionForUser(req, res, store, user.id);
+  rememberUserForDevice(req, res, store, user.id);
   user.updatedAt = nowIso();
   saveStore(store);
   res.json({ ok: true, created: !currentPassword });
@@ -6739,7 +7697,7 @@ app.get('/api/admin/stats', requireAuth, requireOwner, (req, res) => {
     reports: { total: ensureArray(store.reports).length, open: ensureArray(store.reports).filter((item) => item.status === 'open').length },
     deletions: { scheduled: ensureArray(store.deletionJobs).length },
     rooms: { total: store.rooms.length, direct: store.rooms.filter(r => r.kind === 'direct').length, channels: store.rooms.filter(r => r.kind === 'channel').length },
-    sites: { total: store.sites.length, public: store.sites.filter(s => s.visibility === 'public').length },
+    sites: { total: store.sites.length, public: store.sites.filter((site) => siteAppearsInPublicDirectory(site)).length },
     workspaces: store.workspaces.length,
     storage: { uploadsMB: 'N/A' }
   });
@@ -6830,7 +7788,7 @@ app.patch('/api/admin/users/:handle/billing', requireAuth, requireOperator, (req
   const user = store.users.find(u => u.handleCanonical === canonicalHandle(req.params.handle));
   if (!user) return res.status(404).json({ error: 'User not found.' });
   if (!isOwnerUser(req.authUser) && isOwnerUser(user)) {
-    return res.status(403).json({ error: 'Only the owner can change the owner billing plan.' });
+    return res.status(403).json({ error: 'Only the primary platform account can change protected billing access.' });
   }
   const planId = sanitizeText(req.body?.planId || '', 24);
   if (planId && !subscriptionPlan(planId)) return res.status(400).json({ error: 'Plan not found.' });
@@ -6870,9 +7828,9 @@ app.delete('/api/admin/posts/:id', requireAuth, requireOperator, (req, res) => {
   if (!post) return res.status(404).json({ error: 'Post not found.' });
   const author = store.users.find((item) => Number(item.id) === Number(post.userId));
   if (!isOwnerUser(req.authUser) && isOwnerUser(author)) {
-    return res.status(403).json({ error: 'Only the owner can remove the owner posts.' });
+    return res.status(403).json({ error: 'Protected platform posts can only be removed from the primary platform account.' });
   }
-  const job = scheduleDeletionJob(store, 'post', post.id, req.authUser.id, 'Scheduled from admin panel.');
+  const job = scheduleDeletionJob(store, 'post', post.id, req.authUser.id, 'Scheduled from operations console.');
   saveStore(store);
   res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
 });
@@ -6883,9 +7841,9 @@ app.delete('/api/admin/sites/:id', requireAuth, requireOperator, (req, res) => {
   if (!site) return res.status(404).json({ error: 'Site not found.' });
   const owner = store.users.find((item) => Number(item.id) === Number(site.userId));
   if (!isOwnerUser(req.authUser) && isOwnerUser(owner)) {
-    return res.status(403).json({ error: 'Only the owner can remove the owner sites.' });
+    return res.status(403).json({ error: 'Protected platform sites can only be removed from the primary platform account.' });
   }
-  const job = scheduleDeletionJob(store, 'site', site.id, req.authUser.id, 'Scheduled from admin panel.');
+  const job = scheduleDeletionJob(store, 'site', site.id, req.authUser.id, 'Scheduled from operations console.');
   saveStore(store);
   res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
 });
@@ -6896,9 +7854,9 @@ app.delete('/api/admin/projects/:id', requireAuth, requireOperator, (req, res) =
   if (!project) return res.status(404).json({ error: 'Project not found.' });
   const owner = store.users.find((item) => Number(item.id) === Number(project.userId));
   if (!isOwnerUser(req.authUser) && isOwnerUser(owner)) {
-    return res.status(403).json({ error: 'Only the owner can remove the owner projects.' });
+    return res.status(403).json({ error: 'Protected platform projects can only be removed from the primary platform account.' });
   }
-  const job = scheduleDeletionJob(store, 'project', project.id, req.authUser.id, 'Scheduled from admin panel.');
+  const job = scheduleDeletionJob(store, 'project', project.id, req.authUser.id, 'Scheduled from operations console.');
   saveStore(store);
   res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
 });
@@ -6907,11 +7865,11 @@ app.delete('/api/admin/users/:handle', requireAuth, requireOperator, (req, res) 
   const store = loadStore();
   const user = store.users.find((item) => item.handleCanonical === canonicalHandle(req.params.handle));
   if (!user) return res.status(404).json({ error: 'User not found.' });
-  if (Number(user.id) === Number(req.authUser.id)) return res.status(400).json({ error: 'Delete your own account from settings, not from the admin panel.' });
+  if (Number(user.id) === Number(req.authUser.id)) return res.status(400).json({ error: 'Delete your own account from settings instead.' });
   if (!isOwnerUser(req.authUser) && isOwnerUser(user)) {
-    return res.status(403).json({ error: 'Only the owner can delete the owner account.' });
+    return res.status(403).json({ error: 'Protected platform accounts can only be removed from the primary platform account.' });
   }
-  const job = scheduleDeletionJob(store, 'user', user.id, req.authUser.id, 'Scheduled from admin panel.');
+  const job = scheduleDeletionJob(store, 'user', user.id, req.authUser.id, 'Scheduled from operations console.');
   saveStore(store);
   res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
 });
@@ -6922,9 +7880,9 @@ app.delete('/api/admin/messages/:id', requireAuth, requireOperator, (req, res) =
   if (!message) return res.status(404).json({ error: 'Message not found.' });
   const author = store.users.find((item) => Number(item.id) === Number(message.userId));
   if (!isOwnerUser(req.authUser) && isOwnerUser(author)) {
-    return res.status(403).json({ error: 'Only the owner can remove the owner messages.' });
+    return res.status(403).json({ error: 'Protected platform messages can only be removed from the primary platform account.' });
   }
-  const job = scheduleDeletionJob(store, 'message', message.id, req.authUser.id, 'Scheduled from admin panel.');
+  const job = scheduleDeletionJob(store, 'message', message.id, req.authUser.id, 'Scheduled from operations console.');
   saveStore(store);
   res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
 });
@@ -6935,6 +7893,7 @@ app.get('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
   const room = store.rooms.find(item => item.slug === slugify(req.params.slug));
   if (!room || !roomAccessible(room, req.authUser.id)) return res.status(404).json({ error: 'Room not found.' });
   const joined = room.memberIds.includes(Number(req.authUser.id));
+  const viewer = store.users.find((item) => Number(item.id) === Number(req.authUser.id)) || req.authUser;
   const premiumLocked = room.kind !== 'direct' && roomSubscriptionLocked(store, room, req.authUser.id);
   if (premiumLocked) {
     return res.json({
@@ -6949,7 +7908,7 @@ app.get('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
   }
   const limit = Math.min(100, Math.max(10, Number(req.query.limit || 50)));
   const before = Number(req.query.before || 0); // message id cursor
-  let messages = store.messages.filter(item => Number(item.roomId) === Number(room.id));
+  let messages = visibleRoomMessagesForUser(store, room.id, viewer, room.slug);
   if (before > 0) messages = messages.filter(m => m.id < before);
   messages = messages.sort((a, b) => b.id - a.id).slice(0, limit).reverse();
   const tasks = joined
@@ -6969,7 +7928,7 @@ app.get('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
     room: publicRoom(store, room, req.authUser.id),
     messages: messages.map(item => publicMessage(store, item, req.authUser.id)),
     tasks,
-    hasMore: store.messages.filter(m => Number(m.roomId) === Number(room.id) && (before > 0 ? m.id < before : true)).length > limit,
+    hasMore: visibleRoomMessagesForUser(store, room.id, viewer, room.slug).filter((m) => (before > 0 ? m.id < before : true)).length > limit,
     lastReadMessageId: readReceipt?.lastReadMessageId || 0,
     readReceipts: roomReadReceipts
   });
@@ -7092,7 +8051,7 @@ function rotateTelemetry() {
 }
 
 app.post('/api/telemetry/event', (req, res) => {
-  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const ip = requestClientIp(req);
   if (rateLimit(`tel:${ip}`, 120)) return res.status(204).end();
   const body = req.body || {};
   const events = Array.isArray(body.events) ? body.events : [body];
@@ -7214,7 +8173,7 @@ app.get('/api/stats', (req, res) => {
   res.json({
     users: store.users.filter(u => !u.bannedAt).length,
     projects: store.projects.filter(p => p.visibility === 'public').length,
-    sites: store.sites.filter(s => s.visibility === 'public').length,
+    sites: store.sites.filter((site) => siteAppearsInPublicDirectory(site)).length,
     rooms: store.rooms.filter(r => r.visibility === 'open').length,
   });
 });
@@ -7313,6 +8272,10 @@ function genCode() {
 
 // Real SMTP send (TLS) with graceful fallback to console.log when SMTP_HOST not set.
 // Uses raw net/tls to avoid adding nodemailer dependency.
+function canLogDevEmails() {
+  return ALLOW_DEV_EMAIL_LOG || (NODE_ENV !== 'production' && isLoopbackHost(originHost(APP_ORIGIN)));
+}
+
 function sendEmail(to, subject, body) {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
@@ -7321,6 +8284,9 @@ function sendEmail(to, subject, body) {
   const from = process.env.SMTP_FROM || process.env.BRAND_EMAIL || 'noreply@justbreath.life';
 
   if (!host || !user || !pass) {
+    if (!canLogDevEmails()) {
+      throw new Error('Email delivery is not configured on the server.');
+    }
     console.log(`\n📧 EMAIL TO: ${to}\n   Subject: ${subject}\n   Body: ${body}\n   (SMTP_HOST not set — printed to console; set SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS in .env to actually send)\n`);
     return;
   }
@@ -7390,18 +8356,29 @@ function sendEmail(to, subject, body) {
 }
 
 app.post('/api/auth/send-verify', requireAuth, (req, res) => {
+  if (rateLimit(rateLimitKey(req, 'verify-send', req.authUser?.email || req.authUser?.id || ''), 6)) {
+    return res.status(429).json({ error: 'Too many verification emails sent. Try again later.' });
+  }
   const store = loadStore();
   const user = store.users.find(u => Number(u.id) === Number(req.authUser.id));
   if (!user) return res.status(404).json({ error: 'User not found.' });
   if (user.emailVerified) return res.status(400).json({ error: 'Email already verified.' });
   const code = genCode();
   _pendingCodes[user.email] = { code, expiresAt: Date.now() + 15 * 60000, userId: user.id };
-  sendEmail(user.email, 'Verify your justbreath.life account',
-    `Your verification code: ${code}\n\nExpires in 15 minutes.\n\nIf you didn't request this, ignore this email.`);
-  res.json({ ok: true, hint: `Code sent to ${user.email.replace(/(.{2}).*@/, '$1***@')}` });
+  try {
+    sendEmail(user.email, 'Verify your justbreath.life account',
+      `Your verification code: ${code}\n\nExpires in 15 minutes.\n\nIf you didn't request this, ignore this email.`);
+    res.json({ ok: true, hint: `Code sent to ${user.email.replace(/(.{2}).*@/, '$1***@')}` });
+  } catch (error) {
+    delete _pendingCodes[user.email];
+    res.status(503).json({ error: error.message || 'Verification email is unavailable right now.' });
+  }
 });
 
 app.post('/api/auth/verify-email', requireAuth, (req, res) => {
+  if (rateLimit(rateLimitKey(req, 'verify-check', req.authUser?.email || req.authUser?.id || ''), 12)) {
+    return res.status(429).json({ error: 'Too many verification attempts. Try again later.' });
+  }
   const store = loadStore();
   const user = store.users.find(u => Number(u.id) === Number(req.authUser.id));
   if (!user) return res.status(404).json({ error: 'User not found.' });
@@ -7425,6 +8402,7 @@ app.post('/api/auth/send-login-code', (req, res) => {
   const displayName = sanitizeText(req.body?.displayName || '', 60);
   if (!email) return res.status(400).json({ error: 'Email required.' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  if (rateLimit(rateLimitKey(req, 'login-code-send', email), 6)) return res.status(429).json({ error: 'Too many sign-in codes requested. Try again later.' });
   const user = store.users.find((item) => item.email === email) || null;
   if (!user && !displayName) return res.status(400).json({ error: 'Name is required for first-time sign-in.' });
   const code = genCode();
@@ -7435,9 +8413,14 @@ app.post('/api/auth/send-login-code', (req, res) => {
     displayName: displayName || user?.displayName || '',
     email
   };
-  sendEmail(email, 'Your justbreath.life sign-in code',
-    `Your sign-in code: ${code}\n\nExpires in 15 minutes.\n\nIf you didn't request this, ignore this email.`);
-  res.json({ ok: true, hint: `Code sent to ${email.replace(/(.{2}).*@/, '$1***@')}` });
+  try {
+    sendEmail(email, 'Your justbreath.life sign-in code',
+      `Your sign-in code: ${code}\n\nExpires in 15 minutes.\n\nIf you didn't request this, ignore this email.`);
+    res.json({ ok: true, hint: `Code sent to ${email.replace(/(.{2}).*@/, '$1***@')}` });
+  } catch (error) {
+    delete _pendingCodes[`login:${email}`];
+    res.status(503).json({ error: error.message || 'Sign-in email is unavailable right now.' });
+  }
 });
 
 app.post('/api/auth/login-code', (req, res) => {
@@ -7446,6 +8429,7 @@ app.post('/api/auth/login-code', (req, res) => {
   const code = sanitizeText(req.body?.code || '', 8);
   const displayName = sanitizeText(req.body?.displayName || '', 60);
   if (!email || !code) return res.status(400).json({ error: 'Email and code are required.' });
+  if (rateLimit(rateLimitKey(req, 'login-code-check', email), 12)) return res.status(429).json({ error: 'Too many code attempts. Try again later.' });
   const pending = _pendingCodes[`login:${email}`];
   if (!pending) return res.status(400).json({ error: 'No pending sign-in code. Request a new one.' });
   if (Date.now() > pending.expiresAt) { delete _pendingCodes[`login:${email}`]; return res.status(400).json({ error: 'Code expired. Request a new one.' }); }
@@ -7479,9 +8463,10 @@ app.post('/api/auth/login-code', (req, res) => {
     user.updatedAt = nowIso();
   }
   delete _pendingCodes[`login:${email}`];
-  const sessionToken = createSessionForUser(req, res, store, user.id);
+  createSessionForUser(req, res, store, user.id);
+  rememberUserForDevice(req, res, store, user.id);
   saveStore(store);
-  res.json({ user: mePayload(store, user).user, sessionToken });
+  res.json({ user: mePayload(store, user).user });
 });
 
 // Password reset via email
@@ -7489,13 +8474,19 @@ app.post('/api/auth/forgot-password', (req, res) => {
   const store = loadStore();
   const email = sanitizeText(req.body?.email || '', 120).toLowerCase();
   if (!email) return res.status(400).json({ error: 'Email required.' });
+  if (rateLimit(rateLimitKey(req, 'reset-send', email), 6)) return res.status(429).json({ error: 'Too many reset emails requested. Try again later.' });
   const user = store.users.find(u => u.email === email);
   if (!user) return res.json({ ok: true }); // don't reveal if email exists
   const code = genCode();
   _pendingCodes[`reset:${email}`] = { code, expiresAt: Date.now() + 30 * 60000, userId: user.id };
-  sendEmail(email, 'Reset your justbreath.life password',
-    `Your password reset code: ${code}\n\nExpires in 30 minutes.\n\nIf you didn't request this, ignore this email.`);
-  res.json({ ok: true, hint: `Code sent to ${email.replace(/(.{2}).*@/, '$1***@')}` });
+  try {
+    sendEmail(email, 'Reset your justbreath.life password',
+      `Your password reset code: ${code}\n\nExpires in 30 minutes.\n\nIf you didn't request this, ignore this email.`);
+    res.json({ ok: true, hint: `Code sent to ${email.replace(/(.{2}).*@/, '$1***@')}` });
+  } catch (error) {
+    delete _pendingCodes[`reset:${email}`];
+    res.status(503).json({ error: error.message || 'Password reset email is unavailable right now.' });
+  }
 });
 
 app.post('/api/auth/reset-password', (req, res) => {
@@ -7504,6 +8495,7 @@ app.post('/api/auth/reset-password', (req, res) => {
   const code = sanitizeText(req.body?.code || '', 8);
   const newPassword = String(req.body?.newPassword || '');
   if (!email || !code || !newPassword) return res.status(400).json({ error: 'All fields required.' });
+  if (rateLimit(rateLimitKey(req, 'reset-check', email), 12)) return res.status(429).json({ error: 'Too many reset attempts. Try again later.' });
   if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be 8+ characters.' });
   const pending = _pendingCodes[`reset:${email}`];
   if (!pending) return res.status(400).json({ error: 'No pending reset. Request a new code.' });
@@ -7514,6 +8506,7 @@ app.post('/api/auth/reset-password', (req, res) => {
   delete _pendingCodes[`reset:${email}`];
   user.passwordHash = bcrypt.hashSync(newPassword, 12);
   store.sessions = store.sessions.filter(s => Number(s.userId) !== Number(user.id));
+  removeAccountSwitchGrantsForUser(store, user.id);
   user.updatedAt = nowIso();
   saveStore(store);
   res.json({ ok: true });
@@ -7521,6 +8514,7 @@ app.post('/api/auth/reset-password', (req, res) => {
 
 // ── Guest login ───────────────────────────────────────────────────────────────
 app.post('/api/auth/guest', (req, res) => {
+  if (rateLimit(rateLimitKey(req, 'guest'), 12)) return res.status(429).json({ error: 'Too many guest sessions created. Try again later.' });
   const store = loadStore();
   const guestNum = store.seq.users + 1;
   const handle = `guest${String(Date.now()).slice(-6)}`;
@@ -7543,9 +8537,9 @@ app.post('/api/auth/guest', (req, res) => {
     updatedAt: nowIso()
   });
   store.users.push(user);
-  const sessionToken = createSessionForUser(req, res, store, user.id);
+  createSessionForUser(req, res, store, user.id);
   saveStore(store);
-  res.status(201).json({ user: mePayload(store, user).user, sessionToken, guest: true });
+  res.status(201).json({ user: mePayload(store, user).user, guest: true });
 });
 
 // ── Internal mail (platform inbox) ────────────────────────────────────────────
@@ -7652,7 +8646,6 @@ app.get('/api/gif/search', requireAuth, async (req, res) => {
 //
 // To fix that we read index.html once at startup and, on every SPA request, splice
 // in per-entity <title>, description, canonical, og: and JSON-LD before sending.
-const APP_ORIGIN = (APP_URL || 'https://justbreath.life').replace(/\/+$/, '');
 const DEFAULT_OG_IMAGE = APP_ORIGIN + '/logo.png';
 let _indexHtmlCache = '';
 function loadIndexHtml() {
@@ -7809,7 +8802,7 @@ GET ${APP_ORIGIN}/api/public/projects/:slug</pre>`
             <li><strong>Formats:</strong> <code>.zip</code>, <code>.tar</code>, <code>.tgz</code>, <code>.tar.gz</code>, and <code>.7z</code>.</li>
             <li><strong>Structure:</strong> keep <code>index.html</code> at archive root.</li>
             <li><strong>Extras:</strong> local assets, extra HTML pages, SVG/JSON/webmanifest, and text files for Site Studio are preserved.</li>
-            <li><strong>Preview:</strong> call <code>POST /api/me/sites/import-inspect</code> before upload to see compatibility warnings and optimized assets.</li>
+            <li><strong>Preview:</strong> call <code>POST /api/me/sites/import-inspect</code> before upload to see optimization and review warnings.</li>
           </ul>
           <pre class="public-code">curl -X POST ${APP_ORIGIN}/api/me/sites/import-inspect \\
   -H "Content-Type: application/json" \\
@@ -7847,7 +8840,7 @@ es.addEventListener('notification', (event) =&gt; console.log(JSON.parse(event.d
             <li><strong>Archive site upload:</strong> 5 MB standard, up to 512 MB for internal operators, with <code>index.html</code>.</li>
             <li><strong>Bot tokens:</strong> Free 2, Plus 5, Max 20.</li>
           </ul>
-          <p>Archive imports are served as raw static bundles. Backend-dependent code is preserved as files, but it never executes on the hosted copy and is reported as a compatibility warning.</p>
+          <p>Archive imports are served as raw static bundles after quarantine checks. Executable or server-side files are blocked before publish, and review warnings stay attached to the bundle.</p>
           <p>Uploads containing malware, phishing, copyright abuse, or hostile automation are removed.</p>`
       }
     ];
@@ -8099,12 +9092,12 @@ es.addEventListener('notification', (event) =&gt; console.log(JSON.parse(event.d
             <p>Use the same address and mark the subject line with <code>[LEGAL]</code>, <code>[DMCA]</code>, or <code>[PRIVACY]</code>.</p>
           </article>
           <article class="public-feature">
-            <strong>Security reports</strong>
-            <p>Use <code>[SECURITY]</code> in the subject. We acknowledge reports within 72 hours.</p>
+            <strong>Platform reports</strong>
+            <p>Use <code>[REPORT]</code> in the subject for operational or trust-and-safety issues.</p>
           </article>
         </div>
         <div class="public-inline-list">
-          <a href="/@justbreath">Owner profile</a>
+          <a href="/@justbreath">Platform profile</a>
           <a href="${BRAND_GITHUB_URL}" target="_blank" rel="noopener">GitHub</a>
           <a href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">JustBreathDevSite</a>
           <a href="/developers">Developers</a>
@@ -8274,7 +9267,7 @@ app.get('/sitemap.xml', (_req, res) => {
     const handle = owner.handleCanonical || canonicalHandle(owner.handle || '');
     if (!handle || !s.slug) continue;
     const lastmod = (s.updatedAt || s.createdAt || new Date().toISOString()).slice(0, 10);
-    push(`${APP_ORIGIN}/@${handle}/${encodeURIComponent(s.slug)}`, lastmod, '0.6', 'weekly');
+    push(sitePublicUrl(owner, s) || `${APP_ORIGIN}/@${handle}/${encodeURIComponent(s.slug)}`, lastmod, '0.6', 'weekly');
   }
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -8360,7 +9353,9 @@ function siteMetaForProject(project, author) {
 function siteMetaForSite(site, owner) {
   if (!site || !owner) return null;
   const handle = owner.handleCanonical || canonicalHandle(owner.handle || '');
-  const canonical = `${APP_ORIGIN}/@${handle}/${site.slug}`;
+  const canonical = site.mode === 'upload'
+    ? (sitePublicUrl(owner, site) || `${APP_ORIGIN}/@${handle}/${site.slug}`)
+    : `${APP_ORIGIN}/@${handle}/${site.slug}`;
   const title = sanitizeText(site.title || 'Site', 120);
   const summary = sanitizeText(site.summary || '', 280);
   return {
@@ -8369,7 +9364,7 @@ function siteMetaForSite(site, owner) {
     ogType: 'website',
     ogImage: DEFAULT_OG_IMAGE,
     canonical,
-    noindex: site.visibility === 'unlisted',
+    noindex: site.visibility !== 'public' || !siteIsApproved(site),
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
@@ -8447,7 +9442,14 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 app.listen(PORT, () => {
   console.log(`${SITE_NAME} listening on http://0.0.0.0:${PORT}`);
-  if (!process.env.SMTP_HOST) console.log('[smtp] SMTP_HOST not set — verification emails will print to console only');
-  if (process.env.ADMIN_TOKEN === 'generate_a_random_32_char_secret_here' || !process.env.ADMIN_TOKEN) console.log('[security] ⚠️  ADMIN_TOKEN is using default value — change it in .env before going live');
+  if (!process.env.SMTP_HOST) {
+    if (canLogDevEmails()) console.log('[smtp] SMTP_HOST not set — auth emails will print to console only for local development');
+    else console.log('[smtp] ⚠️  SMTP is not configured — email verification and recovery routes will return errors until SMTP is set');
+  }
+  if (!UPLOADED_SITES_ISOLATION_ENABLED) {
+    console.log('[security] ⚠️  UPLOADED_SITES_ORIGIN is not configured on a separate host — uploaded creator sites will not be served publicly until it is set');
+  } else {
+    console.log(`[security] Uploaded creator sites isolated on ${UPLOADED_SITES_ORIGIN}`);
+  }
   if (process.env.OWNER_PASSWORD === '12345678') console.log('[security] ⚠️  OWNER_PASSWORD is using default value — change it in .env before going live');
 });

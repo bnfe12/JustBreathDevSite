@@ -35,7 +35,6 @@ This file is the working development reference for `justbreath.life`.
 - `SMTP_USER`
 - `SMTP_PASS`
 - `SMTP_FROM`
-- `ADMIN_TOKEN`
 
 ## Current auth endpoints
 
@@ -135,11 +134,10 @@ Local URL:
 ## Before production testing
 
 1. Set real SMTP credentials
-2. Set strong `ADMIN_TOKEN`
-3. Set strong owner and brand passwords if demo seed mode is ever used
-4. Add Google redirect URIs in Cloud Console
-5. Deploy changes
-6. Test:
+2. Set strong owner and brand passwords if demo seed mode is ever used
+3. Add Google redirect URIs in Cloud Console
+4. Deploy changes
+5. Test:
 - password sign-up
 - password sign-in
 - email code sign-in

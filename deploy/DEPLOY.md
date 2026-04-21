@@ -11,6 +11,7 @@
 - root-доступ по SSH
 - 1 GB RAM, 1 CPU, 20 GB диска — минимум (на старте хватит с запасом)
 - домен `justbreath.life` с A/AAAA записями на IP сервера
+- отдельная запись `sites.justbreath.life` на тот же IP для изоляции uploaded creator sites
 
 ---
 
@@ -82,13 +83,14 @@ sudo bash /root/justbreath/deploy/server-install.sh
 1. Ставит Node.js 22 если его нет
 2. Ставит nginx + certbot
 3. `npm install --omit=dev`
-4. Генерирует `.env` с рандомным `ADMIN_TOKEN`, `OWNER_PASSWORD`, `BRAND_PASSWORD`
+4. Генерирует `.env` с рандомными `OWNER_PASSWORD`, `BRAND_PASSWORD`
    и **показывает их один раз на экране — запишите**
-5. Создаёт systemd unit `justbreath.service`, включает автозапуск, стартует
-6. Кладёт nginx конфиг, делает `nginx -t && systemctl reload nginx`
-7. Запрашивает Let's Encrypt сертификат (перед этим проверьте, что A-запись
-   домена указывает на этот сервер — иначе certbot упадёт)
-8. Открывает 22/80/443 в ufw (если ufw установлен)
+5. Ставит `APP_URL=https://<domain>` и `UPLOADED_SITES_ORIGIN=https://sites.<domain>`
+6. Создаёт systemd unit `justbreath.service`, включает автозапуск, стартует
+7. Кладёт nginx конфиг, делает `nginx -t && systemctl reload nginx`
+8. Запрашивает Let's Encrypt сертификат (перед этим проверьте, что A-записи
+   домена и `sites.` указывают на этот сервер — иначе certbot упадёт)
+9. Открывает 22/80/443 в ufw (если ufw установлен)
 
 По умолчанию домен `justbreath.life`. Чтобы использовать другой:
 ```bash
@@ -118,6 +120,9 @@ curl http://127.0.0.1:8080/api/health
 # HTTPS проверка (после certbot)
 curl -I https://justbreath.life/
 # → HTTP/2 200
+
+# Отдельный host для uploaded sites тоже должен отвечать
+curl -I https://sites.justbreath.life/
 ```
 
 Откройте `https://justbreath.life/` в браузере:
@@ -143,6 +148,16 @@ SMTP_FROM=noreply@justbreath.life
 ```bash
 systemctl restart justbreath
 ```
+
+### Uploaded site isolation
+
+Проверьте в `/root/justbreath/.env`:
+```bash
+APP_URL=https://justbreath.life
+UPLOADED_SITES_ORIGIN=https://sites.justbreath.life
+```
+
+`UPLOADED_SITES_ORIGIN` должен быть отдельным host, а не path на основном домене. Иначе uploaded creator sites не будут публиковаться.
 
 ### GIF-поиск в чате
 
