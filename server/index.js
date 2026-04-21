@@ -3799,9 +3799,12 @@ function requireMember(req, res, next) {
 let _maintenanceMode = false;
 
 app.post('/api/admin/maintenance', (req, res) => {
-  const token = String(req.body?.token || '');
-  const adminToken = process.env.ADMIN_TOKEN || '';
-  if (!adminToken || token !== adminToken) return res.status(403).json({ error: 'Invalid token.' });
+  const sessionOwner = req.authUser && isOwnerUser(req.authUser);
+  if (!sessionOwner) {
+    const token = String(req.body?.token || '');
+    const adminToken = process.env.ADMIN_TOKEN || '';
+    if (!adminToken || token !== adminToken) return res.status(403).json({ error: 'Invalid token.' });
+  }
   _maintenanceMode = Boolean(req.body?.enabled);
   console.log(`[maintenance] mode: ${_maintenanceMode}`);
   res.json({ ok: true, maintenance: _maintenanceMode });

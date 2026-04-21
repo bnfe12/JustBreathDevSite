@@ -457,7 +457,7 @@ const state = {
   // Chat extras
   typing: {}, readReceipts: {}, pinnedMessages: [], memberList: [], memberListRoom: null, memberListLoading: false,
   // Admin
-  adminStats: null, adminUsers: [], adminReports: [], adminDeletionJobs: [], adminPosts: [], adminTab: 'stats', adminModerationView: 'overview',
+  adminStats: null, adminUsers: [], adminReports: [], adminDeletionJobs: [], adminPosts: [], adminLogs: [], adminAds: [], adminTelemetry: null, adminSiteReviewQueue: [], adminTab: 'stats', adminModerationView: 'overview',
   // Search
   searchResults: { messages: [], query: '' },
   // Ads — safe default, overwritten by server
@@ -1932,14 +1932,17 @@ async function decryptMessage(room, message) {
 
 async function loadAdminData() {
   if (!isOperatorSession()) return;
-  const [stats, users, ads, logs, reports, posts, deletions] = await Promise.all([
+  const ownerMode = isOwnerSession();
+  const [stats, users, ads, logs, reports, posts, deletions, telemetry, reviewQueue] = await Promise.all([
     api('/api/admin/stats').catch(() => null),
     api('/api/admin/users').catch(() => ({ users: [] })),
     api('/api/admin/ads').catch(() => ({ ads: [] })),
     api('/api/admin/logs').catch(() => ({ logs: [] })),
     api('/api/admin/reports').catch(() => ({ reports: [] })),
     api('/api/admin/posts').catch(() => ({ posts: [] })),
-    api('/api/admin/deletions').catch(() => ({ jobs: [] }))
+    api('/api/admin/deletions').catch(() => ({ jobs: [] })),
+    ownerMode ? api('/api/admin/telemetry').catch(() => null) : Promise.resolve(null),
+    ownerMode ? api('/api/admin/sites/review-queue').catch(() => ({ items: [] })) : Promise.resolve({ items: [] })
   ]);
   state.adminStats = stats;
   state.adminUsers = users.users || [];
@@ -1947,7 +1950,10 @@ async function loadAdminData() {
   state.adminDeletionJobs = deletions.jobs || [];
   state.adminPosts = posts.posts || [];
   state.adminLogs = logs.logs || [];
-  if (ads?.ads?.length) state.ads = ads.ads;
+  state.adminAds = ads?.ads || [];
+  state.ads = (ads?.ads || []).filter((item) => item.active !== false);
+  state.adminTelemetry = telemetry;
+  state.adminSiteReviewQueue = reviewQueue?.items || [];
 }
 async function loadAdminUsers(q = '') {
   if (!isOperatorSession()) return;
@@ -2554,13 +2560,17 @@ function renderAdminPage() {
   if (!isOperatorSession()) return renderGate('Access restricted to operators.');
   const stats = state.adminStats;
   const ownerMode = isOwnerSession();
+  const isRu = currentLang() === 'ru';
   const tabs = ownerMode
     ? [
         { id: 'stats', label: t('stats') || 'Stats' },
         { id: 'users', label: t('users') || 'Users' },
         { id: 'moderation', label: t('moderation') || 'Moderation' },
-        { id: 'verification', label: 'Verification' },
+        { id: 'review', label: isRu ? 'Ревью сайтов' : 'Site review' },
+        { id: 'verification', label: isRu ? 'Верификация' : 'Verification' },
         { id: 'ads', label: t('ads') || 'Ads' },
+        { id: 'telemetry', label: 'Telemetry' },
+        { id: 'platform', label: isRu ? 'Платформа' : 'Platform' },
         { id: 'logs', label: t('logs') || 'Logs' },
       ]
     : [
@@ -2570,7 +2580,7 @@ function renderAdminPage() {
   const activeTab = tabs.some(({ id }) => id === state.adminTab) ? state.adminTab : tabs[0].id;
   return `
     <div class="admin-page-head">
-      <span class="eyebrow">${ownerMode ? 'operator' : 'admin'}</span>
+      <span class="eyebrow">${ownerMode ? (isRu ? 'владелец' : 'owner') : 'admin'}</span>
       <h1>${t('adminPanel') || 'Admin Panel'}</h1>
     </div>
     <section class="settings-shell section-shell">
@@ -2581,27 +2591,35 @@ function renderAdminPage() {
         ${activeTab === 'stats' ? renderAdminStats(stats) : ''}
         ${activeTab === 'users' ? renderAdminUsers() : ''}
         ${activeTab === 'moderation' ? renderAdminModeration() : ''}
+        ${activeTab === 'review' ? renderAdminReviewQueue() : ''}
         ${activeTab === 'ads' ? renderAdminAds() : ''}
+        ${activeTab === 'telemetry' ? renderAdminTelemetry() : ''}
+        ${activeTab === 'platform' ? renderAdminPlatform() : ''}
         ${activeTab === 'verification' ? renderAdminVerification() : ''}
         ${activeTab === 'logs' ? renderAdminLogs() : ''}
       </div>
     </section>`;
 }
 function renderAdminStats(stats) {
+  const isRu = currentLang() === 'ru';
   if (!stats) return renderLoading();
-  return `<section class="settings-panel"><h2>Platform overview</h2>
+  const queueCount = (state.adminSiteReviewQueue || []).length;
+  const telemetry = state.adminTelemetry;
+  return `<section class="settings-panel"><h2>${isRu ? 'Обзор платформы' : 'Platform overview'}</h2>
     <div class="admin-stats-grid">
-      <div class="admin-stat"><strong>${stats.users?.total || 0}</strong><span>Total users</span></div>
-      <div class="admin-stat"><strong>${stats.users?.newToday || 0}</strong><span>New today</span></div>
-      <div class="admin-stat"><strong>${stats.users?.banned || 0}</strong><span>Banned</span></div>
-      <div class="admin-stat"><strong>${stats.messages?.total || 0}</strong><span>Messages</span></div>
-      <div class="admin-stat"><strong>${stats.messages?.today || 0}</strong><span>Messages today</span></div>
-      <div class="admin-stat"><strong>${stats.rooms?.total || 0}</strong><span>Rooms</span></div>
-      <div class="admin-stat"><strong>${stats.sites?.public || 0}</strong><span>Public sites</span></div>
-      <div class="admin-stat"><strong>${stats.posts?.total || 0}</strong><span>Posts</span></div>
-      <div class="admin-stat"><strong>${stats.reports?.open || 0}</strong><span>Open reports</span></div>
-      <div class="admin-stat"><strong>${stats.deletions?.scheduled || 0}</strong><span>24h deletion queue</span></div>
-      <div class="admin-stat"><strong>${stats.workspaces || 0}</strong><span>Workspaces</span></div>
+      <div class="admin-stat"><strong>${stats.users?.total || 0}</strong><span>${isRu ? 'Всего пользователей' : 'Total users'}</span></div>
+      <div class="admin-stat"><strong>${stats.users?.newToday || 0}</strong><span>${isRu ? 'Новых сегодня' : 'New today'}</span></div>
+      <div class="admin-stat"><strong>${stats.users?.banned || 0}</strong><span>${isRu ? 'Заблокировано' : 'Banned'}</span></div>
+      <div class="admin-stat"><strong>${stats.messages?.total || 0}</strong><span>${isRu ? 'Сообщений' : 'Messages'}</span></div>
+      <div class="admin-stat"><strong>${stats.messages?.today || 0}</strong><span>${isRu ? 'Сообщений сегодня' : 'Messages today'}</span></div>
+      <div class="admin-stat"><strong>${stats.rooms?.total || 0}</strong><span>${isRu ? 'Комнат' : 'Rooms'}</span></div>
+      <div class="admin-stat"><strong>${stats.sites?.public || 0}</strong><span>${isRu ? 'Публичных сайтов' : 'Public sites'}</span></div>
+      <div class="admin-stat"><strong>${stats.posts?.total || 0}</strong><span>${isRu ? 'Постов' : 'Posts'}</span></div>
+      <div class="admin-stat"><strong>${stats.reports?.open || 0}</strong><span>${isRu ? 'Открытых жалоб' : 'Open reports'}</span></div>
+      <div class="admin-stat"><strong>${stats.deletions?.scheduled || 0}</strong><span>${isRu ? 'Очередь удаления 24ч' : '24h deletion queue'}</span></div>
+      <div class="admin-stat"><strong>${stats.workspaces || 0}</strong><span>${isRu ? 'Воркспейсов' : 'Workspaces'}</span></div>
+      <div class="admin-stat"><strong>${queueCount}</strong><span>${isRu ? 'Сайтов ждут ревью' : 'Sites waiting review'}</span></div>
+      <div class="admin-stat"><strong>${telemetry?.summary?.pageviews || 0}</strong><span>${isRu ? 'Pageviews за окно' : 'Window pageviews'}</span></div>
     </div>
     ${state.maintenance ? `<div class="inline-alert inline-alert-warning" style="margin-top:10px">${iconBadge('alert', 'warning')}<div class="inline-alert-copy"><strong>Maintenance mode</strong><span>Public API access is currently restricted.</span></div></div>` : ''}
   </section>`;
@@ -2610,10 +2628,16 @@ function renderAdminUsers() {
   const ownerMode = isOwnerSession();
   const plans = state.meta?.subscriptions || [];
   const isRu = currentLang() === 'ru';
-  return `<section class="settings-panel"><h2>Users (${state.adminUsers.length})</h2>
+  const roleOptions = [
+    ['member', isRu ? 'Участник' : 'Member'],
+    ['moderator', isRu ? 'Модератор' : 'Moderator'],
+    ['admin', 'Admin'],
+    ['owner', isRu ? 'Владелец' : 'Owner']
+  ];
+  return `<section class="settings-panel"><h2>${isRu ? 'Пользователи' : 'Users'} (${state.adminUsers.length})</h2>
     <div class="search-control" style="margin-bottom:12px">
       ${icons.search}
-      <input type="search" data-input="admin-search" placeholder="Search users…" />
+      <input type="search" data-input="admin-search" placeholder="${isRu ? 'Поиск пользователей…' : 'Search users…'}" />
     </div>
     <div class="social-list">${state.adminUsers.map(u => `
       <div class="social-row admin-user-row ${u.bannedAt ? 'banned-row' : ''}">
@@ -2626,6 +2650,19 @@ function renderAdminUsers() {
             ${isRu ? 'Тариф' : 'Plan'}: ${escapeHtml((['owner', 'admin'].includes(u.roleInternal || '') ? (isRu ? 'доступ оператора' : 'Operator access') : (u.billing?.planLabel || 'Free')))}
             · ${isRu ? 'Сайты' : 'Sites'}: ${u.siteCount || 0}/${u.siteUnlimited ? '∞' : escapeHtml(u.siteLimitLabel || '0')}
           </span>
+          ${ownerMode ? `
+            <div class="admin-control-grid" style="margin-top:10px">
+              <label class="admin-field">
+                <span>${isRu ? 'Роль' : 'Role'}</span>
+                <select data-admin-role-select="${escapeHtml(u.handleCanonical)}" ${u.isSelf ? 'disabled' : ''}>
+                  ${roleOptions.map(([value, label]) => `<option value="${value}" ${(u.roleInternal || 'member') === value ? 'selected' : ''}>${label}</option>`).join('')}
+                </select>
+              </label>
+              <label class="admin-field">
+                <span>${isRu ? 'Бейджи' : 'Badges'}</span>
+                <input type="text" data-admin-badges-input="${escapeHtml(u.handleCanonical)}" value="${escapeHtml((u.badges || []).join(', '))}" placeholder="USR, VRF, DEV" ${u.isSelf ? 'disabled' : ''} />
+              </label>
+            </div>` : ''}
         </div>
         <div class="row-actions">
           <select data-admin-plan-select="${escapeHtml(u.handleCanonical)}" ${!ownerMode && u.roleInternal === 'owner' ? 'disabled' : ''}>
@@ -2637,40 +2674,67 @@ function renderAdminUsers() {
           </button>
           ${ownerMode && !u.isSelf ? `
             ${u.bannedAt
-              ? `<button class="soft-button compact" data-action="admin-unban" data-handle="${escapeHtml(u.handleCanonical)}">Unban</button>`
-              : `<button class="inline-button danger compact" data-action="admin-ban" data-handle="${escapeHtml(u.handleCanonical)}">Ban</button>`}
-            <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} Verify</button>
+              ? `<button class="soft-button compact" data-action="admin-unban" data-handle="${escapeHtml(u.handleCanonical)}">${isRu ? 'Разбанить' : 'Unban'}</button>`
+              : `<button class="inline-button danger compact" data-action="admin-ban" data-handle="${escapeHtml(u.handleCanonical)}">${isRu ? 'Забанить' : 'Ban'}</button>`}
+            <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} ${isRu ? 'Верифицировать' : 'Verify'}</button>
+            <button class="soft-button compact" data-action="admin-save-user-access" data-handle="${escapeHtml(u.handleCanonical)}">${isRu ? 'Сохранить доступ' : 'Save access'}</button>
           ` : ''}
           ${!u.isSelf ? `<button class="inline-button danger compact" data-action="admin-delete-account" data-handle="${escapeHtml(u.handleCanonical)}" ${!ownerMode && u.roleInternal === 'owner' ? 'disabled' : ''}>${currentLang() === 'ru' ? 'Удалить аккаунт' : 'Delete account'}</button>` : ''}
           ${!ownerMode && u.isSelf ? '<span class="muted">you</span>' : ''}
         </div>
-      </div>`).join('') || renderEmpty('No users found.')}
+      </div>`).join('') || renderEmpty(isRu ? 'Пользователи не найдены.' : 'No users found.')}
     </div>
   </section>`;
 }
 function renderAdminAds() {
-  return `<section class="settings-panel"><h2>Ad Slots</h2>
-    <p class="muted">Manage the "Supported by" sponsor blocks that appear on home and feed pages. No trackers — just honest sponsor cards.</p>
+  const isRu = currentLang() === 'ru';
+  return `<section class="settings-panel"><h2>${isRu ? 'Рекламные слоты' : 'Ad slots'}</h2>
+    <p class="muted">${isRu ? 'Управление sponsor-блоками на главной и в ленте. Здесь отдельное admin-состояние, без смешивания с публичным рендером.' : 'Manage the sponsor blocks that appear on home and feed pages. This now uses dedicated admin state instead of the public ad render cache.'}</p>
+    <div class="tile admin-ad-create">
+      <div class="admin-control-grid">
+        <label class="admin-field"><span>${isRu ? 'Заголовок' : 'Title'}</span><input type="text" data-admin-new-ad="title" placeholder="${isRu ? 'Новый спонсор' : 'New sponsor'}" /></label>
+        <label class="admin-field"><span>CTA</span><input type="text" data-admin-new-ad="cta" placeholder="${isRu ? 'Открыть' : 'Learn more'}" /></label>
+        <label class="admin-field"><span>Href</span><input type="text" data-admin-new-ad="href" placeholder="/discover" /></label>
+        <label class="admin-field"><span>${isRu ? 'Иконка / emoji' : 'Icon / emoji'}</span><input type="text" data-admin-new-ad="icon" placeholder="📢" /></label>
+        <label class="admin-field"><span>${isRu ? 'Тип' : 'Type'}</span><select data-admin-new-ad="type"><option value="banner">banner</option><option value="card">card</option></select></label>
+        <label class="admin-field admin-field-check"><input type="checkbox" data-admin-new-ad="internal" checked /><span>${isRu ? 'Внутренняя ссылка' : 'Internal link'}</span></label>
+      </div>
+      <label class="admin-field"><span>${isRu ? 'Описание' : 'Description'}</span><textarea rows="3" data-admin-new-ad="desc" placeholder="${isRu ? 'Короткое описание слота' : 'Short sponsor copy'}"></textarea></label>
+      <div class="detail-actions"><button class="primary-button compact" data-action="admin-create-ad">${icons.plus}<span>${isRu ? 'Добавить слот' : 'Add slot'}</span></button></div>
+    </div>
     <div class="stack-list">
-      ${(state.ads || []).map((ad, i) => `
+      ${(state.adminAds || []).map((ad) => `
         <div class="tile" style="gap:10px">
           <div class="inline-stack between">
             <div class="inline-stack">
               ${renderAdVisual(ad, 'admin')}
               <div><strong>${escapeHtml(ad.title)}</strong><span style="display:block;font-size:12px;color:var(--text-muted)">${escapeHtml(ad.type)}</span></div>
             </div>
-            <span class="badge-pill" style="background:${ad.internal ? 'rgba(63,185,80,.12)' : 'rgba(45,140,240,.12)'}">${ad.internal ? 'internal' : 'external'}</span>
+            <span class="badge-pill" style="background:${ad.internal ? 'rgba(63,185,80,.12)' : 'rgba(45,140,240,.12)'}">${ad.internal ? (isRu ? 'внутренняя' : 'internal') : (isRu ? 'внешняя' : 'external')}</span>
           </div>
-          <p style="margin:0;font-size:13px;color:var(--text-soft)">${escapeHtml(ad.desc)}</p>
+          <div class="admin-control-grid">
+            <label class="admin-field"><span>${isRu ? 'Заголовок' : 'Title'}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:title" value="${escapeHtml(ad.title || '')}" /></label>
+            <label class="admin-field"><span>CTA</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:cta" value="${escapeHtml(ad.cta || '')}" /></label>
+            <label class="admin-field"><span>Href</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:href" value="${escapeHtml(ad.href || '')}" /></label>
+            <label class="admin-field"><span>${isRu ? 'Иконка' : 'Icon'}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:icon" value="${escapeHtml(ad.icon || '')}" /></label>
+            <label class="admin-field"><span>${isRu ? 'Лого URL' : 'Logo URL'}</span><input type="text" data-admin-ad-input="${escapeHtml(ad.id)}:logo" value="${escapeHtml(ad.logo || '')}" /></label>
+            <label class="admin-field"><span>${isRu ? 'Тип' : 'Type'}</span><select data-admin-ad-input="${escapeHtml(ad.id)}:type"><option value="banner" ${ad.type === 'banner' ? 'selected' : ''}>banner</option><option value="card" ${ad.type === 'card' ? 'selected' : ''}>card</option></select></label>
+          </div>
+          <label class="admin-field"><span>${isRu ? 'Описание' : 'Description'}</span><textarea rows="3" data-admin-ad-input="${escapeHtml(ad.id)}:desc">${escapeHtml(ad.desc || '')}</textarea></label>
           <a href="${escapeHtml(ad.href)}" style="font-size:12px;color:var(--accent-2)">${escapeHtml(ad.href)}</a>
+          <div class="detail-actions">
+            <button class="soft-button compact" data-action="admin-save-ad" data-id="${escapeHtml(ad.id)}">${isRu ? 'Сохранить' : 'Save'}</button>
+            <button class="soft-button compact" data-action="admin-toggle-ad" data-id="${escapeHtml(ad.id)}" data-active="${ad.active === false ? 'false' : 'true'}">${ad.active === false ? (isRu ? 'Включить' : 'Enable') : (isRu ? 'Выключить' : 'Disable')}</button>
+            <button class="inline-button danger compact" data-action="admin-delete-ad" data-id="${escapeHtml(ad.id)}">${isRu ? 'Удалить' : 'Delete'}</button>
+          </div>
         </div>`).join('')}
     </div>
-    <p class="muted" style="font-size:12px;margin-top:8px">To configure external sponsors, update the <code class="inline-code">state.ads</code> array in app.js or expose a /api/admin/ads endpoint.</p>
   </section>`;
 }
 function renderAdminVerification() {
   const pending = (state.adminUsers || []).filter(u => u.verificationRequested && !u.badges?.includes('VRF'));
-  return `<section class="settings-panel"><h2>Verification Requests</h2>
+  const isRu = currentLang() === 'ru';
+  return `<section class="settings-panel"><h2>${isRu ? 'Запросы на верификацию' : 'Verification requests'}</h2>
     ${pending.length ? `
       <div class="social-list">
         ${pending.map(u => `
@@ -2681,13 +2745,39 @@ function renderAdminVerification() {
               <span>@${escapeHtml(u.handle)}</span>
             </div>
             <div class="row-actions">
-              <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} Verify</button>
+              <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} ${isRu ? 'Верифицировать' : 'Verify'}</button>
             </div>
           </div>`).join('')}
-      </div>` : '<p class="muted">No pending requests.</p>'}
+      </div>` : `<p class="muted">${isRu ? 'Заявок пока нет.' : 'No pending requests.'}</p>`}
     <p style="font-size:12px;color:var(--text-muted);margin-top:12px">
-      To approve a user, find them in the <button class="text-link" data-action="admin-tab" data-tab="users">Users tab</button>.
+      ${isRu ? 'Чтобы одобрить пользователя, откройте вкладку ' : 'To approve a user, open the '}
+      <button class="text-link" data-action="admin-tab" data-tab="users">${isRu ? 'Пользователи' : 'Users tab'}</button>.
     </p>
+  </section>`;
+}
+function renderAdminReviewQueue() {
+  const isRu = currentLang() === 'ru';
+  const items = state.adminSiteReviewQueue || [];
+  return `<section class="settings-panel"><h2>${isRu ? 'Очередь ревью сайтов' : 'Site review queue'}</h2>
+    <p class="muted">${isRu ? 'Проверка сайтов, которые были отправлены на ручное ревью перед публикацией.' : 'Review sites that were submitted for manual approval before wider visibility.'}</p>
+    <div class="stack-list">
+      ${items.length ? items.map((site) => `
+        <article class="tile moderation-card" style="gap:10px">
+          <div class="inline-stack between">
+            <div style="min-width:0">
+              <strong>${escapeHtml(site.title || site.slug)}</strong>
+              <span style="display:block;font-size:12px;color:var(--text-muted)">/@${escapeHtml(site.owner?.handle || '')}/${escapeHtml(site.slug || '')} · ${formatDate(site.updatedAt || site.createdAt)}</span>
+            </div>
+            <span class="surface-pill surface-group">${isRu ? 'Ожидает' : 'Pending'}</span>
+          </div>
+          ${site.summary ? `<p style="margin:0;font-size:13px;color:var(--text-soft)">${escapeHtml(site.summary)}</p>` : ''}
+          <div class="tile-actions">
+            <a class="soft-button compact" href="${escapeHtml(site.url || `/@${site.owner?.handle}/${site.slug}`)}" target="_blank" rel="noopener">${icons.external}<span>${isRu ? 'Открыть сайт' : 'Open site'}</span></a>
+            <button class="primary-button compact" data-action="admin-site-review" data-id="${site.id}" data-decision="approved">${icons.check}<span>${isRu ? 'Одобрить' : 'Approve'}</span></button>
+            <button class="inline-button danger compact" data-action="admin-site-review" data-id="${site.id}" data-decision="rejected">${isRu ? 'Отклонить' : 'Reject'}</button>
+          </div>
+        </article>`).join('') : `<p class="muted">${isRu ? 'Очередь пустая.' : 'The queue is empty.'}</p>`}
+    </div>
   </section>`;
 }
 function adminReportTypeLabel(type) {
@@ -2871,9 +2961,77 @@ function renderAdminModeration() {
     </div>
   </section>`;
 }
+function renderAdminTelemetry() {
+  const isRu = currentLang() === 'ru';
+  const telemetry = state.adminTelemetry;
+  if (!telemetry) return renderLoading();
+  const summary = telemetry.summary || {};
+  const topRoutes = telemetry.topRoutes || [];
+  const topErrors = telemetry.topErrors || [];
+  const vitals = telemetry.vitals || {};
+  return `<section class="settings-panel"><h2>${isRu ? 'Телеметрия' : 'Telemetry'}</h2>
+    <p class="muted">${isRu ? 'Анонимная self-hosted телеметрия по pageview, ошибкам и web vitals.' : 'Anonymous self-hosted telemetry for pageviews, client errors, and web vitals.'}</p>
+    <div class="admin-stats-grid">
+      <div class="admin-stat"><strong>${summary.totalEvents || 0}</strong><span>${isRu ? 'Событий' : 'Events'}</span></div>
+      <div class="admin-stat"><strong>${summary.pageviews || 0}</strong><span>${isRu ? 'Pageviews' : 'Pageviews'}</span></div>
+      <div class="admin-stat"><strong>${summary.errors || 0}</strong><span>${isRu ? 'JS ошибок' : 'JS errors'}</span></div>
+      <div class="admin-stat"><strong>${summary.sessions || 0}</strong><span>${isRu ? 'Сессий' : 'Sessions'}</span></div>
+    </div>
+    <div class="settings-block">
+      <h3>${isRu ? 'Web Vitals' : 'Web Vitals'}</h3>
+      <div class="admin-stats-grid">
+        ${Object.entries(vitals).map(([name, item]) => `
+          <div class="admin-stat">
+            <strong>${escapeHtml(name)}</strong>
+            <span>p75 ${item?.p75 || 0} · p95 ${item?.p95 || 0}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="admin-two-col">
+      <div class="settings-block">
+        <h3>${isRu ? 'Топ маршрутов' : 'Top routes'}</h3>
+        <div class="stack-list">
+          ${topRoutes.length ? topRoutes.map(([route, count]) => `<div class="tile admin-inline-list"><strong>${escapeHtml(route || '/')}</strong><span>${count}</span></div>`).join('') : `<p class="muted">${isRu ? 'Нет данных.' : 'No data yet.'}</p>`}
+        </div>
+      </div>
+      <div class="settings-block">
+        <h3>${isRu ? 'Топ ошибок' : 'Top errors'}</h3>
+        <div class="stack-list">
+          ${topErrors.length ? topErrors.map(([message, count]) => `<div class="tile admin-inline-list"><strong>${escapeHtml(message)}</strong><span>${count}</span></div>`).join('') : `<p class="muted">${isRu ? 'Нет данных.' : 'No data yet.'}</p>`}
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+function renderAdminPlatform() {
+  const isRu = currentLang() === 'ru';
+  const reviewCount = (state.adminSiteReviewQueue || []).length;
+  const deletionCount = (state.adminDeletionJobs || []).length;
+  const reportCount = (state.adminReports || []).filter((item) => item.status === 'open').length;
+  return `<section class="settings-panel"><h2>${isRu ? 'Контроль платформы' : 'Platform control'}</h2>
+    <div class="admin-stats-grid">
+      <div class="admin-stat"><strong>${reviewCount}</strong><span>${isRu ? 'Сайтов на ревью' : 'Sites in review'}</span></div>
+      <div class="admin-stat"><strong>${deletionCount}</strong><span>${isRu ? 'Удалений в очереди' : 'Queued deletions'}</span></div>
+      <div class="admin-stat"><strong>${reportCount}</strong><span>${isRu ? 'Открытых жалоб' : 'Open reports'}</span></div>
+      <div class="admin-stat"><strong>${(state.adminAds || []).filter((item) => item.active !== false).length}</strong><span>${isRu ? 'Активных ads' : 'Active ads'}</span></div>
+    </div>
+    <div class="settings-block">
+      <h3>${isRu ? 'Maintenance mode' : 'Maintenance mode'}</h3>
+      <p class="muted">${isRu ? 'Теперь переключается прямо owner-сессией без ручного ввода токена в UI.' : 'This now toggles from the owner session directly instead of asking for an env token in the UI.'}</p>
+      <div class="detail-actions">
+        <button class="soft-button ${state.maintenance ? 'danger' : ''}" data-action="toggle-maintenance">
+          ${icons.wrench}<span>${state.maintenance ? (isRu ? 'Выключить maintenance' : 'Disable maintenance') : (isRu ? 'Включить maintenance' : 'Enable maintenance')}</span>
+        </button>
+        <button class="soft-button" data-action="admin-refresh">${icons.refresh}<span>${isRu ? 'Обновить данные' : 'Refresh data'}</span></button>
+      </div>
+      ${state.maintenance ? `<div class="inline-alert inline-alert-warning" style="margin-top:10px">${iconBadge('alert', 'warning')}<div class="inline-alert-copy"><strong>${isRu ? 'Maintenance активно' : 'Maintenance is active'}</strong><span>${isRu ? 'Большая часть API сейчас закрыта до отключения режима.' : 'Most API requests are restricted until you disable this mode.'}</span></div></div>` : ''}
+    </div>
+  </section>`;
+}
 function renderAdminLogs() {
-  return `<section class="settings-panel"><h2>Audit Logs</h2>
-    <p class="muted">Audit logs record admin actions taken on user accounts.</p>
+  const isRu = currentLang() === 'ru';
+  return `<section class="settings-panel"><h2>${isRu ? 'Аудит-логи' : 'Audit logs'}</h2>
+    <p class="muted">${isRu ? 'Логи действий админов и владельца над аккаунтами и объектами платформы.' : 'Audit logs record admin and owner actions taken on accounts and platform objects.'}</p>
     <div class="stack-list">
       ${(state.adminLogs || []).length ? (state.adminLogs || []).map(log => `
         <div class="tile" style="gap:6px">
@@ -2883,12 +3041,13 @@ function renderAdminLogs() {
           </div>
           <span style="font-size:12px;color:var(--text-muted)">by @${escapeHtml(log.actorHandle || '')} → @${escapeHtml(log.targetHandle || '')}</span>
         </div>`).join('')
-      : '<p class="muted" style="margin:0">No audit logs yet.</p>'}
+      : `<p class="muted" style="margin:0">${isRu ? 'Логов пока нет.' : 'No audit logs yet.'}</p>`}
     </div>
     <div class="settings-block" style="margin-top:16px">
-      <h3>Backup</h3>
+      <h3>${isRu ? 'Действия' : 'Actions'}</h3>
       <div class="detail-actions">
-        <button class="soft-button" data-action="create-backup">${icons.archive}<span>Create backup now</span></button>
+        <button class="soft-button" data-action="admin-refresh">${icons.refresh}<span>${isRu ? 'Обновить админ-данные' : 'Refresh admin data'}</span></button>
+        <button class="soft-button" data-action="export-data">${icons.archive}<span>${isRu ? 'Экспорт моих данных' : 'Export my account data'}</span></button>
       </div>
     </div>
   </section>`;
@@ -7828,6 +7987,11 @@ document.addEventListener('click', async (event) => {
         break;
       }
       case 'admin-tab': state.adminTab = target.dataset.tab; render(); break;
+      case 'admin-refresh':
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Админ-данные обновлены.' : 'Admin data refreshed.', 'success');
+        break;
       case 'admin-moderation-view': state.adminModerationView = target.dataset.view || 'overview'; render(); break;
       case 'admin-save-plan': {
         const handle = target.dataset.handle;
@@ -7838,6 +8002,24 @@ document.addEventListener('click', async (event) => {
         if (handle === currentUser()?.handleCanonical) await loadBootstrap();
         render();
         toast(currentLang() === 'ru' ? 'Подписка обновлена.' : 'Subscription updated.', 'success');
+        break;
+      }
+      case 'admin-save-user-access': {
+        const handle = target.dataset.handle;
+        if (!handle) break;
+        const roleSelect = document.querySelector(`[data-admin-role-select="${handle}"]`);
+        const badgesInput = document.querySelector(`[data-admin-badges-input="${handle}"]`);
+        const payload = {
+          roleInternal: roleSelect?.value || 'member',
+          badges: (badgesInput?.value || '')
+            .split(',')
+            .map((item) => item.trim().toUpperCase())
+            .filter(Boolean)
+        };
+        await api(`/api/admin/users/${encodeURIComponent(handle)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Доступ пользователя обновлён.' : 'User access updated.', 'success');
         break;
       }
       case 'admin-ban': {
@@ -7921,6 +8103,74 @@ document.addEventListener('click', async (event) => {
         render();
         toast(currentLang() === 'ru' ? 'Удаление отменено.' : 'Deletion restored.', 'success');
         break;
+      case 'admin-site-review': {
+        const siteId = Number(target.dataset.id || 0);
+        const decision = target.dataset.decision === 'rejected' ? 'rejected' : 'approved';
+        if (!siteId) break;
+        const note = prompt(currentLang() === 'ru'
+          ? (decision === 'approved' ? 'Комментарий для владельца сайта (необязательно):' : 'Причина отклонения сайта:')
+          : (decision === 'approved' ? 'Optional note for the site owner:' : 'Reason for rejecting this site:')) || '';
+        await api(`/api/admin/sites/${siteId}/review`, { method: 'PATCH', body: JSON.stringify({ decision, note }) });
+        await loadAdminData();
+        render();
+        toast(decision === 'approved'
+          ? (currentLang() === 'ru' ? 'Сайт одобрен.' : 'Site approved.')
+          : (currentLang() === 'ru' ? 'Сайт отклонён.' : 'Site rejected.'), decision === 'approved' ? 'success' : 'info');
+        break;
+      }
+      case 'admin-create-ad': {
+        const fields = ['title', 'cta', 'href', 'icon', 'type', 'desc', 'internal'];
+        const payload = Object.fromEntries(fields.map((key) => {
+          const node = document.querySelector(`[data-admin-new-ad="${key}"]`);
+          return [key, node?.type === 'checkbox' ? Boolean(node.checked) : (node?.value || '')];
+        }));
+        await api('/api/admin/ads', { method: 'POST', body: JSON.stringify(payload) });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Рекламный слот добавлен.' : 'Ad slot added.', 'success');
+        break;
+      }
+      case 'admin-save-ad': {
+        const adId = target.dataset.id;
+        if (!adId) break;
+        const readAdField = (field) => document.querySelector(`[data-admin-ad-input="${adId}:${field}"]`);
+        const payload = {
+          title: readAdField('title')?.value || '',
+          cta: readAdField('cta')?.value || '',
+          href: readAdField('href')?.value || '',
+          icon: readAdField('icon')?.value || '',
+          logo: readAdField('logo')?.value || '',
+          type: readAdField('type')?.value || 'banner',
+          desc: readAdField('desc')?.value || ''
+        };
+        await api(`/api/admin/ads/${encodeURIComponent(adId)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Слот обновлён.' : 'Ad slot updated.', 'success');
+        break;
+      }
+      case 'admin-toggle-ad': {
+        const adId = target.dataset.id;
+        if (!adId) break;
+        const enabled = target.dataset.active !== 'true';
+        await api(`/api/admin/ads/${encodeURIComponent(adId)}`, { method: 'PATCH', body: JSON.stringify({ active: enabled }) });
+        await loadAdminData();
+        render();
+        toast(enabled
+          ? (currentLang() === 'ru' ? 'Слот включён.' : 'Ad slot enabled.')
+          : (currentLang() === 'ru' ? 'Слот выключен.' : 'Ad slot disabled.'), 'success');
+        break;
+      }
+      case 'admin-delete-ad': {
+        const adId = target.dataset.id;
+        if (!adId) break;
+        if (!confirm(currentLang() === 'ru' ? 'Удалить этот рекламный слот?' : 'Delete this ad slot?')) break;
+        await api(`/api/admin/ads/${encodeURIComponent(adId)}`, { method: 'DELETE', body: '{}' });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Слот удалён.' : 'Ad slot deleted.', 'success');
+        break;
+      }
       // ── Mail actions ─────────────────────────────────────────────────
       case 'compose-mail':
         state.mail.composing = true; render(); break;
@@ -8014,12 +8264,12 @@ document.addEventListener('click', async (event) => {
         break;
 
       case 'toggle-maintenance': {
-        const token = prompt('Admin token (from .env ADMIN_TOKEN):');
-        if (!token) break;
         const enabled = !state.maintenance;
-        await api('/api/admin/maintenance', { method: 'POST', body: JSON.stringify({ token, enabled }) });
+        await api('/api/admin/maintenance', { method: 'POST', body: JSON.stringify({ enabled }) });
         state.maintenance = enabled;
-        toast(enabled ? 'Maintenance mode enabled.' : 'Maintenance mode disabled.', enabled ? 'error' : 'success');
+        toast(enabled
+          ? (currentLang() === 'ru' ? 'Maintenance mode включён.' : 'Maintenance mode enabled.')
+          : (currentLang() === 'ru' ? 'Maintenance mode выключен.' : 'Maintenance mode disabled.'), enabled ? 'error' : 'success');
         render(); break;
       }
       case 'admin-verify':

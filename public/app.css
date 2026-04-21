@@ -3283,6 +3283,63 @@ html[data-accent="rose"]   { --accent: #e879f9; }
   border-radius: var(--radius-lg);
   background: var(--panel-soft);
 }
+.admin-control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+.admin-field {
+  display: grid;
+  gap: 6px;
+}
+.admin-field span {
+  font-size: .76rem;
+  color: var(--text-muted);
+}
+.admin-field input,
+.admin-field select,
+.admin-field textarea {
+  width: 100%;
+  min-height: 38px;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  color: var(--text);
+  font: inherit;
+}
+.admin-field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+.admin-field-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+.admin-field-check input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  padding: 0;
+}
+.admin-two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.admin-inline-list {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.admin-inline-list strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .banned-row { opacity: .6; border-color: rgba(239,68,68,.28); }
 
 /* ── Message row own — align actions left ────────────────────────────────── */
@@ -4522,6 +4579,7 @@ html[data-accent="rose"]   { --accent: #db61a2; --accent-rgb: 219,97,162; }
 
   /* Admin */
   .admin-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .admin-two-col { grid-template-columns: 1fr; }
   .admin-user-row { grid-template-columns: auto 1fr; }
   .admin-user-row .row-actions { grid-column: 1 / -1; display: flex; gap: 6px; }
 
@@ -4731,14 +4789,15 @@ html[data-accent="rose"]   { --accent: #db61a2; --accent-rgb: 219,97,162; }
   display: block;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: 10px;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: transform .15s, border-color .15s;
+  transition: transform .18s, border-color .18s, box-shadow .18s;
 }
 .accent-swatch-label input:checked + .accent-swatch {
   border-color: var(--text);
-  transform: scale(1.15);
+  transform: translateY(-1px) scale(1.08);
+  box-shadow: 0 10px 22px rgba(0,0,0,.18);
 }
 .accent-swatch.accent-violet { background: #7c3aed; }
 .accent-swatch.accent-blue   { background: #3b82f6; }
