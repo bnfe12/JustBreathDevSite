@@ -4,24 +4,6 @@ Social platform: profiles, creator sites, real-time chat (DM/groups/workspaces),
 internal mail, content feed, e2ee, operations tools. **No frameworks** — vanilla JS SPA
 + Node.js Express + flat-file JSON store.
 
----
-
-## Quick start (local dev)
-
-```bash
-npm install
-cp .env.example .env
-# For local dev set APP_URL=http://localhost:8080
-# Uploaded-site isolation will then auto-derive http://sites.localhost:8080 unless you set UPLOADED_SITES_ORIGIN explicitly.
-# For an empty clean start keep DEMO_SEED_MODE=off.
-# If the live store is outside the repo, set DATA_DIR=/absolute/path/to/data
-# and optionally BACKUPS_DIR=/absolute/path/to/backups
-node server/index.js
-# → http://localhost:8080
-```
-
----
-
 ## Documentation Index
 
 Core docs are intentionally split by responsibility so deployment, creator-site work, and runtime operations do not get mixed together:
