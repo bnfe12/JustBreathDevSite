@@ -3,6 +3,7 @@ import cookie from 'cookie';
 import bcrypt from 'bcryptjs';
 import AdmZip from 'adm-zip';
 import express from 'express';
+import sharp from 'sharp';
 import { spawnSync } from 'node:child_process';
 import net from 'node:net';
 import tls from 'node:tls';
@@ -15,6 +16,7 @@ import {
   appendFileSync,
   chmodSync,
   copyFileSync,
+  createWriteStream,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -75,6 +77,9 @@ const GOOGLE_OAUTH_TTL_MS = 1000 * 60 * 10;
 const DISCORD_OAUTH_TTL_MS = 1000 * 60 * 10;
 const SITE_UPLOAD_LIMIT_BYTES = 1 * 1024 * 1024;
 const SITE_ZIP_LIMIT_BYTES = 5 * 1024 * 1024;
+const OPERATOR_SITE_ZIP_LIMIT_BYTES = 512 * 1024 * 1024;
+const SITE_ARCHIVE_EXPANDED_LIMIT_BYTES = 30 * 1024 * 1024;
+const OPERATOR_SITE_ARCHIVE_EXPANDED_LIMIT_BYTES = 1536 * 1024 * 1024;
 const IMAGE_UPLOAD_LIMIT_BYTES = 900 * 1024;
 const DISCORD_SUPPORT_URL = String(process.env.DISCORD_SUPPORT_URL || '');
 const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || '');
@@ -86,7 +91,11 @@ const OWNER_EMAIL = String(process.env.OWNER_EMAIL || 'andrexarlay@gmail.com');
 const OWNER_PASSWORD = String(process.env.OWNER_PASSWORD || '12345678');
 const BRAND_HANDLE = String(process.env.BRAND_HANDLE || 'justbreath');
 const BRAND_DISPLAY_NAME = String(process.env.BRAND_DISPLAY_NAME || 'justbreath');
-const BRAND_EMAIL = String(process.env.BRAND_EMAIL || 'hello@justbreath.life');
+const BRAND_EMAIL = String(process.env.BRAND_EMAIL || 'justbreath.business.mail@gmail.com');
+const BRAND_GITHUB_URL = String(process.env.BRAND_GITHUB_URL || 'https://github.com/bnfe12');
+const SITE_CREATION_REPO_URL = String(process.env.SITE_CREATION_REPO_URL || 'https://github.com/bnfe12/JustBreathDevSite');
+const SITE_CREATION_GUIDE_URL = `${SITE_CREATION_REPO_URL}/blob/main/SITE_CREATION_GUIDE.md`;
+const SITE_CREATION_EXAMPLES_URL = `${SITE_CREATION_REPO_URL}/blob/main/SITE_CREATION_EXAMPLES_RU.md`;
 const BRAND_PASSWORD = String(process.env.BRAND_PASSWORD || '12345678');
 const DEMO_SEED_MODE = String(process.env.DEMO_SEED_MODE || 'off').toLowerCase();
 
@@ -115,6 +124,24 @@ function subscriptionRank(planId = '') {
 function hasPlanAccess(user, requiredPlanId = '') {
   if (!requiredPlanId) return true;
   return subscriptionRank(user?.billing?.planId || '') >= subscriptionRank(requiredPlanId);
+}
+function hasInternalRole(user, roles = []) {
+  return ensureArray(roles).includes(String(user?.roleInternal || ''));
+}
+function isOwnerUser(user) {
+  return hasInternalRole(user, ['owner']);
+}
+function isOperatorUser(user) {
+  return hasInternalRole(user, ['owner', 'admin']);
+}
+function siteUploadByteLimit(user) {
+  return isOperatorUser(user) ? Infinity : SITE_UPLOAD_LIMIT_BYTES;
+}
+function siteArchiveByteLimit(user) {
+  return isOperatorUser(user) ? OPERATOR_SITE_ZIP_LIMIT_BYTES : SITE_ZIP_LIMIT_BYTES;
+}
+function siteArchiveExpandedByteLimit(user) {
+  return isOperatorUser(user) ? OPERATOR_SITE_ARCHIVE_EXPANDED_LIMIT_BYTES : SITE_ARCHIVE_EXPANDED_LIMIT_BYTES;
 }
 function sanitizeRoomPermissions(raw) {
   const source = ensureObject(raw);
@@ -222,6 +249,39 @@ function safeDataUrl(raw, maxLength = IMAGE_UPLOAD_LIMIT_BYTES * 2, allowedKinds
   const kinds = Array.isArray(allowedKinds) ? allowedKinds : [allowedKinds];
   if (value.length > maxLength || !kinds.some((kind) => value.startsWith(`data:${kind}/`))) return '';
   return value;
+}
+function sanitizeStickerKind(value) {
+  return value === 'animated' ? 'animated' : 'static';
+}
+function sanitizeStickerSourceType(value, mimeType = '') {
+  const raw = String(value || '').trim().toLowerCase();
+  if (['png', 'jpg', 'jpeg', 'svg', 'gif', 'webm'].includes(raw)) return raw === 'jpeg' ? 'jpg' : raw;
+  if (mimeType.includes('svg')) return 'svg';
+  if (mimeType.includes('gif')) return 'gif';
+  if (mimeType.includes('webm')) return 'webm';
+  if (mimeType.includes('jpeg')) return 'jpg';
+  return 'png';
+}
+function sanitizeStickerDuration(value) {
+  return Math.max(0, Math.min(1000, Number(value || 0)));
+}
+function sanitizeAttachment(value = null) {
+  if (!value || typeof value !== 'object') return null;
+  return {
+    name: sanitizeText(value.name || '', 90),
+    url: sanitizeText(value.url || '', 600),
+    type: sanitizeText(value.type || '', 30),
+    width: Number(value.width || 0),
+    height: Number(value.height || 0),
+    duration: Number(value.duration || 0),
+    voice: Boolean(value.voice)
+  };
+}
+function sanitizeAttachmentList(items = []) {
+  return ensureArray(items).map((item) => sanitizeAttachment(item)).filter((item) => item?.url);
+}
+function stickerMediaUrl(sticker) {
+  return sanitizeText(sticker?.fileUrl || sticker?.dataUrl || '', 2000000);
 }
 function ensureRoleMap(raw = {}, memberIds = []) {
   const source = ensureObject(raw);
@@ -442,7 +502,7 @@ function emptyStore() {
       stickerPacks: 0, stickers: 0, notifications: 0, follows: 0,
       friendRequests: 0, verificationRequests: 0,
       reactions: 0, pinnedMessages: 0, auditLogs: 0, botTokens: 0,
-      readReceipts: 0, typingEvents: 0
+      readReceipts: 0, typingEvents: 0, reports: 0, deletionJobs: 0
     },
     users: [], sessions: [], projects: [], posts: [], comments: [], likes: [],
     workspaces: [], rooms: [], invites: [], messages: [], tasks: [], sites: [],
@@ -453,6 +513,8 @@ function emptyStore() {
     auditLogs: [],       // { id, workspaceId, userId, action, target, meta, createdAt }
     botTokens: [],       // { id, userId, name, tokenHash, permissions[], createdAt }
     readReceipts: [],    // { userId, roomId, lastReadMessageId, updatedAt }
+    reports: [],         // { id, reporterUserId, targetType, targetId, targetLabel, targetUrl, targetOwnerUserId, reason, details, status, resolutionNote, createdAt, updatedAt, resolvedAt, resolvedByUserId }
+    deletionJobs: [],    // { id, targetType, targetId, targetLabel, targetUrl, targetOwnerUserId, createdAt, updatedAt, deleteAfter, scheduledByUserId, note }
     rateLimits: {}       // { key: { count, resetAt } } — in-memory, not persisted
   };
 }
@@ -662,15 +724,17 @@ function messageDefaults(message) {
     url: sanitizeText(message.attachmentUrl || '', 600),
     type: sanitizeText(message.attachmentType || '', 30),
     width: Number(message.attachmentWidth || 0),
-    height: Number(message.attachmentHeight || 0)
+    height: Number(message.attachmentHeight || 0),
+    duration: Number(message.attachmentDuration || 0),
+    voice: Boolean(message.attachmentVoice)
   } : null);
   return {
     id: Number(message.id || 0),
     roomId: Number(message.roomId || 0),
     userId: Number(message.userId || 0),
     body: sanitizeText(message.body || '', 4000),
-    attachment,
-    attachments: Array.isArray(message.attachments) ? message.attachments : [],
+    attachment: sanitizeAttachment(attachment),
+    attachments: sanitizeAttachmentList(message.attachments),
     stickerId: message.stickerId ? Number(message.stickerId) : null,
     replyToId: message.replyToId ? Number(message.replyToId) : null,
     clientNonce: sanitizeText(message.clientNonce || '', 80),
@@ -703,7 +767,29 @@ function taskDefaults(task) {
   };
 }
 
+function sanitizeSiteImportReport(raw = {}) {
+  const source = ensureObject(raw);
+  const optimizedAssets = ensureArray(source.optimizedAssets).map((item) => ({
+    path: safeSiteBundlePath(item?.path || ''),
+    mimeType: sanitizeText(item?.mimeType || '', 80),
+    beforeBytes: Math.max(0, Number(item?.beforeBytes || 0)),
+    afterBytes: Math.max(0, Number(item?.afterBytes || 0)),
+    bytesSaved: Math.max(0, Number(item?.bytesSaved || 0))
+  })).filter((item) => item.path && item.beforeBytes > 0 && item.afterBytes > 0).slice(0, 200);
+  return {
+    scannedImageCount: Math.max(0, Number(source.scannedImageCount || optimizedAssets.length || 0)),
+    optimizedBytesSaved: Math.max(0, Number(source.optimizedBytesSaved || optimizedAssets.reduce((sum, item) => sum + item.bytesSaved, 0))),
+    optimizedAssets
+  };
+}
+
 function siteDefaults(site) {
+  const mode = String(site.mode || 'template');
+  const uploadMode = mode === 'upload' ? (site.uploadMode === 'archive' ? 'archive' : 'html') : '';
+  const templateConfig = ensureObject(site.templateConfig);
+  if (mode === 'upload' && !Object.prototype.hasOwnProperty.call(templateConfig, 'polishMode')) {
+    templateConfig.polishMode = 'none';
+  }
   return {
     id: Number(site.id || 0),
     userId: Number(site.userId || 0),
@@ -712,11 +798,12 @@ function siteDefaults(site) {
     title: sanitizeText(site.title || 'Untitled site', 100),
     summary: sanitizeText(site.summary || '', 240),
     visibility: String(site.visibility || 'public'),
-    mode: String(site.mode || 'template'),
-    uploadMode: site.mode === 'upload' ? (site.uploadMode === 'archive' ? 'archive' : 'html') : '',
+    mode,
+    uploadMode,
     htmlPath: sanitizeText(site.htmlPath || '', 200),
     bundleRoot: sanitizeText(site.bundleRoot || '', 200),
-    templateConfig: ensureObject(site.templateConfig),
+    importReport: sanitizeSiteImportReport(site.importReport || {}),
+    templateConfig,
     reviewStatus: ['draft', 'pending', 'approved', 'rejected'].includes(site.reviewStatus) ? site.reviewStatus : 'draft',
     reviewNote: sanitizeText(site.reviewNote || '', 500),
     createdAt: site.createdAt || nowIso(),
@@ -729,20 +816,30 @@ function stickerPackDefaults(pack) {
     id: Number(pack.id || 0),
     userId: Number(pack.userId || 0),
     title: sanitizeText(pack.title || 'Pack', 80),
+    description: sanitizeText(pack.description || '', 220),
     slug: slugify(pack.slug || pack.title),
+    coverStickerId: pack.coverStickerId ? Number(pack.coverStickerId) : null,
     createdAt: pack.createdAt || nowIso(),
     updatedAt: pack.updatedAt || pack.createdAt || nowIso()
   };
 }
 
 function stickerDefaults(sticker) {
+  const mimeType = sanitizeText(sticker.mimeType || 'image/svg+xml', 80);
   return {
     id: Number(sticker.id || 0),
     packId: Number(sticker.packId || 0),
     userId: Number(sticker.userId || 0),
     name: sanitizeText(sticker.name || 'Sticker', 60),
-    mimeType: sanitizeText(sticker.mimeType || 'image/svg+xml', 80),
+    mimeType,
     dataUrl: sanitizeText(sticker.dataUrl || '', IMAGE_UPLOAD_LIMIT_BYTES * 2),
+    fileUrl: sanitizeText(sticker.fileUrl || '', 600),
+    previewUrl: sanitizeText(sticker.previewUrl || sticker.fileUrl || sticker.dataUrl || '', 600),
+    kind: sanitizeStickerKind(sticker.kind || (mimeType.includes('gif') || mimeType.includes('webm') ? 'animated' : 'static')),
+    sourceType: sanitizeStickerSourceType(sticker.sourceType, mimeType),
+    durationMs: sanitizeStickerDuration(sticker.durationMs),
+    width: Math.max(0, Number(sticker.width || 0)),
+    height: Math.max(0, Number(sticker.height || 0)),
     createdAt: sticker.createdAt || nowIso(),
     updatedAt: sticker.updatedAt || sticker.createdAt || nowIso()
   };
@@ -818,6 +915,36 @@ function migrateStore(raw = {}) {
     decidedAt: item.decidedAt || null,
     decidedByUserId: item.decidedByUserId ? Number(item.decidedByUserId) : null
   })).filter((item) => item.userId);
+  merged.reports = ensureArray(raw.reports).map((item) => ({
+    id: Number(item.id || 0),
+    reporterUserId: Number(item.reporterUserId || 0),
+    targetType: ['user', 'post', 'site', 'project', 'message', 'other'].includes(item.targetType) ? item.targetType : 'other',
+    targetId: item.targetId === null || item.targetId === undefined || item.targetId === '' ? null : Number(item.targetId || 0),
+    targetLabel: sanitizeText(item.targetLabel || '', 180),
+    targetUrl: sanitizeText(item.targetUrl || '', 320),
+    targetOwnerUserId: item.targetOwnerUserId === null || item.targetOwnerUserId === undefined || item.targetOwnerUserId === '' ? null : Number(item.targetOwnerUserId || 0),
+    reason: sanitizeText(item.reason || '', 60),
+    details: sanitizeText(item.details || '', 1600),
+    status: ['open', 'resolved', 'dismissed'].includes(item.status) ? item.status : 'open',
+    resolutionNote: sanitizeText(item.resolutionNote || '', 600),
+    createdAt: item.createdAt || nowIso(),
+    updatedAt: item.updatedAt || item.createdAt || nowIso(),
+    resolvedAt: item.resolvedAt || null,
+    resolvedByUserId: item.resolvedByUserId ? Number(item.resolvedByUserId) : null
+  })).filter((item) => item.reporterUserId && item.reason);
+  merged.deletionJobs = ensureArray(raw.deletionJobs).map((item) => ({
+    id: Number(item.id || 0),
+    targetType: ['user', 'post', 'site', 'project', 'message'].includes(item.targetType) ? item.targetType : 'post',
+    targetId: Number(item.targetId || 0),
+    targetLabel: sanitizeText(item.targetLabel || '', 180),
+    targetUrl: sanitizeText(item.targetUrl || '', 320),
+    targetOwnerUserId: item.targetOwnerUserId === null || item.targetOwnerUserId === undefined || item.targetOwnerUserId === '' ? null : Number(item.targetOwnerUserId || 0),
+    createdAt: item.createdAt || nowIso(),
+    updatedAt: item.updatedAt || item.createdAt || nowIso(),
+    deleteAfter: item.deleteAfter || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    scheduledByUserId: Number(item.scheduledByUserId || 0),
+    note: sanitizeText(item.note || '', 300)
+  })).filter((item) => item.id && item.targetId && item.deleteAfter);
   merged.seq = { ...store.seq, ...(raw.seq || {}) };
 
   const maxMap = {
@@ -837,7 +964,9 @@ function migrateStore(raw = {}) {
     notifications: merged.notifications,
     follows: merged.follows,
     friendRequests: merged.friendRequests,
-    verificationRequests: merged.verificationRequests
+    verificationRequests: merged.verificationRequests,
+    reports: merged.reports,
+    deletionJobs: merged.deletionJobs
   };
   for (const [key, list] of Object.entries(maxMap)) {
     merged.seq[key] = Math.max(Number(merged.seq[key] || 0), ...list.map((item) => Number(item.id || 0)), 0);
@@ -856,7 +985,12 @@ function migrateStore(raw = {}) {
       sticker.name = ['Pulse', 'Fold', 'Beam', 'Trace'][Number(sticker.id || 0) % 4];
       sticker.dataUrl = createDefaultStickerSvg(palette, sticker.name);
       sticker.mimeType = 'image/svg+xml';
+      sticker.sourceType = 'svg';
+      sticker.kind = 'static';
     }
+    if (!sticker.previewUrl) sticker.previewUrl = sticker.fileUrl || sticker.dataUrl || '';
+    if (!sticker.sourceType) sticker.sourceType = sanitizeStickerSourceType('', sticker.mimeType);
+    if (!sticker.kind) sticker.kind = sanitizeStickerKind(sticker.durationMs > 0 ? 'animated' : 'static');
   }
   return merged;
 }
@@ -864,7 +998,9 @@ function migrateStore(raw = {}) {
 function loadStore() {
   if (!existsSync(storePath)) return emptyStore();
   try {
-    return migrateStore(JSON.parse(readFileSync(storePath, 'utf8')));
+    const store = migrateStore(JSON.parse(readFileSync(storePath, 'utf8')));
+    if (runDeletionMaintenance(store)) saveStore(store);
+    return store;
   } catch {
     return emptyStore();
   }
@@ -892,6 +1028,244 @@ function safeSiteBundlePath(raw = '') {
   return normalized;
 }
 
+function archiveLimitLabel(bytes = 0) {
+  return `${Math.round(Number(bytes || 0) / 1024 / 1024)} MB`;
+}
+
+function archiveEntryDepth(relativePath = '') {
+  const normalized = safeSiteBundlePath(relativePath);
+  if (!normalized) return Number.POSITIVE_INFINITY;
+  return normalized.split('/').length;
+}
+
+function preferredArchiveIndexPath(entries = []) {
+  const candidates = entries
+    .map((entry) => safeSiteBundlePath(entry))
+    .filter((entry) => entry && path.posix.basename(entry).toLowerCase() === 'index.html');
+  if (!candidates.length) return '';
+  return candidates.sort((a, b) => {
+    const aIsRoot = a.toLowerCase() === 'index.html' ? 0 : 1;
+    const bIsRoot = b.toLowerCase() === 'index.html' ? 0 : 1;
+    if (aIsRoot !== bIsRoot) return aIsRoot - bIsRoot;
+    const depthDiff = archiveEntryDepth(a) - archiveEntryDepth(b);
+    if (depthDiff !== 0) return depthDiff;
+    return a.localeCompare(b);
+  })[0];
+}
+
+function archiveRootPrefix(indexPath = '') {
+  return indexPath ? indexPath.slice(0, -'index.html'.length) : '';
+}
+
+function bundleFilesFromArchive(files = [], indexPath = '') {
+  const rootPrefix = archiveRootPrefix(indexPath);
+  return files
+    .map((file) => {
+      const normalized = safeSiteBundlePath(file?.path);
+      if (!normalized) return null;
+      if (rootPrefix && !normalized.startsWith(rootPrefix)) return null;
+      const relativePath = safeSiteBundlePath(rootPrefix ? normalized.slice(rootPrefix.length) : normalized);
+      if (!relativePath) return null;
+      return { path: relativePath, content: file.content };
+    })
+    .filter(Boolean);
+}
+
+const IMPORT_OPTIMIZABLE_RASTER_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const IMPORT_IMAGE_EXTENSIONS = new Set([...IMPORT_OPTIMIZABLE_RASTER_EXTENSIONS, '.svg']);
+const UPLOADED_SITE_TEXT_TRANSFORM_EXTENSIONS = new Set(['.html', '.htm', '.css', '.js', '.mjs', '.cjs']);
+
+function importedImageMimeType(ext = '') {
+  return {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp'
+  }[String(ext || '').toLowerCase()] || 'application/octet-stream';
+}
+
+function minifyImportedSvgBuffer(buffer) {
+  const source = Buffer.isBuffer(buffer) ? buffer.toString('utf8') : String(buffer || '');
+  const next = source
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/>\s+</g, '><')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return Buffer.from(next, 'utf8');
+}
+
+async function optimizeImportedSiteFile(relativePath = '', rawContent = Buffer.alloc(0)) {
+  const ext = path.posix.extname(String(relativePath || '').toLowerCase());
+  const input = Buffer.isBuffer(rawContent) ? rawContent : Buffer.from(rawContent);
+  if (!IMPORT_IMAGE_EXTENSIONS.has(ext) || !input.length) {
+    return { content: input, optimizedAsset: null, scannedImage: false };
+  }
+  if (ext === '.svg') {
+    const output = minifyImportedSvgBuffer(input);
+    if (output.length > 0 && output.length + 32 < input.length) {
+      return {
+        content: output,
+        scannedImage: true,
+        optimizedAsset: {
+          path: relativePath,
+          mimeType: importedImageMimeType(ext),
+          beforeBytes: input.length,
+          afterBytes: output.length,
+          bytesSaved: input.length - output.length
+        }
+      };
+    }
+    return { content: input, optimizedAsset: null, scannedImage: true };
+  }
+  if (!IMPORT_OPTIMIZABLE_RASTER_EXTENSIONS.has(ext)) {
+    return { content: input, optimizedAsset: null, scannedImage: true };
+  }
+  try {
+    let output = null;
+    if (ext === '.png') {
+      output = await sharp(input, { animated: false, failOn: 'none' })
+        .png({ compressionLevel: 9, effort: 10, palette: true, quality: 92 })
+        .toBuffer();
+    } else if (ext === '.webp') {
+      output = await sharp(input, { animated: false, failOn: 'none' })
+        .webp({ quality: 84, effort: 6 })
+        .toBuffer();
+    } else {
+      output = await sharp(input, { animated: false, failOn: 'none' })
+        .jpeg({ quality: 84, mozjpeg: true })
+        .toBuffer();
+    }
+    if (output?.length && output.length + 512 < input.length) {
+      return {
+        content: output,
+        scannedImage: true,
+        optimizedAsset: {
+          path: relativePath,
+          mimeType: importedImageMimeType(ext),
+          beforeBytes: input.length,
+          afterBytes: output.length,
+          bytesSaved: input.length - output.length
+        }
+      };
+    }
+  } catch {}
+  return { content: input, optimizedAsset: null, scannedImage: true };
+}
+
+async function optimizeImportedSiteFiles(files = []) {
+  const nextFiles = [];
+  const optimizedAssets = [];
+  let scannedImageCount = 0;
+  for (const file of files) {
+    const relativePath = safeSiteBundlePath(file?.path || '');
+    if (!relativePath) continue;
+    const result = await optimizeImportedSiteFile(relativePath, file?.content);
+    nextFiles.push({ path: relativePath, content: result.content });
+    if (result.scannedImage) scannedImageCount += 1;
+    if (result.optimizedAsset) optimizedAssets.push(result.optimizedAsset);
+  }
+  const optimizedBytesSaved = optimizedAssets.reduce((sum, item) => sum + item.bytesSaved, 0);
+  return {
+    files: nextFiles,
+    importReport: sanitizeSiteImportReport({
+      scannedImageCount,
+      optimizedBytesSaved,
+      optimizedAssets
+    })
+  };
+}
+
+function uploadedSiteBasePath(owner, site) {
+  const ownerHandle = owner?.handleCanonical || canonicalHandle(owner?.handle || '');
+  return ownerHandle && site?.slug ? `/@${ownerHandle}/${site.slug}/` : '/';
+}
+
+function uploadedSiteBundleFileSet(site, limit = 4000) {
+  if (!siteUsesBundle(site)) return new Set(['index.html']);
+  return new Set(listBundleFiles(site.bundleRoot, limit));
+}
+
+function splitSiteAssetUrl(raw = '') {
+  const value = String(raw || '').trim();
+  if (!value || !value.startsWith('/') || value.startsWith('//')) {
+    return { value, relativePath: '', suffix: '' };
+  }
+  const hashIndex = value.indexOf('#');
+  const queryIndex = value.indexOf('?');
+  const cutIndex = [hashIndex, queryIndex].filter((idx) => idx >= 0).sort((a, b) => a - b)[0] ?? value.length;
+  const pathPart = value.slice(0, cutIndex);
+  const suffix = value.slice(cutIndex);
+  return {
+    value,
+    relativePath: safeSiteBundlePath(pathPart.slice(1)),
+    suffix
+  };
+}
+
+function rewriteUploadedSiteAbsoluteUrl(raw, owner, site, fileSet) {
+  const { value, relativePath, suffix } = splitSiteAssetUrl(raw);
+  if (!relativePath || !fileSet?.has(relativePath)) return value;
+  return `${uploadedSiteBasePath(owner, site)}${relativePath}${suffix}`;
+}
+
+function rewriteUploadedSiteSrcset(raw, owner, site, fileSet) {
+  return String(raw || '').split(',').map((entry) => {
+    const trimmed = entry.trim();
+    if (!trimmed) return trimmed;
+    const [url, descriptor = ''] = trimmed.split(/\s+/, 2);
+    const rewritten = rewriteUploadedSiteAbsoluteUrl(url, owner, site, fileSet);
+    return descriptor ? `${rewritten} ${descriptor}` : rewritten;
+  }).join(', ');
+}
+
+function rewriteUploadedSiteHtmlAttributes(html, owner, site, fileSet) {
+  return String(html || '')
+    .replace(/(\s(?:src|href|poster|action|xlink:href)=["'])(\/[^"']+)(["'])/gi, (_match, prefix, value, suffix) => `${prefix}${rewriteUploadedSiteAbsoluteUrl(value, owner, site, fileSet)}${suffix}`)
+    .replace(/(\ssrcset=["'])([^"']+)(["'])/gi, (_match, prefix, value, suffix) => `${prefix}${rewriteUploadedSiteSrcset(value, owner, site, fileSet)}${suffix}`)
+    .replace(/(<meta[^>]+\scontent=["'])(\/[^"']+)(["'][^>]*>)/gi, (_match, prefix, value, suffix) => `${prefix}${rewriteUploadedSiteAbsoluteUrl(value, owner, site, fileSet)}${suffix}`);
+}
+
+function rewriteUploadedSiteCssUrls(source, owner, site, fileSet) {
+  return String(source || '').replace(/url\(\s*(["']?)(\/[^"'()]+)\1\s*\)/gi, (_match, quote, value) => `url(${quote}${rewriteUploadedSiteAbsoluteUrl(value, owner, site, fileSet)}${quote})`);
+}
+
+function rewriteUploadedSiteJsStrings(source, owner, site, fileSet) {
+  return String(source || '').replace(/(["'`])\/(?!\/)([^"'`\n\r]+?)\1/g, (match, quote, tail) => {
+    const rewritten = rewriteUploadedSiteAbsoluteUrl(`/${tail}`, owner, site, fileSet);
+    return rewritten === `/${tail}` ? match : `${quote}${rewritten}${quote}`;
+  });
+}
+
+function transformUploadedSiteTextAsset(site, owner, assetPath = '', sourceText = '') {
+  const ext = path.posix.extname(String(assetPath || '').toLowerCase());
+  if (!UPLOADED_SITE_TEXT_TRANSFORM_EXTENSIONS.has(ext)) return String(sourceText || '');
+  const fileSet = uploadedSiteBundleFileSet(site);
+  if (ext === '.css') return rewriteUploadedSiteCssUrls(sourceText, owner, site, fileSet);
+  if (['.js', '.mjs', '.cjs'].includes(ext)) return rewriteUploadedSiteJsStrings(sourceText, owner, site, fileSet);
+  let next = rewriteUploadedSiteHtmlAttributes(sourceText, owner, site, fileSet);
+  next = rewriteUploadedSiteCssUrls(next, owner, site, fileSet);
+  next = rewriteUploadedSiteJsStrings(next, owner, site, fileSet);
+  return next;
+}
+
+function clearUploadedSiteResponseHeaders(res) {
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Frame-Options');
+}
+
+function looksLike7zArchive(buffer) {
+  return Boolean(
+    buffer?.length >= 6
+    && buffer[0] === 0x37
+    && buffer[1] === 0x7a
+    && buffer[2] === 0xbc
+    && buffer[3] === 0xaf
+    && buffer[4] === 0x27
+    && buffer[5] === 0x1c
+  );
+}
+
 function siteBundleDirName(siteId) {
   return `site-${Number(siteId)}`;
 }
@@ -917,11 +1291,14 @@ function ensureSiteFile(siteId, html) {
   return `sites/${fileName}`;
 }
 
-function ensureSiteBundle(siteId, files = []) {
+function ensureSiteBundle(siteId, files = [], options = {}) {
   const dirName = siteBundleDirName(siteId);
   const bundleAbsPath = path.join(sitesDir, dirName);
   rmSync(bundleAbsPath, { recursive: true, force: true });
   mkdirSync(bundleAbsPath, { recursive: true });
+  const maxExpandedBytes = Number.isFinite(options.maxExpandedBytes)
+    ? Number(options.maxExpandedBytes)
+    : SITE_ZIP_LIMIT_BYTES * 6;
   let totalBytes = 0;
   const written = [];
   for (const file of files) {
@@ -930,7 +1307,7 @@ function ensureSiteBundle(siteId, files = []) {
     const rawContent = file?.content;
     const buffer = Buffer.isBuffer(rawContent) ? rawContent : Buffer.from(String(rawContent || ''), 'utf8');
     totalBytes += buffer.length;
-    if (totalBytes > SITE_ZIP_LIMIT_BYTES * 6) throw new Error('Archive expands to an unsupported size.');
+    if (totalBytes > maxExpandedBytes) throw new Error('Archive expands to an unsupported size.');
     const absPath = path.join(bundleAbsPath, relativePath);
     mkdirSync(path.dirname(absPath), { recursive: true });
     if (relativePath.toLowerCase().endsWith('.html')) writeFileSync(absPath, ensureDoctype(buffer.toString('utf8')), 'utf8');
@@ -945,28 +1322,23 @@ function ensureSiteBundle(siteId, files = []) {
   };
 }
 
-function extractZipSiteBundle(siteId, zipBuffer) {
+async function extractZipSiteBundle(siteId, zipBuffer, options = {}) {
   if (!zipBuffer?.length) throw new Error('ZIP file data required.');
-  if (zipBuffer.length > SITE_ZIP_LIMIT_BYTES) throw new Error('ZIP file must be under 5 MB.');
+  const maxArchiveBytes = Number.isFinite(options.maxArchiveBytes)
+    ? Number(options.maxArchiveBytes)
+    : SITE_ZIP_LIMIT_BYTES;
+  if (zipBuffer.length > maxArchiveBytes) throw new Error(`ZIP file must stay under ${archiveLimitLabel(maxArchiveBytes)}.`);
   const zip = new AdmZip(zipBuffer);
-  const entries = zip.getEntries().filter((entry) => !entry.isDirectory);
-  const indexEntry = entries.find((entry) => {
-    const normalized = safeSiteBundlePath(entry.entryName);
-    return normalized && path.posix.basename(normalized).toLowerCase() === 'index.html';
-  });
-  if (!indexEntry) throw new Error('ZIP must contain an index.html file.');
-  const indexPath = safeSiteBundlePath(indexEntry.entryName);
-  const rootPrefix = indexPath ? indexPath.slice(0, -'index.html'.length) : '';
-  const files = [];
-  for (const entry of entries) {
-    const normalizedEntry = safeSiteBundlePath(entry.entryName);
-    if (!normalizedEntry) continue;
-    if (rootPrefix && !normalizedEntry.startsWith(rootPrefix)) continue;
-    const relativePath = safeSiteBundlePath(rootPrefix ? normalizedEntry.slice(rootPrefix.length) : normalizedEntry);
-    if (!relativePath) continue;
-    files.push({ path: relativePath, content: entry.getData() });
-  }
-  return ensureSiteBundle(siteId, files);
+  const files = zip.getEntries()
+    .filter((entry) => !entry.isDirectory)
+    .map((entry) => ({ path: entry.entryName, content: entry.getData() }));
+  const indexPath = preferredArchiveIndexPath(files.map((file) => file.path));
+  if (!indexPath) throw new Error('ZIP must contain an index.html file.');
+  const optimized = await optimizeImportedSiteFiles(bundleFilesFromArchive(files, indexPath));
+  return {
+    ...ensureSiteBundle(siteId, optimized.files, options),
+    importReport: optimized.importReport
+  };
 }
 
 function parseTarOctal(raw = '') {
@@ -999,25 +1371,16 @@ function extractTarEntries(buffer) {
   return files;
 }
 
-function extractTarSiteBundle(siteId, archiveBuffer) {
+async function extractTarSiteBundle(siteId, archiveBuffer, options = {}) {
   if (!archiveBuffer?.length) throw new Error('Archive file data required.');
   const files = extractTarEntries(archiveBuffer);
-  const normalizedEntries = files
-    .map((file) => safeSiteBundlePath(file.path))
-    .filter(Boolean);
-  const indexPath = normalizedEntries.find((entry) => path.posix.basename(entry).toLowerCase() === 'index.html');
+  const indexPath = preferredArchiveIndexPath(files.map((file) => file.path));
   if (!indexPath) throw new Error('Archive must contain an index.html file.');
-  const rootPrefix = indexPath.slice(0, -'index.html'.length);
-  return ensureSiteBundle(siteId, files
-    .map((file) => {
-      const normalized = safeSiteBundlePath(file.path);
-      if (!normalized) return null;
-      if (rootPrefix && !normalized.startsWith(rootPrefix)) return null;
-      const relativePath = safeSiteBundlePath(rootPrefix ? normalized.slice(rootPrefix.length) : normalized);
-      if (!relativePath) return null;
-      return { path: relativePath, content: file.content };
-    })
-    .filter(Boolean));
+  const optimized = await optimizeImportedSiteFiles(bundleFilesFromArchive(files, indexPath));
+  return {
+    ...ensureSiteBundle(siteId, optimized.files, options),
+    importReport: optimized.importReport
+  };
 }
 
 function readArchiveDirFiles(absRoot, dir = absRoot) {
@@ -1048,7 +1411,11 @@ function preferred7zipBinary() {
   }
 }
 
-function extract7zSiteBundle(siteId, archiveBuffer) {
+async function extract7zSiteBundle(siteId, archiveBuffer, options = {}) {
+  const maxArchiveBytes = Number.isFinite(options.maxArchiveBytes)
+    ? Number(options.maxArchiveBytes)
+    : SITE_ZIP_LIMIT_BYTES;
+  if (archiveBuffer?.length > maxArchiveBytes) throw new Error(`Archive file must stay under ${archiveLimitLabel(maxArchiveBytes)}.`);
   const binary = preferred7zipBinary();
   if (!binary) {
     throw new Error('7z archives need a server-side extractor. Install 7zip-bin or set SEVENZIP_BINARY.');
@@ -1065,41 +1432,33 @@ function extract7zSiteBundle(siteId, archiveBuffer) {
       throw new Error((result.stderr || result.stdout || '').trim() || 'Could not extract 7z archive.');
     }
     const files = readArchiveDirFiles(outDir);
-    const normalizedEntries = files
-      .map((file) => safeSiteBundlePath(file.path))
-      .filter(Boolean);
-    const indexPath = normalizedEntries.find((entry) => path.posix.basename(entry).toLowerCase() === 'index.html');
+    const indexPath = preferredArchiveIndexPath(files.map((file) => file.path));
     if (!indexPath) throw new Error('Archive must contain an index.html file.');
-    const rootPrefix = indexPath.slice(0, -'index.html'.length);
-    return ensureSiteBundle(siteId, files
-      .map((file) => {
-        const normalized = safeSiteBundlePath(file.path);
-        if (!normalized) return null;
-        if (rootPrefix && !normalized.startsWith(rootPrefix)) return null;
-        const relativePath = safeSiteBundlePath(rootPrefix ? normalized.slice(rootPrefix.length) : normalized);
-        if (!relativePath) return null;
-        return { path: relativePath, content: file.content };
-      })
-      .filter(Boolean));
+    const optimized = await optimizeImportedSiteFiles(bundleFilesFromArchive(files, indexPath));
+    return {
+      ...ensureSiteBundle(siteId, optimized.files, options),
+      importReport: optimized.importReport
+    };
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
-function extractArchiveSiteBundle(siteId, archiveBuffer, archiveName = '') {
+async function extractArchiveSiteBundle(siteId, archiveBuffer, archiveName = '', options = {}) {
   const fileName = String(archiveName || '').trim().toLowerCase();
   const looksLikeZip = archiveBuffer[0] === 0x50 && archiveBuffer[1] === 0x4b;
   const looksLikeGzip = archiveBuffer[0] === 0x1f && archiveBuffer[1] === 0x8b;
-  if (looksLikeZip || fileName.endsWith('.zip')) return extractZipSiteBundle(siteId, archiveBuffer);
-  if (fileName.endsWith('.7z')) return extract7zSiteBundle(siteId, archiveBuffer);
+  const looksLike7z = looksLike7zArchive(archiveBuffer);
+  if (looksLikeZip || fileName.endsWith('.zip')) return await extractZipSiteBundle(siteId, archiveBuffer, options);
+  if (looksLike7z || fileName.endsWith('.7z')) return await extract7zSiteBundle(siteId, archiveBuffer, options);
   const maybeTar = looksLikeGzip || fileName.endsWith('.tgz') || fileName.endsWith('.tar.gz') || fileName.endsWith('.tar');
   if (maybeTar) {
     const tarBuffer = looksLikeGzip || fileName.endsWith('.tgz') || fileName.endsWith('.tar.gz')
       ? gunzipSync(archiveBuffer)
       : archiveBuffer;
-    return extractTarSiteBundle(siteId, tarBuffer);
+    return await extractTarSiteBundle(siteId, tarBuffer, options);
   }
-  throw new Error('Unsupported archive format. Use ZIP, TAR, TAR.GZ or TGZ.');
+  throw new Error('Unsupported archive format. Use ZIP, 7Z, TAR, TAR.GZ or TGZ.');
 }
 
 function resolveDataPath(relativePath) {
@@ -1200,13 +1559,13 @@ function readSiteStudioText(site, rawPath = 'index.html') {
   return readSiteFile(site.htmlPath) || '';
 }
 
-function writeSiteStudioText(site, rawPath = 'index.html', rawContent = '', { create = false } = {}) {
+function writeSiteStudioText(site, rawPath = 'index.html', rawContent = '', { create = false, maxBytes = SITE_UPLOAD_LIMIT_BYTES } = {}) {
   ensureUploadSiteStudio(site);
   const relativePath = siteStudioEditablePath(rawPath);
   if (!relativePath) throw new Error('Only HTML, CSS, JS, JSON, SVG, markdown, XML and text files are supported.');
   const content = rawContent === undefined || rawContent === null ? '' : String(rawContent);
   if (relativePath === 'index.html' && !content.trim()) throw new Error('index.html cannot be empty.');
-  if (Buffer.byteLength(content, 'utf8') > SITE_UPLOAD_LIMIT_BYTES) throw new Error('Studio text files must stay under 1 MB.');
+  if (Number.isFinite(maxBytes) && Buffer.byteLength(content, 'utf8') > maxBytes) throw new Error('Studio text files must stay under 1 MB.');
   if (relativePath !== 'index.html') ensureBundleBackedUploadSite(site);
   if (siteUsesBundle(site)) {
     const absPath = siteBundleAbsPath(site, relativePath);
@@ -1266,6 +1625,120 @@ function collectSiteRelativeRefs(html = '') {
   return Array.from(refs).sort((a, b) => a.localeCompare(b));
 }
 
+const SERVER_ONLY_SITE_EXTENSIONS = new Set([
+  '.php', '.py', '.rb', '.pl', '.cgi', '.asp', '.aspx', '.jsp', '.jspx', '.cshtml',
+  '.dll', '.exe', '.so', '.sh', '.bash', '.ps1', '.sql'
+]);
+const SERVER_ONLY_SITE_PREFIXES = [
+  'server/', 'api/', 'functions/', '.netlify/functions/', 'netlify/functions/', 'supabase/functions/', 'lambda/'
+];
+
+function siteDiagnosticTextPaths(site, limit = 160) {
+  const files = siteUsesBundle(site) ? listBundleFiles(site.bundleRoot, limit) : (site.htmlPath ? ['index.html'] : []);
+  return files.filter((relativePath) => {
+    if (relativePath === 'index.html') return true;
+    return Boolean(siteStudioEditablePath(relativePath));
+  });
+}
+
+function readSiteDiagnosticText(site, relativePath = 'index.html') {
+  if (!siteUsesBundle(site)) return relativePath === 'index.html' ? (readSiteFile(site.htmlPath) || '') : '';
+  const absPath = siteBundleAbsPath(site, relativePath);
+  if (!absPath || !existsSync(absPath)) return '';
+  return readFileSync(absPath, 'utf8');
+}
+
+function isServerOnlySitePath(relativePath = '') {
+  const normalized = safeSiteBundlePath(relativePath);
+  if (!normalized) return false;
+  const ext = path.posix.extname(normalized).toLowerCase();
+  if (SERVER_ONLY_SITE_EXTENSIONS.has(ext)) return true;
+  return SERVER_ONLY_SITE_PREFIXES.some((prefix) => normalized.toLowerCase().startsWith(prefix));
+}
+
+function siteCompatibilityWarnings(site) {
+  if (!site || site.mode !== 'upload') return [];
+  const bundleFiles = siteUsesBundle(site) ? listBundleFiles(site.bundleRoot, 500) : ['index.html'];
+  const bundleFileSet = new Set(bundleFiles);
+  const warnings = [];
+  const serverFiles = bundleFiles.filter((relativePath) => isServerOnlySitePath(relativePath));
+  if (serverFiles.length) {
+    warnings.push({
+      code: 'server-files',
+      title: 'Server-side files were imported as static files only.',
+      message: 'PHP, Python, API handlers and similar files stay inside the package, but they do not execute on justbreath. The hosted copy remains static.',
+      paths: serverFiles.slice(0, 12),
+      total: serverFiles.length
+    });
+  }
+  const textPaths = siteDiagnosticTextPaths(site, 160);
+  const localApiHits = [];
+  const localDevHits = [];
+  const formActionHits = [];
+  const requestCallPattern = /\b(?:fetch|axios(?:\.[a-z]+)?|XMLHttpRequest|EventSource|WebSocket)\s*\(\s*['"`]([^'"`]+)['"`]/gi;
+  const localDevPattern = /(?:https?:\/\/|wss?:\/\/)(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?/gi;
+  const formActionPattern = /<form[^>]+action=["'](?!https?:\/\/|mailto:|tel:|#)([^"']+)["'][^>]*>/gi;
+  for (const relativePath of textPaths) {
+    const content = readSiteDiagnosticText(site, relativePath);
+    if (!content) continue;
+    let requestMatch = requestCallPattern.exec(content);
+    while (requestMatch) {
+      const requestTarget = String(requestMatch[1] || '').trim();
+      if (localDevPattern.test(requestTarget)) {
+        localDevHits.push(relativePath);
+      } else if (/^\/(?:api|auth|graphql|socket)\b/i.test(requestTarget)) {
+        const relativeTarget = splitSiteAssetUrl(requestTarget).relativePath;
+        if (!relativeTarget || !bundleFileSet.has(relativeTarget)) localApiHits.push(relativePath);
+      }
+      localDevPattern.lastIndex = 0;
+      requestMatch = requestCallPattern.exec(content);
+    }
+    requestCallPattern.lastIndex = 0;
+    if (localDevPattern.test(content)) localDevHits.push(relativePath);
+    localDevPattern.lastIndex = 0;
+    let formMatch = formActionPattern.exec(content);
+    while (formMatch) {
+      const actionValue = String(formMatch[1] || '').trim();
+      const relativeTarget = splitSiteAssetUrl(actionValue).relativePath;
+      const pointsToBundle = relativeTarget && bundleFileSet.has(relativeTarget);
+      if (/^[^?#]+\.(?:php|asp|aspx|jsp|cgi)(?:[?#].*)?$/i.test(actionValue) || (/^\/(?:api|auth)\b/i.test(actionValue) && !pointsToBundle)) {
+        formActionHits.push(relativePath);
+        break;
+      }
+      formMatch = formActionPattern.exec(content);
+    }
+    formActionPattern.lastIndex = 0;
+  }
+  if (localApiHits.length) {
+    warnings.push({
+      code: 'server-state',
+      title: 'Interactive server state stays disabled after import.',
+      message: 'This site references same-origin APIs, sockets or live endpoints. The UI is imported, but those server-backed features do not come with the static copy.',
+      paths: Array.from(new Set(localApiHits)).slice(0, 12),
+      total: Array.from(new Set(localApiHits)).length
+    });
+  }
+  if (localDevHits.length) {
+    warnings.push({
+      code: 'local-dev',
+      title: 'Local development endpoints were detected.',
+      message: 'Requests to localhost or local WebSocket servers do not exist on the hosted site. Replace them with static data or a real external endpoint.',
+      paths: Array.from(new Set(localDevHits)).slice(0, 12),
+      total: Array.from(new Set(localDevHits)).length
+    });
+  }
+  if (formActionHits.length) {
+    warnings.push({
+      code: 'server-forms',
+      title: 'Form handlers that need a backend will not process data here.',
+      message: 'POST-style forms that target PHP/API endpoints are preserved visually, but no server-side form processing is imported with the static site.',
+      paths: Array.from(new Set(formActionHits)).slice(0, 12),
+      total: Array.from(new Set(formActionHits)).length
+    });
+  }
+  return warnings;
+}
+
 function uploadedSiteDiagnostics(site, html = '') {
   if (!site || site.mode !== 'upload') return null;
   const variant = siteUsesBundle(site) || site.uploadMode === 'archive' ? 'archive' : 'html';
@@ -1274,13 +1747,16 @@ function uploadedSiteDiagnostics(site, html = '') {
   const files = siteUsesBundle(site) ? listBundleFiles(site.bundleRoot) : (entryFile ? [entryFile] : []);
   const fileSet = new Set(files);
   const missingRefs = relativeRefs.filter((ref) => !fileSet.has(ref));
+  const importReport = sanitizeSiteImportReport(site.importReport || {});
   return {
     variant,
     entryFile,
     fileCount: files.length,
     files,
     relativeRefs,
-    missingRefs
+    missingRefs,
+    importReport,
+    compatibilityWarnings: siteCompatibilityWarnings(site)
   };
 }
 
@@ -1308,6 +1784,22 @@ function saveDataAudio(dataUrl, prefix = 'voice') {
   const absPath = path.join(uploadsDir, fileName);
   writeFileSync(absPath, Buffer.from(match[2], 'base64'));
   return `/media/${fileName}`;
+}
+
+function saveDataMedia(dataUrl, prefix = 'asset', options = {}) {
+  const maxLength = Number.isFinite(options.maxLength) ? Number(options.maxLength) : IMAGE_UPLOAD_LIMIT_BYTES * 6;
+  const value = safeDataUrl(dataUrl, maxLength, options.allowedKinds || ['image', 'video']);
+  if (!value) return { url: '', mimeType: '' };
+  const match = value.match(/^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+)(?:;[a-zA-Z0-9=.+-]+)*;base64,(.+)$/);
+  if (!match) return { url: '', mimeType: '' };
+  const mime = match[1].toLowerCase();
+  const ext = mime.includes('svg')
+    ? 'svg'
+    : mime.split('/')[1].split('+')[0].replace('jpeg', 'jpg').replace('x-m4v', 'm4v');
+  const fileName = `${prefix}-${Date.now()}-${randomBytes(4).toString('hex')}.${ext}`;
+  const absPath = path.join(uploadsDir, fileName);
+  writeFileSync(absPath, Buffer.from(match[2], 'base64'));
+  return { url: `/media/${fileName}`, mimeType: mime };
 }
 
 function svgDataUrl(svg) {
@@ -1503,7 +1995,7 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
     .frame.live{opacity:1}
     .launch{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 15% 15%, rgba(139,92,246,.15), transparent 30%),radial-gradient(circle at 82% 20%, rgba(56,189,248,.12), transparent 24%),rgba(4,7,12,.72);backdrop-filter:blur(16px);z-index:20;transition:opacity .28s ease, visibility .28s ease}
     .launch.hidden{opacity:0;visibility:hidden;pointer-events:none}
-    .launch-card{width:min(560px, calc(100vw - 32px));padding:28px;border:1px solid var(--line);border-radius:28px;background:var(--panel);box-shadow:0 24px 80px rgba(0,0,0,.42);display:grid;gap:18px}
+    .launch-card{width:min(640px, calc(100vw - 32px));padding:28px;border:1px solid var(--line);border-radius:28px;background:var(--panel);box-shadow:0 24px 80px rgba(0,0,0,.42);display:grid;gap:18px}
     .launch-brand{display:flex;align-items:center;gap:14px}
     .launch-site-icon{width:116px;height:116px;border-radius:32px;overflow:hidden;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);display:grid;place-items:center;flex:0 0 auto}
     .launch-site-icon img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1511,7 +2003,13 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
     .launch-kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
     .launch h1{margin:0;font-size:clamp(30px,6vw,54px);line-height:.95;letter-spacing:-.06em}
     .launch p{margin:0;color:var(--muted);line-height:1.7}
+    .launch-meta{display:grid;gap:10px;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+    .launch-meta strong{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#f6f8fb}
+    .launch-note{font-size:14px;color:#d7dce8}
+    .launch-warning{padding:14px 16px;border-radius:18px;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.28);color:#ffedd5}
     .launch-actions{display:flex;flex-wrap:wrap;gap:12px}
+    .launch-remember{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--muted)}
+    .launch-remember input{margin-top:3px}
     .button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);text-decoration:none;font-weight:600}
     .button.primary{background:linear-gradient(135deg,var(--accent), color-mix(in srgb,var(--accent) 62%, #38bdf8));border:none}
     .watermark{position:fixed;right:18px;bottom:18px;z-index:30;display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:rgba(7,10,16,.78);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.14);color:#f6f8fb;text-decoration:none;font-size:13px;box-shadow:0 12px 34px rgba(0,0,0,.28);transition:opacity .24s ease, transform .24s ease, visibility .24s ease}
@@ -1527,7 +2025,15 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
   <div id="launch" class="launch">
     <div class="launch-card">
       <div class="launch-brand">${launchIcon}<div><div class="launch-kicker">${escapeHtmlValue(config.brandName || BRAND_WORDMARK)}</div><h1>${escapeHtmlValue(site.title || 'Creator site')}</h1></div></div>
-      <p>${escapeHtmlValue(site.summary || config.tagline || 'This is an isolated creator site. It keeps its own layout and logic while staying connected to the justbreath ecosystem.')}</p>
+      <p>${meta.launchSummary}</p>
+      <div class="launch-meta">
+        <strong>About this site</strong>
+        <div class="launch-note">${meta.launchEnvironment}</div>
+        <div class="launch-note">Creator: ${meta.ownerName}</div>
+        <div class="launch-note">Profile: <a class="button" style="min-height:34px;padding:0 12px" href="${meta.ownerProfilePath}">@${meta.ownerHandle}</a></div>
+      </div>
+      <div class="launch-warning">${meta.launchWarning}</div>
+      <label class="launch-remember"><input type="checkbox" id="remember-launch" /><span>Remember this decision on this device and open this site directly next time.</span></label>
       <div class="launch-actions">
         <button class="button primary" id="launch-button">Launch site</button>
         <a class="button" href="${profilePath}">Open creator profile</a>
@@ -1540,11 +2046,21 @@ function siteWatermarkHtml(store, owner, site, innerHtml) {
     const launch = document.getElementById('launch');
     const watermark = document.querySelector('.watermark');
     const html = atob('${encoded}');
+    const rememberKey = 'jb_site_launch_ack:${meta.ownerHandle}/${site.slug}';
     iframe.srcdoc = html;
-    document.getElementById('launch-button').addEventListener('click', () => {
+    const openSite = () => {
       launch.classList.add('hidden');
       if (watermark) watermark.classList.add('hidden');
       iframe.classList.add('live');
+    };
+    try {
+      if (localStorage.getItem(rememberKey) === '1') openSite();
+    } catch {}
+    document.getElementById('launch-button').addEventListener('click', () => {
+      try {
+        if (document.getElementById('remember-launch')?.checked) localStorage.setItem(rememberKey, '1');
+      } catch {}
+      openSite();
     });
   </script>
 </body>
@@ -1804,7 +2320,25 @@ function ensureSeedData() {
 }
 
 function stickerById(store, id) {
-  return store.stickers.find((item) => Number(item.id) === Number(id)) || null;
+  const sticker = store.stickers.find((item) => Number(item.id) === Number(id)) || null;
+  if (!sticker) return null;
+  return {
+    id: sticker.id,
+    packId: sticker.packId,
+    userId: sticker.userId,
+    name: sticker.name,
+    mimeType: sticker.mimeType,
+    dataUrl: stickerMediaUrl(sticker),
+    fileUrl: sticker.fileUrl || '',
+    previewUrl: sticker.previewUrl || stickerMediaUrl(sticker),
+    kind: sticker.kind || 'static',
+    sourceType: sticker.sourceType || sanitizeStickerSourceType('', sticker.mimeType),
+    durationMs: Number(sticker.durationMs || 0),
+    width: Number(sticker.width || 0),
+    height: Number(sticker.height || 0),
+    createdAt: sticker.createdAt,
+    updatedAt: sticker.updatedAt
+  };
 }
 
 function getOtherUserId(room, authUserId) {
@@ -1836,9 +2370,27 @@ function userScore(store, userId) {
   return posts.length * 4 + projects.length * 6 + sites.length * 6 + messages + comments + likes * 2 + followers * 3;
 }
 
+function userProfileVisibility(user) {
+  return ['public', 'handle-only', 'private'].includes(user?.privacy?.profileVisibility)
+    ? user.privacy.profileVisibility
+    : 'public';
+}
+
+function userAppearsInPublicDirectory(user, viewerUserId = null) {
+  if (!user || user.bannedAt) return false;
+  if (Number(viewerUserId || 0) === Number(user.id || 0)) return true;
+  return userProfileVisibility(user) === 'public';
+}
+
+function userCanOpenPublicProfile(user, viewerUserId = null) {
+  if (!user || user.bannedAt) return false;
+  if (Number(viewerUserId || 0) === Number(user.id || 0)) return true;
+  return userProfileVisibility(user) !== 'private';
+}
+
 function publicUser(store, user, viewerUserId = null) {
   if (!user) return null;
-  const profileVisibility = user.privacy?.profileVisibility || 'public';
+  const profileVisibility = userProfileVisibility(user);
   const isSelf = Number(viewerUserId) === Number(user.id);
   const isHandleOnly = profileVisibility === 'handle-only' && !isSelf;
   const isPrivate = profileVisibility === 'private' && !isSelf;
@@ -1881,6 +2433,37 @@ function publicUser(store, user, viewerUserId = null) {
       followedBy: followsUser(store, user.id, viewerUserId),
       friendship: friendshipState(store, viewerUserId, user.id)
     } : null
+  };
+}
+
+function adminUserPayload(store, user, viewerUserId = null) {
+  if (!user) return null;
+  const base = publicUser(store, user, viewerUserId);
+  const plan = subscriptionPlan(user.billing?.planId || '');
+  const siteCount = store.sites.filter((site) => Number(site.userId) === Number(user.id)).length;
+  const siteLimit = userSiteLimit(user);
+  const verificationRequested = store.verificationRequests.some((request) => Number(request.userId) === Number(user.id) && request.status === 'pending');
+  return {
+    ...base,
+    displayName: user.displayName,
+    bio: user.bio,
+    avatarUrl: user.avatarUrl,
+    bannerUrl: user.bannerUrl,
+    email: user.email,
+    roleInternal: user.roleInternal,
+    billing: {
+      planId: user.billing?.planId || '',
+      planLabel: plan?.label || 'Free',
+      renewsAt: user.billing?.renewsAt || null,
+      storageLimitMB: Number(user.billing?.storageLimitMB || 0)
+    },
+    bannedAt: user.bannedAt || null,
+    banReason: user.banReason || '',
+    siteCount,
+    siteLimit: Number.isFinite(siteLimit) ? siteLimit : null,
+    siteLimitLabel: Number.isFinite(siteLimit) ? String(siteLimit) : 'Unlimited',
+    siteUnlimited: !Number.isFinite(siteLimit),
+    verificationRequested
   };
 }
 
@@ -1962,13 +2545,23 @@ function publicSite(store, site, viewerUserId = null) {
     mode: site.mode,
     uploadMode: site.mode === 'upload' ? (site.uploadMode || (siteUsesBundle(site) ? 'archive' : 'html')) : '',
     templateConfig: isOwner || site.mode === 'template' ? normalizedConfig : null,
+    importReport: isOwner && site.mode === 'upload' ? sanitizeSiteImportReport(site.importReport || {}) : undefined,
     reviewStatus: isOwner ? (site.reviewStatus || 'draft') : undefined,
     reviewNote: isOwner ? (site.reviewNote || '') : undefined,
     createdAt: site.createdAt,
     updatedAt: site.updatedAt,
     owner: publicUser(store, owner, viewerUserId),
     iconUrl: siteIconUrl(store, site, owner),
-    path: `/@${ownerHandle}/${site.slug}`,
+    path: site.mode === 'upload' ? `/@${ownerHandle}/${site.slug}/` : `/@${ownerHandle}/${site.slug}`,
+    launchInfo: {
+      title: site.title,
+      summary: site.summary || normalizedConfig.body || '',
+      ownerName: owner?.displayName || ownerHandle || 'Creator',
+      ownerHandle,
+      ownerProfilePath: `/@${ownerHandle}`,
+      moderationNote: 'This site is moderated by justbreath, but it keeps its own design, rules and interaction patterns inside an isolated surface.',
+      environmentNote: 'You are about to enter a creator-controlled environment that may look and behave differently from the main platform.'
+    },
     projectId: site.projectId,
     project: project ? { id: project.id, slug: project.slug, title: project.title, path: `/project/${project.slug}` } : null,
     discussionPath: project ? `/project/${project.slug}` : `/@${ownerHandle}`
@@ -1985,7 +2578,303 @@ function ownerSiteDetails(store, site, viewerUserId = null) {
   return details;
 }
 
+function normalizeReportTargetType(value) {
+  if (value === 'profile') return 'user';
+  return ['user', 'post', 'site', 'project', 'message', 'other'].includes(value) ? value : 'other';
+}
+
+function moderationTargetMeta(store, targetType, targetId = null) {
+  const type = normalizeReportTargetType(targetType);
+  if (type === 'user') {
+    const user = store.users.find((item) => Number(item.id) === Number(targetId));
+    if (!user) return null;
+    return {
+      type,
+      id: user.id,
+      label: `Profile @${user.handleCanonical}`,
+      url: `/@${user.handleCanonical}`,
+      targetOwnerUserId: Number(user.id),
+      handleCanonical: user.handleCanonical
+    };
+  }
+  if (type === 'post') {
+    const post = store.posts.find((item) => Number(item.id) === Number(targetId));
+    if (!post) return null;
+    const author = store.users.find((item) => Number(item.id) === Number(post.userId));
+    return {
+      type,
+      id: post.id,
+      label: post.title ? `Post: ${post.title}` : `Post by @${author?.handleCanonical || post.userId}`,
+      url: author ? `/@${author.handleCanonical}` : '/feed',
+      targetOwnerUserId: Number(post.userId)
+    };
+  }
+  if (type === 'site') {
+    const site = store.sites.find((item) => Number(item.id) === Number(targetId));
+    if (!site) return null;
+    const owner = store.users.find((item) => Number(item.id) === Number(site.userId));
+    const ownerHandle = owner?.handleCanonical || canonicalHandle(owner?.handle);
+    return {
+      type,
+      id: site.id,
+      label: `Site: ${site.title}`,
+      url: ownerHandle ? `/@${ownerHandle}/${site.slug}` : '',
+      targetOwnerUserId: Number(site.userId)
+    };
+  }
+  if (type === 'project') {
+    const project = store.projects.find((item) => Number(item.id) === Number(targetId));
+    if (!project) return null;
+    return {
+      type,
+      id: project.id,
+      label: `Project: ${project.title}`,
+      url: `/project/${project.slug}`,
+      targetOwnerUserId: Number(project.userId)
+    };
+  }
+  if (type === 'message') {
+    const message = store.messages.find((item) => Number(item.id) === Number(targetId));
+    if (!message) return null;
+    const room = store.rooms.find((item) => Number(item.id) === Number(message.roomId));
+    const author = store.users.find((item) => Number(item.id) === Number(message.userId));
+    const roomLabel = room?.title || `room #${message.roomId}`;
+    return {
+      type,
+      id: message.id,
+      label: `Message in ${roomLabel}`,
+      url: '/messages',
+      targetOwnerUserId: Number(message.userId)
+    };
+  }
+  return {
+    type: 'other',
+    id: null,
+    label: '',
+    url: '',
+    targetOwnerUserId: null,
+    handleCanonical: null
+  };
+}
+
+function adminReportPayload(store, report, viewerUserId = null) {
+  if (!report) return null;
+  const reporter = store.users.find((item) => Number(item.id) === Number(report.reporterUserId));
+  const target = moderationTargetMeta(store, report.targetType, report.targetId) || null;
+  const pendingDeletion = findPendingDeletionJob(store, report.targetType, report.targetId);
+  return {
+    id: report.id,
+    reason: report.reason,
+    details: report.details,
+    status: report.status,
+    resolutionNote: report.resolutionNote || '',
+    createdAt: report.createdAt,
+    updatedAt: report.updatedAt,
+    resolvedAt: report.resolvedAt,
+    resolvedByUserId: report.resolvedByUserId,
+    reporter: reporter ? publicUser(store, reporter, viewerUserId) : null,
+    target: {
+      type: report.targetType,
+      id: target?.id ?? report.targetId ?? null,
+      label: target?.label || report.targetLabel || 'Removed target',
+      url: target?.url || report.targetUrl || '',
+      targetOwnerUserId: target?.targetOwnerUserId ?? report.targetOwnerUserId ?? null,
+      handleCanonical: target?.handleCanonical || null
+    },
+    pendingDeletion: pendingDeletion ? adminDeletionJobPayload(store, pendingDeletion, viewerUserId) : null
+  };
+}
+
+function removePostFromStore(store, postId) {
+  const post = store.posts.find((item) => Number(item.id) === Number(postId));
+  if (!post) return null;
+  store.posts = store.posts.filter((item) => Number(item.id) !== Number(post.id));
+  store.comments = store.comments.filter((item) => Number(item.postId) !== Number(post.id));
+  store.likes = store.likes.filter((item) => Number(item.postId) !== Number(post.id));
+  return post;
+}
+
+function removeProjectFromStore(store, projectId) {
+  const project = store.projects.find((item) => Number(item.id) === Number(projectId));
+  if (!project) return null;
+  store.projects = store.projects.filter((item) => Number(item.id) !== Number(project.id));
+  for (const site of store.sites) {
+    if (Number(site.projectId) === Number(project.id)) site.projectId = null;
+  }
+  return project;
+}
+
+function removeSiteFromStore(store, siteId) {
+  const site = store.sites.find((item) => Number(item.id) === Number(siteId));
+  if (!site) return null;
+  removeSiteStoredContent(site);
+  store.sites = store.sites.filter((item) => Number(item.id) !== Number(site.id));
+  for (const project of store.projects) {
+    if (Number(project.siteId) === Number(site.id)) project.siteId = null;
+  }
+  return site;
+}
+
+function removeMessageFromStore(store, messageId) {
+  const message = store.messages.find((item) => Number(item.id) === Number(messageId));
+  if (!message) return null;
+  store.messages = store.messages.filter((item) => Number(item.id) !== Number(message.id));
+  store.reactions = ensureArray(store.reactions).filter((item) => Number(item.messageId) !== Number(message.id));
+  store.pinnedMessages = ensureArray(store.pinnedMessages).filter((item) => Number(item.messageId) !== Number(message.id));
+  return message;
+}
+
+function removeUserAccountFromStore(store, userId) {
+  const numericUserId = Number(userId);
+  const user = store.users.find((item) => Number(item.id) === numericUserId);
+  if (!user) return null;
+  const deletedPostIds = new Set(store.posts.filter((item) => Number(item.userId) === numericUserId).map((item) => Number(item.id)));
+  const deletedMessageIds = new Set(store.messages.filter((item) => Number(item.userId) === numericUserId).map((item) => Number(item.id)));
+  store.sessions = store.sessions.filter((item) => Number(item.userId) !== numericUserId);
+  store.likes = store.likes.filter((item) => Number(item.userId) !== numericUserId && !deletedPostIds.has(Number(item.postId)));
+  store.comments = store.comments.filter((item) => Number(item.userId) !== numericUserId && !deletedPostIds.has(Number(item.postId)));
+  store.posts = store.posts.filter((item) => Number(item.userId) !== numericUserId);
+  store.messages = store.messages.filter((item) => Number(item.userId) !== numericUserId);
+  store.projects = store.projects.filter((item) => Number(item.userId) !== numericUserId);
+  for (const site of store.sites.filter((item) => Number(item.userId) === numericUserId && item.htmlPath)) removeSiteStoredContent(site);
+  store.sites = store.sites.filter((item) => Number(item.userId) !== numericUserId);
+  store.stickerPacks = store.stickerPacks.filter((item) => Number(item.userId) !== numericUserId);
+  store.stickers = store.stickers.filter((item) => Number(item.userId) !== numericUserId);
+  store.notifications = store.notifications.filter((item) => Number(item.userId) !== numericUserId);
+  store.follows = store.follows.filter((item) => Number(item.followerUserId) !== numericUserId && Number(item.targetUserId) !== numericUserId);
+  store.friendRequests = store.friendRequests.filter((item) => Number(item.fromUserId) !== numericUserId && Number(item.toUserId) !== numericUserId);
+  store.verificationRequests = store.verificationRequests.filter((item) => Number(item.userId) !== numericUserId);
+  store.botTokens = ensureArray(store.botTokens).filter((item) => Number(item.userId) !== numericUserId);
+  store.readReceipts = ensureArray(store.readReceipts).filter((item) => Number(item.userId) !== numericUserId);
+  store.reactions = ensureArray(store.reactions).filter((item) => Number(item.userId) !== numericUserId && !deletedMessageIds.has(Number(item.messageId)));
+  store.pinnedMessages = ensureArray(store.pinnedMessages).filter((item) => !deletedMessageIds.has(Number(item.messageId)) && Number(item.pinnedByUserId) !== numericUserId);
+  store.reports = ensureArray(store.reports).filter((item) => Number(item.reporterUserId) !== numericUserId && Number(item.targetOwnerUserId) !== numericUserId);
+  store.workspaces = store.workspaces.filter((item) => Number(item.ownerUserId) !== numericUserId);
+  for (const workspace of store.workspaces) {
+    workspace.memberIds = workspace.memberIds.filter((id) => Number(id) !== numericUserId);
+    delete workspace.memberRoles[String(numericUserId)];
+  }
+  for (const room of store.rooms) {
+    room.memberIds = room.memberIds.filter((id) => Number(id) !== numericUserId);
+    delete room.memberRoles[String(numericUserId)];
+    room.archivedByUserIds = room.archivedByUserIds.filter((id) => Number(id) !== numericUserId);
+    room.pinnedByUserIds = room.pinnedByUserIds.filter((id) => Number(id) !== numericUserId);
+    room.mutedByUserIds = room.mutedByUserIds.filter((id) => Number(id) !== numericUserId);
+  }
+  store.rooms = store.rooms.filter((room) => room.memberIds.length > 0);
+  store.users = store.users.filter((item) => Number(item.id) !== numericUserId);
+  return user;
+}
+
+const DELETION_GRACE_MS = 24 * 60 * 60 * 1000;
+
+function ensureDeletionJobs(store) {
+  if (!store.deletionJobs) store.deletionJobs = [];
+  if (!store.seq.deletionJobs) store.seq.deletionJobs = 0;
+}
+
+function normalizeDeletionTargetType(value) {
+  return ['user', 'post', 'site', 'project', 'message'].includes(value) ? value : null;
+}
+
+function findPendingDeletionJob(store, targetType, targetId) {
+  ensureDeletionJobs(store);
+  const type = normalizeDeletionTargetType(targetType);
+  const numericTargetId = Number(targetId || 0);
+  if (!type || !numericTargetId) return null;
+  return ensureArray(store.deletionJobs).find((job) => job.targetType === type && Number(job.targetId) === numericTargetId) || null;
+}
+
+function adminDeletionJobPayload(store, job, viewerUserId = null) {
+  if (!job) return null;
+  const scheduledBy = store.users.find((item) => Number(item.id) === Number(job.scheduledByUserId));
+  const target = moderationTargetMeta(store, job.targetType, job.targetId) || null;
+  return {
+    id: job.id,
+    targetType: job.targetType,
+    targetId: Number(target?.id || job.targetId || 0),
+    target: {
+      type: job.targetType,
+      id: Number(target?.id || job.targetId || 0),
+      label: target?.label || job.targetLabel || 'Removed target',
+      url: target?.url || job.targetUrl || '',
+      targetOwnerUserId: target?.targetOwnerUserId ?? job.targetOwnerUserId ?? null
+    },
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt || job.createdAt,
+    deleteAfter: job.deleteAfter,
+    note: job.note || '',
+    scheduledBy: scheduledBy ? publicUser(store, scheduledBy, viewerUserId) : null
+  };
+}
+
+function scheduleDeletionJob(store, targetType, targetId, actorUserId, note = '') {
+  ensureDeletionJobs(store);
+  const type = normalizeDeletionTargetType(targetType);
+  const target = moderationTargetMeta(store, type, targetId);
+  if (!type || !target?.id) return null;
+  const existing = findPendingDeletionJob(store, type, target.id);
+  if (existing) return existing;
+  const createdAt = nowIso();
+  const job = {
+    id: nextId(store, 'deletionJobs'),
+    targetType: type,
+    targetId: Number(target.id),
+    targetLabel: target.label || '',
+    targetUrl: target.url || '',
+    targetOwnerUserId: target.targetOwnerUserId ?? null,
+    createdAt,
+    updatedAt: createdAt,
+    deleteAfter: new Date(Date.now() + DELETION_GRACE_MS).toISOString(),
+    scheduledByUserId: Number(actorUserId || 0),
+    note: sanitizeText(note || '', 300)
+  };
+  store.deletionJobs.push(job);
+  return job;
+}
+
+function restoreDeletionJob(store, jobId) {
+  ensureDeletionJobs(store);
+  const index = ensureArray(store.deletionJobs).findIndex((job) => Number(job.id) === Number(jobId));
+  if (index < 0) return null;
+  const [job] = store.deletionJobs.splice(index, 1);
+  return job || null;
+}
+
+function performDeletionJob(store, job) {
+  const type = normalizeDeletionTargetType(job?.targetType);
+  if (!type) return false;
+  if (type === 'post') return Boolean(removePostFromStore(store, job.targetId));
+  if (type === 'site') return Boolean(removeSiteFromStore(store, job.targetId));
+  if (type === 'project') return Boolean(removeProjectFromStore(store, job.targetId));
+  if (type === 'user') return Boolean(removeUserAccountFromStore(store, job.targetId));
+  if (type === 'message') return Boolean(removeMessageFromStore(store, job.targetId));
+  return false;
+}
+
+function runDeletionMaintenance(store) {
+  ensureDeletionJobs(store);
+  const now = Date.now();
+  const keep = [];
+  let changed = false;
+  for (const job of ensureArray(store.deletionJobs)) {
+    const dueAt = new Date(job.deleteAfter || 0).getTime();
+    if (!Number.isFinite(dueAt) || dueAt > now) {
+      keep.push(job);
+      continue;
+    }
+    performDeletionJob(store, job);
+    changed = true;
+  }
+  if (keep.length !== store.deletionJobs.length) {
+    store.deletionJobs = keep;
+    changed = true;
+  }
+  return changed;
+}
+
 function userSiteLimit(user) {
+  if (isOperatorUser(user)) return Infinity;
   const plan = subscriptions.find(p => p.id === (user.billing?.planId || ''));
   if (!plan) return MAX_SITES_FREE;
   if (plan.extraSites === -1) return Infinity;
@@ -2134,8 +3023,8 @@ function publicMessage(store, message, authUserId = null) {
     encrypted: message.encrypted,
     ciphertext: message.deletedAt ? '' : message.ciphertext,
     iv: message.deletedAt ? '' : message.iv,
-    attachment: message.deletedAt ? null : (message.attachment || null),
-    attachments: message.deletedAt ? [] : (Array.isArray(message.attachments) ? message.attachments : []),
+    attachment: message.deletedAt ? null : sanitizeAttachment(message.attachment || null),
+    attachments: message.deletedAt ? [] : sanitizeAttachmentList(message.attachments),
     sticker: (!message.deletedAt && message.stickerId) ? stickerById(store, message.stickerId) : null,
     replyToId: message.replyToId || null,
     replyTo,
@@ -2278,7 +3167,12 @@ function siteMetaPayload(store, site, owner, innerHtml = '') {
     description: escapeHtmlValue(String(descriptionPlain).replace(/\s+/g, ' ').slice(0, 320)),
     robots: indexingMode,
     keywords: escapeHtmlValue(config.seoKeywords || ''),
-    jsonLd
+    jsonLd,
+    ownerName: escapeHtmlValue(owner?.displayName || ownerHandle || 'Creator'),
+    ownerProfilePath: `/@${ownerHandle}`,
+    launchSummary: escapeHtmlValue(site.summary || config.body || 'This is an isolated creator site inside justbreath.'),
+    launchWarning: 'This site is moderated, but it can keep its own rules, layouts and design language. Some controls may differ from the main platform.',
+    launchEnvironment: 'You are entering a separate creator-managed environment inside justbreath.'
   };
 }
 
@@ -2584,7 +3478,10 @@ function mePayload(store, user) {
       status: user.status || 'active',
       handleCanonical: user.handleCanonical,
       avatarText: avatarText(user.displayName || user.handle),
-      security: { hasPublicKey: Boolean(user.security?.publicKeyJwk) }
+      security: {
+        hasPublicKey: Boolean(user.security?.publicKeyJwk),
+        hasPassword: Boolean(user.passwordHash)
+      }
     },
     projects,
     sites,
@@ -2597,7 +3494,8 @@ function mePayload(store, user) {
         .filter((pack) => Number(pack.userId) === Number(user.id) || Number(pack.userId) === Number(brandUser?.id))
         .map((pack) => ({
           ...pack,
-          stickers: store.stickers.filter((item) => Number(item.packId) === Number(pack.id))
+          coverSticker: pack.coverStickerId ? stickerById(store, pack.coverStickerId) : null,
+          stickers: store.stickers.filter((item) => Number(item.packId) === Number(pack.id)).map((item) => stickerById(store, item.id))
         }));
     })(),
     notifications,
@@ -2753,6 +3651,7 @@ function adsenseHeadSnippet() {
 }
 
 const app = express();
+app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(compression({
   filter: (req, res) => {
@@ -2803,12 +3702,28 @@ function rateLimit(key, maxPerMinute) {
   if (entry.count > maxPerMinute) return true; // limited
   return false;
 }
-app.use(express.json({ limit: '8mb' }));
+
+function requestHasTrustedWriteOrigin(req) {
+  const origin = String(req.get('origin') || '').trim();
+  const referer = String(req.get('referer') || '').trim();
+  const base = requestBaseUrl(req);
+  if (origin) return origin === base;
+  if (referer) return referer.startsWith(`${base}/`);
+  return true;
+}
+
+app.use(express.json({ limit: '1gb' }));
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+  res.setHeader('Origin-Agent-Cluster', '?1');
+  if (req.secure || req.get('x-forwarded-proto') === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://www.googletagservices.com https://www.googletagmanager.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://fundingchoicesmessages.google.com",
@@ -2822,6 +3737,13 @@ app.use((req, res, next) => {
     "base-uri 'self'"
   ].join('; '));
   next();
+});
+
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  if (requestHasTrustedWriteOrigin(req)) return next();
+  return res.status(403).json({ error: 'Cross-site write request blocked.' });
 });
 
 app.use((req, _res, next) => {
@@ -3313,7 +4235,11 @@ app.post('/api/auth/logout', (req, res) => {
 app.get('/api/bootstrap', (req, res) => {
   const store = loadStore();
   const viewerId = req.authUser?.id || null;
-  const publicUsers = store.users.map((user) => publicUser(store, user, viewerId)).sort((a, b) => b.score - a.score);
+  const publicUsers = store.users
+    .filter((user) => userAppearsInPublicDirectory(user, viewerId))
+    .map((user) => publicUser(store, user, viewerId))
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score);
   const publicProjects = store.projects.filter((item) => item.visibility === 'public').map((item) => publicProject(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'updatedAt'));
   const publicSites = store.sites.filter((item) => item.visibility === 'public').map((item) => publicSite(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'updatedAt'));
   const feed = store.posts.filter((item) => item.status === 'published' && item.kind === 'quick').map((item) => publicPost(store, item, viewerId)).sort((a, b) => sortDateDesc(a, b, 'publishedAt'));
@@ -3373,7 +4299,10 @@ app.get('/api/search/all', (req, res) => {
   const sort = String(req.query.sort || 'relevance');
   const viewerId = req.authUser?.id || null;
   const roomList = store.rooms.filter((room) => room.visibility === 'open' || room.memberIds.includes(Number(viewerId))).map((room) => publicRoom(store, room, viewerId));
-  const userList = store.users.map((user) => publicUser(store, user, viewerId));
+  const userList = store.users
+    .filter((user) => userAppearsInPublicDirectory(user, viewerId))
+    .map((user) => publicUser(store, user, viewerId))
+    .filter(Boolean);
   const projectList = store.projects.filter((item) => item.visibility === 'public').map((item) => publicProject(store, item, viewerId));
   const siteList = store.sites.filter((item) => item.visibility === 'public').map((item) => publicSite(store, item, viewerId));
   const scoreText = (haystack) => q ? String(haystack || '').toLowerCase().includes(q) : true;
@@ -3458,6 +4387,7 @@ app.get('/api/public/profile/:handle', (req, res) => {
   const handle = canonicalHandle(req.params.handle);
   const user = store.users.find((item) => item.handleCanonical === handle);
   if (!user) return res.status(404).json({ error: 'Profile not found.' });
+  if (!userCanOpenPublicProfile(user, req.authUser?.id)) return res.status(404).json({ error: 'Profile not found.' });
   const profile = publicUser(store, user, req.authUser?.id);
   const projects = store.projects.filter((item) => Number(item.userId) === Number(user.id) && item.visibility === 'public').map((item) => publicProject(store, item, req.authUser?.id));
   const sites = store.sites.filter((item) => Number(item.userId) === Number(user.id) && item.visibility === 'public').map((item) => publicSite(store, item, req.authUser?.id));
@@ -3471,22 +4401,26 @@ app.get('/api/public/profile/:handle/relations', (req, res) => {
   const handle = canonicalHandle(req.params.handle);
   const user = store.users.find((item) => item.handleCanonical === handle);
   if (!user) return res.status(404).json({ error: 'Profile not found.' });
+  if (!userAppearsInPublicDirectory(user, req.authUser?.id)) return res.status(404).json({ error: 'Profile not found.' });
   const kind = String(req.query.kind || 'followers');
   const viewerId = req.authUser?.id || null;
   let list = [];
   if (kind === 'followers') {
     list = store.follows.filter((f) => Number(f.targetUserId) === Number(user.id))
       .map((f) => publicUser(store, store.users.find((u) => Number(u.id) === Number(f.followerUserId)), viewerId))
-      .filter(Boolean);
+      .filter((item) => item && userAppearsInPublicDirectory(store.users.find((u) => Number(u.id) === Number(item.id)), viewerId));
   } else if (kind === 'following') {
     list = store.follows.filter((f) => Number(f.followerUserId) === Number(user.id))
       .map((f) => publicUser(store, store.users.find((u) => Number(u.id) === Number(f.targetUserId)), viewerId))
-      .filter(Boolean);
+      .filter((item) => item && userAppearsInPublicDirectory(store.users.find((u) => Number(u.id) === Number(item.id)), viewerId));
   } else if (kind === 'friends') {
     const friendIds = store.friendRequests
       .filter((r) => r.status === 'accepted' && (Number(r.fromUserId) === Number(user.id) || Number(r.toUserId) === Number(user.id)))
       .map((r) => Number(r.fromUserId) === Number(user.id) ? Number(r.toUserId) : Number(r.fromUserId));
-    list = friendIds.map((id) => publicUser(store, store.users.find((u) => Number(u.id) === id), viewerId)).filter(Boolean);
+    list = friendIds
+      .filter((id) => userAppearsInPublicDirectory(store.users.find((u) => Number(u.id) === Number(id)), viewerId))
+      .map((id) => publicUser(store, store.users.find((u) => Number(u.id) === id), viewerId))
+      .filter(Boolean);
   }
   res.json({ kind, users: list });
 });
@@ -3580,7 +4514,8 @@ app.post('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
         type: isAudio ? 'audio' : 'image',
         width: Number(raw.width || 0),
         height: Number(raw.height || 0),
-        duration: Number(raw.duration || 0)
+        duration: Number(raw.duration || 0),
+        voice: Boolean(raw.voice)
       });
     } else if (raw.url) {
       attachments.push({
@@ -3606,7 +4541,8 @@ app.post('/api/chat/rooms/:slug/messages', requireAuth, (req, res) => {
           type: isAudio ? 'audio' : 'image',
           width: Number(req.body?.attachmentWidth || 0),
           height: Number(req.body?.attachmentHeight || 0),
-          duration: Number(req.body?.attachmentDuration || 0)
+          duration: Number(req.body?.attachmentDuration || 0),
+          voice: Boolean(req.body?.attachmentVoice)
         };
       }
     } else if (req.body?.attachmentUrl) {
@@ -4235,39 +5171,73 @@ app.delete('/api/me/account', requireAuth, (req, res) => {
   const user = store.users.find((item) => Number(item.id) === Number(req.authUser.id));
   if (!user) return res.status(404).json({ error: 'User not found.' });
   if (confirm !== 'DELETE') return res.status(400).json({ error: 'Type DELETE to confirm.' });
+  if (!user.passwordHash) {
+    return res.status(400).json({ error: 'Set a justbreath password first. Discord/Google passwords cannot be used here.' });
+  }
+  if (!password) return res.status(400).json({ error: 'Password is required.' });
   if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(400).json({ error: 'Incorrect password.' });
-  const userId = Number(user.id);
-  store.sessions = store.sessions.filter((item) => Number(item.userId) !== userId);
-  store.likes = store.likes.filter((item) => Number(item.userId) !== userId);
-  store.comments = store.comments.filter((item) => Number(item.userId) !== userId);
-  store.posts = store.posts.filter((item) => Number(item.userId) !== userId);
-  store.messages = store.messages.filter((item) => Number(item.userId) !== userId);
-  store.projects = store.projects.filter((item) => Number(item.userId) !== userId);
-  for (const site of store.sites.filter((item) => Number(item.userId) === userId && item.htmlPath)) removeSiteStoredContent(site);
-  store.sites = store.sites.filter((item) => Number(item.userId) !== userId);
-  store.stickerPacks = store.stickerPacks.filter((item) => Number(item.userId) !== userId);
-  store.stickers = store.stickers.filter((item) => Number(item.userId) !== userId);
-  store.notifications = store.notifications.filter((item) => Number(item.userId) !== userId);
-  store.follows = store.follows.filter((item) => Number(item.followerUserId) !== userId && Number(item.targetUserId) !== userId);
-  store.friendRequests = store.friendRequests.filter((item) => Number(item.fromUserId) !== userId && Number(item.toUserId) !== userId);
-  store.verificationRequests = store.verificationRequests.filter((item) => Number(item.userId) !== userId);
-  store.workspaces = store.workspaces.filter((item) => Number(item.ownerUserId) !== userId);
-  for (const workspace of store.workspaces) {
-    workspace.memberIds = workspace.memberIds.filter((id) => Number(id) !== userId);
-    delete workspace.memberRoles[String(userId)];
-  }
-  for (const room of store.rooms) {
-    room.memberIds = room.memberIds.filter((id) => Number(id) !== userId);
-    delete room.memberRoles[String(userId)];
-    room.archivedByUserIds = room.archivedByUserIds.filter((id) => Number(id) !== userId);
-    room.pinnedByUserIds = room.pinnedByUserIds.filter((id) => Number(id) !== userId);
-    room.mutedByUserIds = room.mutedByUserIds.filter((id) => Number(id) !== userId);
-  }
-  store.rooms = store.rooms.filter((room) => room.memberIds.length > 0);
-  store.users = store.users.filter((item) => Number(item.id) !== userId);
+  removeUserAccountFromStore(store, user.id);
   saveStore(store);
   clearSessionCookie(req, res);
   res.json({ ok: true });
+});
+
+app.post('/api/reports', requireAuth, requireMember, (req, res) => {
+  const store = loadStore();
+  if (!store.reports) store.reports = [];
+  if (!store.seq.reports) store.seq.reports = 0;
+  const targetType = normalizeReportTargetType(String(req.body?.targetType || '').toLowerCase());
+  const targetId = req.body?.targetId === null || req.body?.targetId === undefined || req.body?.targetId === ''
+    ? null
+    : Number(req.body.targetId || 0);
+  const reason = sanitizeText(req.body?.reason || '', 60);
+  const details = sanitizeText(req.body?.details || '', 1600);
+  if (!reason) return res.status(400).json({ error: 'Reason is required.' });
+  let target = null;
+  if (targetType === 'other') {
+    target = {
+      type: 'other',
+      id: null,
+      label: sanitizeText(req.body?.targetLabel || 'Other content', 180),
+      url: sanitizeText(req.body?.targetUrl || '', 320),
+      targetOwnerUserId: null,
+      handleCanonical: null
+    };
+  } else {
+    if (!targetId) return res.status(400).json({ error: 'Target is required.' });
+    target = moderationTargetMeta(store, targetType, targetId);
+    if (!target) return res.status(404).json({ error: 'Target not found.' });
+    if (Number(target.targetOwnerUserId || 0) === Number(req.authUser.id)) {
+      return res.status(400).json({ error: 'You cannot report your own content.' });
+    }
+  }
+  const duplicate = store.reports.find((item) => (
+    Number(item.reporterUserId) === Number(req.authUser.id)
+    && item.status === 'open'
+    && item.targetType === target.type
+    && Number(item.targetId || 0) === Number(target.id || 0)
+  ));
+  if (duplicate) return res.status(409).json({ error: 'You already sent a report for this target.' });
+  const report = {
+    id: nextId(store, 'reports'),
+    reporterUserId: Number(req.authUser.id),
+    targetType: target.type,
+    targetId: target.id ?? null,
+    targetLabel: target.label || '',
+    targetUrl: target.url || '',
+    targetOwnerUserId: target.targetOwnerUserId ?? null,
+    reason,
+    details,
+    status: 'open',
+    resolutionNote: '',
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    resolvedAt: null,
+    resolvedByUserId: null
+  };
+  store.reports.push(report);
+  saveStore(store);
+  res.status(201).json({ report: adminReportPayload(store, report, req.authUser.id) });
 });
 
 app.post('/api/me/projects', requireAuth, (req, res) => {
@@ -4358,7 +5328,7 @@ app.post('/api/me/sites/:id/studio/file', requireAuth, requireMember, (req, res)
   try {
     const relativePath = siteStudioEditablePath(req.body?.path || '');
     if (!relativePath) return res.status(400).json({ error: 'Choose a valid text file path like assets/site.css or scripts/app.js.' });
-    writeSiteStudioText(site, relativePath, req.body?.content || '', { create: true });
+    writeSiteStudioText(site, relativePath, req.body?.content || '', { create: true, maxBytes: siteUploadByteLimit(req.authUser) });
     if (site.reviewStatus === 'approved') site.reviewStatus = 'draft';
     site.updatedAt = nowIso();
     saveStore(store);
@@ -4384,7 +5354,7 @@ app.patch('/api/me/sites/:id/studio/file', requireAuth, requireMember, (req, res
   try {
     const relativePath = siteStudioEditablePath(req.body?.path || 'index.html');
     if (!relativePath) return res.status(400).json({ error: 'Only text-based files can be saved in studio.' });
-    writeSiteStudioText(site, relativePath, req.body?.content || '', { create: false });
+    writeSiteStudioText(site, relativePath, req.body?.content || '', { create: false, maxBytes: siteUploadByteLimit(req.authUser) });
     if (site.reviewStatus === 'approved') site.reviewStatus = 'draft';
     site.updatedAt = nowIso();
     saveStore(store);
@@ -4441,41 +5411,204 @@ app.post('/api/me/sites/template', requireAuth, requireMember, (req, res) => {
   res.status(201).json({ site: publicSite(store, site, req.authUser.id) });
 });
 
-function createArchiveSiteFromRequest(store, req) {
-  const title = sanitizeText(req.body?.title, 100);
-  const slug = slugify(req.body?.slug || title);
+function readArchiveBinaryMeta(req) {
+  const raw = String(req.get('x-jb-site-meta') || '').trim();
+  if (!raw) return {};
+  try {
+    return ensureObject(JSON.parse(decodeURIComponent(raw)));
+  } catch {
+    const err = new Error('Archive metadata header is invalid.');
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
+async function streamArchiveRequestToTempFile(req, options = {}) {
+  const limitBytes = Number.isFinite(options.limitBytes) ? Number(options.limitBytes) : OPERATOR_SITE_ZIP_LIMIT_BYTES;
+  const contentLength = Number(req.get('content-length') || 0);
+  const declaredBytes = Number(req.get('x-jb-archive-bytes') || 0);
+  if (Number.isFinite(contentLength) && contentLength > limitBytes) {
+    const err = new Error(`Archive file must stay under ${archiveLimitLabel(limitBytes)}.`);
+    err.statusCode = 413;
+    throw err;
+  }
+  if (Number.isFinite(declaredBytes) && declaredBytes > limitBytes) {
+    const err = new Error(`Archive file must stay under ${archiveLimitLabel(limitBytes)}.`);
+    err.statusCode = 413;
+    throw err;
+  }
+  const tempRoot = mkdtempSync(path.join(tmpdir(), 'jb-site-upload-'));
+  const tempPath = path.join(tempRoot, 'archive.bin');
+  const output = createWriteStream(tempPath);
+  return await new Promise((resolve, reject) => {
+    let totalBytes = 0;
+    let settled = false;
+    const cleanup = () => {
+      req.off('aborted', onAborted);
+      req.off('data', onData);
+      req.off('end', onEnd);
+      req.off('error', onReqError);
+      output.off('drain', onDrain);
+      output.off('error', onOutputError);
+      output.off('finish', onFinish);
+    };
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      output.destroy();
+      try { rmSync(tempRoot, { recursive: true, force: true }); } catch {}
+      reject(error);
+    };
+    const onAborted = () => {
+      const err = new Error('Archive upload was interrupted.');
+      err.statusCode = 400;
+      fail(err);
+    };
+    const onReqError = (error) => fail(error);
+    const onOutputError = (error) => fail(error);
+    const onDrain = () => req.resume();
+    const onData = (chunk) => {
+      totalBytes += chunk.length;
+      if (totalBytes > limitBytes) {
+        const err = new Error(`Archive file must stay under ${archiveLimitLabel(limitBytes)}.`);
+        err.statusCode = 413;
+        req.resume();
+        fail(err);
+        return;
+      }
+      if (!output.write(chunk)) req.pause();
+    };
+    const onEnd = () => output.end();
+    const onFinish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve({ tempRoot, tempPath, bytes: totalBytes });
+    };
+    req.on('aborted', onAborted);
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', onReqError);
+    output.on('drain', onDrain);
+    output.on('error', onOutputError);
+    output.on('finish', onFinish);
+  });
+}
+
+function cleanupTempArchiveUpload(upload) {
+  if (!upload?.tempRoot) return;
+  try {
+    rmSync(upload.tempRoot, { recursive: true, force: true });
+  } catch {}
+}
+
+async function archiveCreatePayload(store, req, rawPayload = {}, archiveBuffer = null) {
+  const payload = ensureObject(rawPayload);
+  const title = sanitizeText(payload.title, 100);
+  const slug = slugify(payload.slug || title);
   if (!title || !slug) throw new Error('Title is required.');
   if (store.sites.some((site) => Number(site.userId) === Number(req.authUser.id) && site.slug === slug)) {
     const err = new Error('That site slug already exists.');
     err.statusCode = 409;
     throw err;
   }
-  const archiveBase64 = String(req.body?.archiveBase64 || req.body?.zipBase64 || '');
-  if (!archiveBase64) {
-    const err = new Error('Archive file data required (base64).');
+  let resolvedArchiveBuffer = archiveBuffer;
+  if (!resolvedArchiveBuffer) {
+    const archiveBase64 = String(payload.archiveBase64 || payload.zipBase64 || '');
+    if (archiveBase64) resolvedArchiveBuffer = Buffer.from(archiveBase64, 'base64');
+  }
+  if (!resolvedArchiveBuffer?.length) {
+    const err = new Error('Archive file data required.');
     err.statusCode = 400;
     throw err;
   }
-  const archiveBuffer = Buffer.from(archiveBase64, 'base64');
   const siteId = nextId(store, 'sites');
-  const extracted = extractArchiveSiteBundle(siteId, archiveBuffer, req.body?.archiveName || req.body?.zipName || '');
+  const extracted = await extractArchiveSiteBundle(siteId, resolvedArchiveBuffer, payload.archiveName || payload.zipName || '', {
+    maxArchiveBytes: siteArchiveByteLimit(req.authUser),
+    maxExpandedBytes: siteArchiveExpandedByteLimit(req.authUser)
+  });
   return siteDefaults({
     id: siteId,
     userId: req.authUser.id,
-    projectId: req.body?.projectId ? Number(req.body.projectId) : null,
+    projectId: payload.projectId ? Number(payload.projectId) : null,
     slug,
     title,
-    summary: sanitizeText(req.body?.summary, 240),
-    visibility: ['public', 'unlisted', 'private'].includes(req.body?.visibility) ? req.body.visibility : 'public',
+    summary: sanitizeText(payload.summary, 240),
+    visibility: ['public', 'unlisted', 'private'].includes(payload.visibility) ? payload.visibility : 'public',
     mode: 'upload',
     uploadMode: 'archive',
     htmlPath: extracted.htmlPath,
     bundleRoot: extracted.bundleRoot,
+    importReport: extracted.importReport,
     reviewStatus: 'draft',
-    templateConfig: sanitizeSiteConfig(ensureObject(req.body?.templateConfig)),
+    templateConfig: sanitizeSiteConfig({
+      polishMode: 'none',
+      ...ensureObject(payload.templateConfig)
+    }),
     createdAt: nowIso(),
     updatedAt: nowIso()
   });
+}
+
+async function createArchiveSiteFromRequest(store, req) {
+  return await archiveCreatePayload(store, req, req.body, null);
+}
+
+async function createArchiveSiteFromBinaryRequest(store, req, upload, payload = {}) {
+  return await archiveCreatePayload(store, req, payload, readFileSync(upload.tempPath));
+}
+
+async function applyArchiveBufferToSite(site, req, archiveBuffer, archiveName = '') {
+  const extracted = await extractArchiveSiteBundle(site.id, archiveBuffer, archiveName, {
+    maxArchiveBytes: siteArchiveByteLimit(req.authUser),
+    maxExpandedBytes: siteArchiveExpandedByteLimit(req.authUser)
+  });
+  if (site.htmlPath && site.htmlPath !== extracted.htmlPath) removeSiteFile(site.htmlPath);
+  site.htmlPath = extracted.htmlPath;
+  site.bundleRoot = extracted.bundleRoot;
+  site.uploadMode = 'archive';
+  site.importReport = extracted.importReport;
+}
+
+async function inspectArchiveImport(req, archiveBuffer, archiveName = '') {
+  const tempSite = { id: Date.now(), htmlPath: '', bundleRoot: '' };
+  const extracted = await extractArchiveSiteBundle(tempSite.id, archiveBuffer, archiveName, {
+    maxArchiveBytes: siteArchiveByteLimit(req.authUser),
+    maxExpandedBytes: siteArchiveExpandedByteLimit(req.authUser)
+  });
+  tempSite.htmlPath = extracted.htmlPath;
+  tempSite.bundleRoot = extracted.bundleRoot;
+  const html = readSiteFile(extracted.htmlPath) || '';
+  const diagnostics = uploadedSiteDiagnostics({
+    mode: 'upload',
+    uploadMode: 'archive',
+    htmlPath: extracted.htmlPath,
+    bundleRoot: extracted.bundleRoot,
+    importReport: extracted.importReport
+  }, html);
+  removeSiteStoredContent(tempSite);
+  return {
+    archiveName: sanitizeText(archiveName, 180),
+    importReport: extracted.importReport,
+    diagnostics
+  };
+}
+
+function siteImportCapabilitiesPayload(user = null) {
+  return {
+    htmlLimitBytes: siteUploadByteLimit(user),
+    archiveLimitBytes: siteArchiveByteLimit(user),
+    archiveExpandedLimitBytes: siteArchiveExpandedByteLimit(user),
+    supportedArchiveFormats: ['zip', 'tar', 'tgz', 'tar.gz', '7z'],
+    supportedSiteModes: ['single-html', 'archive-package'],
+    studioEditableExtensions: Array.from(SITE_STUDIO_EDITABLE_EXTENSIONS),
+    notes: [
+      'index.html must exist at archive root',
+      'server-side code is imported as static files only',
+      'local bundled assets and extra pages are supported'
+    ]
+  };
 }
 
 app.post('/api/me/sites/upload', requireAuth, requireMember, (req, res) => {
@@ -4486,8 +5619,9 @@ app.post('/api/me/sites/upload', requireAuth, requireMember, (req, res) => {
   const title = sanitizeText(req.body?.title, 100);
   const slug = slugify(req.body?.slug || title);
   const htmlContent = String(req.body?.htmlContent || '');
+  const htmlLimit = siteUploadByteLimit(req.authUser);
   if (!title || !slug || !htmlContent) return res.status(400).json({ error: 'Title, slug and HTML content are required.' });
-  if (Buffer.byteLength(htmlContent, 'utf8') > SITE_UPLOAD_LIMIT_BYTES) return res.status(400).json({ error: 'The uploaded site must stay under 1 MB.' });
+  if (Number.isFinite(htmlLimit) && Buffer.byteLength(htmlContent, 'utf8') > htmlLimit) return res.status(400).json({ error: 'The uploaded site must stay under 1 MB.' });
   if (store.sites.some((site) => Number(site.userId) === Number(req.authUser.id) && site.slug === slug)) return res.status(409).json({ error: 'That site slug already exists.' });
   const siteId = nextId(store, 'sites');
   const htmlPath = ensureSiteFile(siteId, htmlContent);
@@ -4501,46 +5635,49 @@ app.post('/api/me/sites/upload', requireAuth, requireMember, (req, res) => {
     visibility: ['public', 'unlisted', 'private'].includes(req.body?.visibility) ? req.body.visibility : 'public',
     mode: 'upload',
     uploadMode: 'html',
-    templateConfig: sanitizeSiteConfig(ensureObject(req.body?.templateConfig)),
+    templateConfig: sanitizeSiteConfig({
+      polishMode: 'none',
+      ...ensureObject(req.body?.templateConfig)
+    }),
     htmlPath,
     createdAt: nowIso(),
     updatedAt: nowIso()
   });
   store.sites.push(site);
   saveStore(store);
-  res.status(201).json({ site: publicSite(store, site, req.authUser.id) });
+  res.status(201).json({ site: ownerSiteDetails(store, site, req.authUser.id) });
 });
 
 app.delete('/api/me/sites/:id', requireAuth, (req, res) => {
   const store = loadStore();
   const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
   if (!site) return res.status(404).json({ error: 'Site not found.' });
-  removeSiteStoredContent(site);
-  store.sites = store.sites.filter((item) => Number(item.id) !== Number(site.id));
+  removeSiteFromStore(store, site.id);
   saveStore(store);
   res.json({ ok: true });
 });
 
+function applySitePatchFields(site, payload = {}) {
+  let touchedContent = false;
+  if (payload?.title !== undefined) site.title = sanitizeText(payload.title, 100) || site.title;
+  if (payload?.summary !== undefined) site.summary = sanitizeText(payload.summary, 240);
+  if (payload?.visibility !== undefined && ['public', 'unlisted', 'private'].includes(payload.visibility)) site.visibility = payload.visibility;
+  if (payload?.templateConfig && typeof payload.templateConfig === 'object') {
+    touchedContent = true;
+    site.templateConfig = sanitizeSiteConfig(payload.templateConfig, site.templateConfig || {});
+  }
+  return touchedContent;
+}
+
 // ── Update site template config ───────────────────────────────────────────────
-app.patch('/api/me/sites/:id', requireAuth, requireMember, (req, res) => {
+app.patch('/api/me/sites/:id', requireAuth, requireMember, async (req, res) => {
   const store = loadStore();
   const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
   if (!site) return res.status(404).json({ error: 'Site not found.' });
-  let touchedContent = false;
-  if (req.body?.title !== undefined) site.title = sanitizeText(req.body.title, 100) || site.title;
-  if (req.body?.summary !== undefined) site.summary = sanitizeText(req.body.summary, 240);
-  if (req.body?.visibility !== undefined && ['public', 'unlisted', 'private'].includes(req.body.visibility)) site.visibility = req.body.visibility;
-  if (req.body?.templateConfig && typeof req.body.templateConfig === 'object') {
-    touchedContent = true;
-    site.templateConfig = sanitizeSiteConfig(req.body.templateConfig, site.templateConfig || {});
-  }
+  let touchedContent = applySitePatchFields(site, req.body);
   if (site.mode === 'upload' && req.body?.archiveBase64) {
     try {
-      const extracted = extractArchiveSiteBundle(site.id, Buffer.from(String(req.body.archiveBase64 || ''), 'base64'), req.body?.archiveName || '');
-      if (site.htmlPath && site.htmlPath !== extracted.htmlPath) removeSiteFile(site.htmlPath);
-      site.htmlPath = extracted.htmlPath;
-      site.bundleRoot = extracted.bundleRoot;
-      site.uploadMode = 'archive';
+      await applyArchiveBufferToSite(site, req, Buffer.from(String(req.body.archiveBase64 || ''), 'base64'), req.body?.archiveName || '');
       touchedContent = true;
     } catch (error) {
       return res.status(400).json({ error: error.message || 'Could not read archive.' });
@@ -4548,8 +5685,9 @@ app.patch('/api/me/sites/:id', requireAuth, requireMember, (req, res) => {
   }
   if (site.mode === 'upload' && req.body?.htmlContent !== undefined) {
     const htmlContent = String(req.body.htmlContent || '');
+    const htmlLimit = siteUploadByteLimit(req.authUser);
     if (!htmlContent) return res.status(400).json({ error: 'HTML content is required.' });
-    if (Buffer.byteLength(htmlContent, 'utf8') > SITE_UPLOAD_LIMIT_BYTES) return res.status(400).json({ error: 'The uploaded site must stay under 1 MB.' });
+    if (Number.isFinite(htmlLimit) && Buffer.byteLength(htmlContent, 'utf8') > htmlLimit) return res.status(400).json({ error: 'The uploaded site must stay under 1 MB.' });
     touchedContent = true;
     if (siteUsesBundle(site)) {
       const htmlAbsPath = resolveDataPath(site.htmlPath);
@@ -4564,7 +5702,76 @@ app.patch('/api/me/sites/:id', requireAuth, requireMember, (req, res) => {
   if (site.reviewStatus === 'approved' && touchedContent) site.reviewStatus = 'draft';
   site.updatedAt = nowIso();
   saveStore(store);
-  res.json({ site: publicSite(store, site, req.authUser.id) });
+  res.json({ site: ownerSiteDetails(store, site, req.authUser.id) });
+});
+
+app.post('/api/me/sites/upload-archive-binary', requireAuth, requireMember, async (req, res) => {
+  if (rateLimit(`site-upload-binary:${req.authUser.id}`, 6)) return res.status(429).json({ error: 'Too many archive uploads. Wait a minute and try again.' });
+  const store = loadStore();
+  const userSites = store.sites.filter((site) => Number(site.userId) === Number(req.authUser.id));
+  const limit = userSiteLimit(req.authUser);
+  if (userSites.length >= limit) return res.status(403).json({ error: `Site limit reached (\${limit}). Upgrade to create more.`, upgradeRequired: true });
+  let upload = null;
+  try {
+    const payload = readArchiveBinaryMeta(req);
+    upload = await streamArchiveRequestToTempFile(req, { limitBytes: siteArchiveByteLimit(req.authUser) });
+    const site = await createArchiveSiteFromBinaryRequest(store, req, upload, payload);
+    store.sites.push(site);
+    saveStore(store);
+    res.status(201).json({ site: ownerSiteDetails(store, site, req.authUser.id) });
+  } catch (err) {
+    req.resume();
+    console.error('[sites/upload-archive-binary]', err.message);
+    res.status(err.statusCode || 400).json({ error: err.message || 'Could not read archive.' });
+  } finally {
+    cleanupTempArchiveUpload(upload);
+  }
+});
+
+app.post('/api/me/sites/import-inspect', requireAuth, requireMember, async (req, res) => {
+  if (rateLimit(`site-import-inspect:${req.authUser.id}`, 20)) return res.status(429).json({ error: 'Too many import inspections. Wait a minute and try again.' });
+  try {
+    const archiveBase64 = String(req.body?.archiveBase64 || req.body?.zipBase64 || '');
+    const archiveName = sanitizeText(req.body?.archiveName || req.body?.zipName || 'archive.zip', 180);
+    if (!archiveBase64) return res.status(400).json({ error: 'Archive file data required.' });
+    const inspection = await inspectArchiveImport(req, Buffer.from(archiveBase64, 'base64'), archiveName);
+    res.json(inspection);
+  } catch (error) {
+    res.status(error.statusCode || 400).json({ error: error.message || 'Could not inspect archive.' });
+  }
+});
+
+app.get('/api/me/sites/import-capabilities', requireAuth, (req, res) => {
+  res.json(siteImportCapabilitiesPayload(req.authUser));
+});
+
+app.get('/api/developers/capabilities', (_req, res) => {
+  res.json(siteImportCapabilitiesPayload(null));
+});
+
+app.put('/api/me/sites/:id/archive-binary', requireAuth, requireMember, async (req, res) => {
+  if (rateLimit(`site-update-binary:${req.authUser.id}`, 6)) return res.status(429).json({ error: 'Too many archive updates. Wait a minute and try again.' });
+  const store = loadStore();
+  const site = store.sites.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
+  if (!site) return res.status(404).json({ error: 'Site not found.' });
+  let touchedContent = false;
+  let upload = null;
+  try {
+    const payload = readArchiveBinaryMeta(req);
+    touchedContent = applySitePatchFields(site, payload);
+    upload = await streamArchiveRequestToTempFile(req, { limitBytes: siteArchiveByteLimit(req.authUser) });
+    await applyArchiveBufferToSite(site, req, readFileSync(upload.tempPath), payload.archiveName || '');
+    touchedContent = true;
+  } catch (error) {
+    req.resume();
+    return res.status(error.statusCode || 400).json({ error: error.message || 'Could not read archive.' });
+  } finally {
+    cleanupTempArchiveUpload(upload);
+  }
+  if (site.reviewStatus === 'approved' && touchedContent) site.reviewStatus = 'draft';
+  site.updatedAt = nowIso();
+  saveStore(store);
+  res.json({ site: ownerSiteDetails(store, site, req.authUser.id) });
 });
 
 // ── Submit site for review ────────────────────────────────────────────────────
@@ -4580,16 +5787,17 @@ app.post('/api/me/sites/:id/submit-review', requireAuth, requireMember, (req, re
   res.json({ site: publicSite(store, site, req.authUser.id) });
 });
 
-function handleSiteArchiveUpload(req, res) {
+async function handleSiteArchiveUpload(req, res) {
+  if (rateLimit(`site-upload-form:${req.authUser.id}`, 6)) return res.status(429).json({ error: 'Too many archive uploads. Wait a minute and try again.' });
   const store = loadStore();
   const userSites = store.sites.filter((site) => Number(site.userId) === Number(req.authUser.id));
   const limit = userSiteLimit(req.authUser);
   if (userSites.length >= limit) return res.status(403).json({ error: `Site limit reached (\${limit}). Upgrade to create more.`, upgradeRequired: true });
   try {
-    const site = createArchiveSiteFromRequest(store, req);
+    const site = await createArchiveSiteFromRequest(store, req);
     store.sites.push(site);
     saveStore(store);
-    res.status(201).json({ site: publicSite(store, site, req.authUser.id) });
+    res.status(201).json({ site: ownerSiteDetails(store, site, req.authUser.id) });
   } catch (err) {
     console.error('[sites/upload-archive]', err.message);
     res.status(err.statusCode || 400).json({ error: err.message || 'Could not read archive.' });
@@ -4598,6 +5806,30 @@ function handleSiteArchiveUpload(req, res) {
 
 app.post('/api/me/sites/upload-archive', requireAuth, requireMember, handleSiteArchiveUpload);
 app.post('/api/me/sites/upload-zip', requireAuth, requireMember, handleSiteArchiveUpload);
+app.post('/api/me/sites/upload-tar', requireAuth, requireMember, handleSiteArchiveUpload);
+app.post('/api/me/sites/upload-tgz', requireAuth, requireMember, handleSiteArchiveUpload);
+app.post('/api/me/sites/upload-7z', requireAuth, requireMember, handleSiteArchiveUpload);
+app.post('/api/me/sites/upload-bundle', requireAuth, requireMember, handleSiteArchiveUpload);
+app.post('/api/me/sites/upload-bundle-binary', requireAuth, requireMember, async (req, res) => {
+  const store = loadStore();
+  const userSites = store.sites.filter((site) => Number(site.userId) === Number(req.authUser.id));
+  const limit = userSiteLimit(req.authUser);
+  if (userSites.length >= limit) return res.status(403).json({ error: `Site limit reached (\${limit}). Upgrade to create more.`, upgradeRequired: true });
+  let upload = null;
+  try {
+    const payload = readArchiveBinaryMeta(req);
+    upload = await streamArchiveRequestToTempFile(req, { limitBytes: siteArchiveByteLimit(req.authUser) });
+    const site = await createArchiveSiteFromBinaryRequest(store, req, upload, payload);
+    store.sites.push(site);
+    saveStore(store);
+    res.status(201).json({ site: ownerSiteDetails(store, site, req.authUser.id) });
+  } catch (err) {
+    req.resume();
+    res.status(err.statusCode || 400).json({ error: err.message || 'Could not read archive.' });
+  } finally {
+    cleanupTempArchiveUpload(upload);
+  }
+});
 
 // ── Admin site review queue ───────────────────────────────────────────────────
 app.get('/api/admin/sites/review-queue', requireAuth, requireOwner, (req, res) => {
@@ -4681,32 +5913,109 @@ app.patch('/api/me/posts/:id', requireAuth, (req, res) => {
 app.get('/api/me/stickers', requireAuth, (req, res) => {
   const store = loadStore();
   const brand = store.users.find((item) => item.handleCanonical === canonicalHandle(BRAND_HANDLE));
-  const packs = store.stickerPacks.filter((pack) => Number(pack.userId) === Number(req.authUser.id) || Number(pack.userId) === Number(brand?.id)).map((pack) => ({ ...pack, stickers: store.stickers.filter((item) => Number(item.packId) === Number(pack.id)) }));
+  const packs = store.stickerPacks
+    .filter((pack) => Number(pack.userId) === Number(req.authUser.id) || Number(pack.userId) === Number(brand?.id))
+    .map((pack) => ({
+      ...pack,
+      coverSticker: pack.coverStickerId ? stickerById(store, pack.coverStickerId) : null,
+      stickers: store.stickers.filter((item) => Number(item.packId) === Number(pack.id)).map((item) => stickerById(store, item.id))
+    }));
   res.json({ packs });
 });
 
 app.post('/api/me/sticker-packs', requireAuth, (req, res) => {
   const store = loadStore();
   const title = sanitizeText(req.body?.title, 80);
+  const description = sanitizeText(req.body?.description, 220);
   if (!title) return res.status(400).json({ error: 'Pack title is required.' });
-  const pack = stickerPackDefaults({ id: nextId(store, 'stickerPacks'), userId: req.authUser.id, title, slug: slugify(req.body?.slug || title), createdAt: nowIso(), updatedAt: nowIso() });
+  const pack = stickerPackDefaults({ id: nextId(store, 'stickerPacks'), userId: req.authUser.id, title, description, slug: slugify(req.body?.slug || title), createdAt: nowIso(), updatedAt: nowIso() });
   store.stickerPacks.push(pack);
   saveStore(store);
   res.status(201).json({ pack });
+});
+
+app.patch('/api/me/sticker-packs/:id', requireAuth, (req, res) => {
+  const store = loadStore();
+  const pack = store.stickerPacks.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
+  if (!pack) return res.status(404).json({ error: 'Pack not found.' });
+  const title = sanitizeText(req.body?.title, 80);
+  const description = sanitizeText(req.body?.description, 220);
+  pack.title = title || pack.title;
+  pack.description = description;
+  if (req.body?.coverStickerId !== undefined) {
+    const coverStickerId = req.body?.coverStickerId ? Number(req.body.coverStickerId) : null;
+    const sticker = coverStickerId ? store.stickers.find((item) => Number(item.id) === coverStickerId && Number(item.packId) === Number(pack.id)) : null;
+    if (coverStickerId && !sticker) return res.status(400).json({ error: 'Cover sticker must belong to this pack.' });
+    pack.coverStickerId = sticker ? sticker.id : null;
+  }
+  pack.updatedAt = nowIso();
+  saveStore(store);
+  res.json({ pack: { ...pack, coverSticker: pack.coverStickerId ? stickerById(store, pack.coverStickerId) : null } });
+});
+
+app.delete('/api/me/sticker-packs/:id', requireAuth, (req, res) => {
+  const store = loadStore();
+  const pack = store.stickerPacks.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
+  if (!pack) return res.status(404).json({ error: 'Pack not found.' });
+  store.stickerPacks = store.stickerPacks.filter((item) => Number(item.id) !== Number(pack.id));
+  store.stickers = store.stickers.filter((item) => Number(item.packId) !== Number(pack.id));
+  saveStore(store);
+  res.json({ ok: true });
 });
 
 app.post('/api/me/sticker-packs/:id/stickers', requireAuth, (req, res) => {
   const store = loadStore();
   const pack = store.stickerPacks.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
   if (!pack) return res.status(404).json({ error: 'Pack not found.' });
-  const dataUrl = req.body?.dataUrl && req.body.dataUrl.startsWith('data:image/') ? req.body.dataUrl.slice(0, IMAGE_UPLOAD_LIMIT_BYTES * 2) : '';
+  const dataUrl = safeDataUrl(req.body?.dataUrl, IMAGE_UPLOAD_LIMIT_BYTES * 8, ['image', 'video']);
   const name = sanitizeText(req.body?.name, 60);
+  const durationMs = sanitizeStickerDuration(req.body?.durationMs);
   if (!dataUrl || !name) return res.status(400).json({ error: 'Provide a sticker image and a name.' });
-  const mimeType = dataUrl.startsWith('data:image/svg') ? 'image/svg+xml' : (dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);/)?.[1] || 'image/png');
-  const sticker = stickerDefaults({ id: nextId(store, 'stickers'), packId: pack.id, userId: req.authUser.id, name, mimeType, dataUrl, createdAt: nowIso(), updatedAt: nowIso() });
+  const mimeType = dataUrl.match(/^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);/)?.[1] || 'image/png';
+  const sourceType = sanitizeStickerSourceType(req.body?.sourceType, mimeType);
+  const isAnimated = ['gif', 'webm'].includes(sourceType);
+  if (isAnimated && (!durationMs || durationMs > 1000)) return res.status(400).json({ error: 'Animated stickers must stay within 1 second.' });
+  const stored = mimeType.includes('svg')
+    ? { url: '', mimeType }
+    : saveDataMedia(dataUrl, `sticker-${pack.id}`, { maxLength: IMAGE_UPLOAD_LIMIT_BYTES * 8, allowedKinds: ['image', 'video'] });
+  const sticker = stickerDefaults({
+    id: nextId(store, 'stickers'),
+    packId: pack.id,
+    userId: req.authUser.id,
+    name,
+    mimeType: stored.mimeType || mimeType,
+    dataUrl: mimeType.includes('svg') ? dataUrl : '',
+    fileUrl: mimeType.includes('svg') ? '' : stored.url,
+    previewUrl: mimeType.includes('svg') ? dataUrl : stored.url,
+    kind: isAnimated ? 'animated' : 'static',
+    sourceType,
+    durationMs,
+    width: Number(req.body?.width || 0),
+    height: Number(req.body?.height || 0),
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  });
   store.stickers.push(sticker);
+  if (!pack.coverStickerId) pack.coverStickerId = sticker.id;
+  pack.updatedAt = nowIso();
   saveStore(store);
-  res.status(201).json({ sticker });
+  res.status(201).json({ sticker: stickerById(store, sticker.id) });
+});
+
+app.delete('/api/me/stickers/:id', requireAuth, (req, res) => {
+  const store = loadStore();
+  const sticker = store.stickers.find((item) => Number(item.id) === Number(req.params.id) && Number(item.userId) === Number(req.authUser.id));
+  if (!sticker) return res.status(404).json({ error: 'Sticker not found.' });
+  store.stickers = store.stickers.filter((item) => Number(item.id) !== Number(sticker.id));
+  for (const pack of store.stickerPacks) {
+    if (Number(pack.coverStickerId) === Number(sticker.id)) {
+      const nextSticker = store.stickers.find((item) => Number(item.packId) === Number(pack.id));
+      pack.coverStickerId = nextSticker ? nextSticker.id : null;
+      pack.updatedAt = nowIso();
+    }
+  }
+  saveStore(store);
+  res.json({ ok: true });
 });
 
 app.get('/api/me/notifications', requireAuth, (req, res) => {
@@ -4755,9 +6064,12 @@ app.get(/^\/@([^/]+)\/([^/]+)\/(.*)$/, (req, res, next) => {
   if (!siteUsesBundle(site) && assetPath !== 'index.html') return next();
   const assetAbsPath = siteUsesBundle(site) ? siteBundleAbsPath(site, assetPath) : resolveDataPath(site.htmlPath);
   if (!assetAbsPath || !existsSync(assetAbsPath)) return next();
-  if (assetPath.toLowerCase().endsWith('.html')) {
+  clearUploadedSiteResponseHeaders(res);
+  const ext = path.posix.extname(assetPath).toLowerCase();
+  if (UPLOADED_SITE_TEXT_TRANSFORM_EXTENSIONS.has(ext)) {
     const inner = readFileSync(assetAbsPath, 'utf8');
-    return res.type('html').send(decorateUploadedSiteHtml(store, site, owner, inner));
+    return res.type(ext === '.css' ? 'css' : ext === '.html' || ext === '.htm' ? 'html' : 'application/javascript')
+      .send(transformUploadedSiteTextAsset(site, owner, assetPath, inner));
   }
   return res.sendFile(assetAbsPath);
 });
@@ -4766,10 +6078,11 @@ app.get(/^\/@([^/]+)\/([^/]+)$/, (req, res, next) => {
   const store = loadStore();
   const { owner, site } = findSiteByHandleAndSlug(store, req.params[0], req.params[1]);
   if (!owner || !site || !canViewSite(site, owner, req.authUser?.id)) return next();
-  const rawUploadedHtml = site.mode === 'upload' ? readSiteFile(site.htmlPath) : null;
-  const inner = site.mode === 'upload'
-    ? (rawUploadedHtml ? decorateUploadedSiteHtml(store, site, owner, rawUploadedHtml, { baseHref: `/@${owner.handleCanonical}/${site.slug}/` }) : '')
-    : buildTemplateSiteHtml(store, site, owner);
+  if (site.mode === 'upload') {
+    const query = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+    return res.redirect(308, `${req.path}/${query}`);
+  }
+  const inner = buildTemplateSiteHtml(store, site, owner);
   if (!inner) return next();
   res.type('html').send(siteWatermarkHtml(store, owner, site, inner));
 });
@@ -5177,7 +6490,7 @@ app.delete('/api/me/projects/:id', requireAuth, (req, res) => {
   const store = loadStore();
   const project = store.projects.find(p => Number(p.id) === Number(req.params.id) && Number(p.userId) === Number(req.authUser.id));
   if (!project) return res.status(404).json({ error: 'Project not found.' });
-  store.projects = store.projects.filter(p => Number(p.id) !== Number(project.id));
+  removeProjectFromStore(store, project.id);
   saveStore(store);
   res.json({ ok: true });
 });
@@ -5187,9 +6500,7 @@ app.delete('/api/me/posts/:id', requireAuth, (req, res) => {
   const store = loadStore();
   const post = store.posts.find(p => Number(p.id) === Number(req.params.id) && Number(p.userId) === Number(req.authUser.id));
   if (!post) return res.status(404).json({ error: 'Post not found.' });
-  store.posts = store.posts.filter(p => Number(p.id) !== Number(post.id));
-  store.comments = store.comments.filter(c => Number(c.postId) !== Number(post.id));
-  store.likes = store.likes.filter(l => Number(l.postId) !== Number(post.id));
+  removePostFromStore(store, post.id);
   saveStore(store);
   res.json({ ok: true });
 });
@@ -5239,13 +6550,16 @@ app.patch('/api/me/password', requireAuth, (req, res) => {
   const user = store.users.find(u => Number(u.id) === Number(req.authUser.id));
   if (!user) return res.status(404).json({ error: 'Not found.' });
   const { currentPassword, newPassword } = req.body || {};
-  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Both passwords required.' });
-  if (!bcrypt.compareSync(currentPassword, user.passwordHash)) return res.status(401).json({ error: 'Current password is wrong.' });
+  if (!newPassword) return res.status(400).json({ error: 'New password is required.' });
+  if (user.passwordHash) {
+    if (!currentPassword) return res.status(400).json({ error: 'Current password is required.' });
+    if (!bcrypt.compareSync(currentPassword, user.passwordHash)) return res.status(401).json({ error: 'Current password is wrong.' });
+  }
   if (String(newPassword).length < 8) return res.status(400).json({ error: 'New password must be 8+ characters.' });
   user.passwordHash = bcrypt.hashSync(newPassword, 12);
   user.updatedAt = nowIso();
   saveStore(store);
-  res.json({ ok: true });
+  res.json({ ok: true, created: !currentPassword });
 });
 
 app.patch('/api/me/email', requireAuth, (req, res) => {
@@ -5253,9 +6567,12 @@ app.patch('/api/me/email', requireAuth, (req, res) => {
   const user = store.users.find(u => Number(u.id) === Number(req.authUser.id));
   if (!user) return res.status(404).json({ error: 'Not found.' });
   const { password, email } = req.body || {};
-  if (!password || !email) return res.status(400).json({ error: 'Password and email required.' });
+  if (!email) return res.status(400).json({ error: 'Email is required.' });
+  if (!user.passwordHash) return res.status(400).json({ error: 'Set a justbreath password first. Discord/Google passwords cannot be used here.' });
+  if (!password) return res.status(400).json({ error: 'Password is required.' });
   if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Wrong password.' });
   const newEmail = sanitizeText(email, 120).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return res.status(400).json({ error: 'Please enter a valid email address.' });
   if (store.users.some(u => u.email === newEmail && u.id !== user.id)) return res.status(409).json({ error: 'Email already taken.' });
   user.email = newEmail;
   user.emailVerified = false;
@@ -5368,7 +6685,12 @@ app.get('/api/me/workspaces/:id/audit', requireAuth, (req, res) => {
 
 // ── Admin API (owner only) ────────────────────────────────────────────────────
 function requireOwner(req, res, next) {
-  if (!req.authUser || req.authUser.roleInternal !== 'owner') return res.status(403).json({ error: 'Owner only.' });
+  if (!isOwnerUser(req.authUser)) return res.status(403).json({ error: 'Owner only.' });
+  next();
+}
+
+function requireOperator(req, res, next) {
+  if (!isOperatorUser(req.authUser)) return res.status(403).json({ error: 'Operator only.' });
   next();
 }
 
@@ -5376,10 +6698,13 @@ app.get('/api/admin/stats', requireAuth, requireOwner, (req, res) => {
   const store = loadStore();
   const now = Date.now();
   const day = 86400000;
+  ensureDeletionJobs(store);
   res.json({
     users: { total: store.users.length, banned: store.users.filter(u => u.bannedAt).length, newToday: store.users.filter(u => now - new Date(u.createdAt).getTime() < day).length },
     messages: { total: store.messages.length, today: store.messages.filter(m => now - new Date(m.createdAt).getTime() < day).length },
     posts: { total: store.posts.length },
+    reports: { total: ensureArray(store.reports).length, open: ensureArray(store.reports).filter((item) => item.status === 'open').length },
+    deletions: { scheduled: ensureArray(store.deletionJobs).length },
     rooms: { total: store.rooms.length, direct: store.rooms.filter(r => r.kind === 'direct').length, channels: store.rooms.filter(r => r.kind === 'channel').length },
     sites: { total: store.sites.length, public: store.sites.filter(s => s.visibility === 'public').length },
     workspaces: store.workspaces.length,
@@ -5397,12 +6722,89 @@ app.get('/api/admin/logs', requireAuth, requireOwner, (req, res) => {
   res.json({ logs });
 });
 
-app.get('/api/admin/users', requireAuth, requireOwner, (req, res) => {
+app.get('/api/admin/users', requireAuth, requireOperator, (req, res) => {
   const store = loadStore();
   const q = sanitizeText(req.query.q || '', 120).toLowerCase();
   let users = store.users;
   if (q) users = users.filter(u => (u.handleCanonical + u.email + u.displayName).toLowerCase().includes(q));
-  res.json({ users: users.map(u => publicUser(store, u, req.authUser.id)).sort((a, b) => b.score - a.score) });
+  res.json({ users: users.map(u => adminUserPayload(store, u, req.authUser.id)).sort((a, b) => b.score - a.score) });
+});
+
+app.get('/api/admin/reports', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const reports = ensureArray(store.reports)
+    .sort((a, b) => {
+      if (a.status === b.status) return new Date(b.createdAt) - new Date(a.createdAt);
+      if (a.status === 'open') return -1;
+      if (b.status === 'open') return 1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    })
+    .slice(0, 120)
+    .map((item) => adminReportPayload(store, item, req.authUser.id))
+    .filter(Boolean);
+  res.json({ reports });
+});
+
+app.get('/api/admin/deletions', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  ensureDeletionJobs(store);
+  const jobs = ensureArray(store.deletionJobs)
+    .sort((a, b) => new Date(a.deleteAfter) - new Date(b.deleteAfter))
+    .map((job) => adminDeletionJobPayload(store, job, req.authUser.id))
+    .filter(Boolean);
+  res.json({ jobs });
+});
+
+app.post('/api/admin/deletions/:id/restore', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const job = restoreDeletionJob(store, req.params.id);
+  if (!job) return res.status(404).json({ error: 'Deletion job not found.' });
+  saveStore(store);
+  res.json({ ok: true, restored: adminDeletionJobPayload(store, job, req.authUser.id) });
+});
+
+app.patch('/api/admin/reports/:id', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const report = ensureArray(store.reports).find((item) => Number(item.id) === Number(req.params.id));
+  if (!report) return res.status(404).json({ error: 'Report not found.' });
+  const status = ['open', 'resolved', 'dismissed'].includes(req.body?.status) ? req.body.status : report.status;
+  report.status = status;
+  report.resolutionNote = sanitizeText(req.body?.resolutionNote || report.resolutionNote || '', 600);
+  report.updatedAt = nowIso();
+  report.resolvedAt = status === 'open' ? null : nowIso();
+  report.resolvedByUserId = status === 'open' ? null : Number(req.authUser.id);
+  saveStore(store);
+  res.json({ report: adminReportPayload(store, report, req.authUser.id) });
+});
+
+app.get('/api/admin/posts', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const q = sanitizeText(req.query.q || '', 120).toLowerCase();
+  let posts = store.posts.slice();
+  if (q) {
+    posts = posts.filter((post) => {
+      const author = store.users.find((item) => Number(item.id) === Number(post.userId));
+      const haystack = `${post.title || ''} ${post.body || ''} ${author?.handleCanonical || ''} ${author?.displayName || ''}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+  posts = posts.sort((a, b) => new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt)).slice(0, 80);
+  res.json({ posts: posts.map((item) => publicPost(store, item, req.authUser.id)) });
+});
+
+app.patch('/api/admin/users/:handle/billing', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const user = store.users.find(u => u.handleCanonical === canonicalHandle(req.params.handle));
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+  if (!isOwnerUser(req.authUser) && isOwnerUser(user)) {
+    return res.status(403).json({ error: 'Only the owner can change the owner billing plan.' });
+  }
+  const planId = sanitizeText(req.body?.planId || '', 24);
+  if (planId && !subscriptionPlan(planId)) return res.status(400).json({ error: 'Plan not found.' });
+  applyBillingPlan(user, planId);
+  user.updatedAt = nowIso();
+  saveStore(store);
+  res.json({ user: adminUserPayload(store, user, req.authUser.id) });
 });
 
 app.patch('/api/admin/users/:handle', requireAuth, requireOwner, (req, res) => {
@@ -5427,6 +6829,71 @@ app.patch('/api/admin/users/:handle', requireAuth, requireOwner, (req, res) => {
   user.updatedAt = nowIso();
   saveStore(store);
   res.json({ user: publicUser(store, user, req.authUser.id) });
+});
+
+app.delete('/api/admin/posts/:id', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const post = store.posts.find((item) => Number(item.id) === Number(req.params.id));
+  if (!post) return res.status(404).json({ error: 'Post not found.' });
+  const author = store.users.find((item) => Number(item.id) === Number(post.userId));
+  if (!isOwnerUser(req.authUser) && isOwnerUser(author)) {
+    return res.status(403).json({ error: 'Only the owner can remove the owner posts.' });
+  }
+  const job = scheduleDeletionJob(store, 'post', post.id, req.authUser.id, 'Scheduled from admin panel.');
+  saveStore(store);
+  res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
+});
+
+app.delete('/api/admin/sites/:id', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const site = store.sites.find((item) => Number(item.id) === Number(req.params.id));
+  if (!site) return res.status(404).json({ error: 'Site not found.' });
+  const owner = store.users.find((item) => Number(item.id) === Number(site.userId));
+  if (!isOwnerUser(req.authUser) && isOwnerUser(owner)) {
+    return res.status(403).json({ error: 'Only the owner can remove the owner sites.' });
+  }
+  const job = scheduleDeletionJob(store, 'site', site.id, req.authUser.id, 'Scheduled from admin panel.');
+  saveStore(store);
+  res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
+});
+
+app.delete('/api/admin/projects/:id', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const project = store.projects.find((item) => Number(item.id) === Number(req.params.id));
+  if (!project) return res.status(404).json({ error: 'Project not found.' });
+  const owner = store.users.find((item) => Number(item.id) === Number(project.userId));
+  if (!isOwnerUser(req.authUser) && isOwnerUser(owner)) {
+    return res.status(403).json({ error: 'Only the owner can remove the owner projects.' });
+  }
+  const job = scheduleDeletionJob(store, 'project', project.id, req.authUser.id, 'Scheduled from admin panel.');
+  saveStore(store);
+  res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
+});
+
+app.delete('/api/admin/users/:handle', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const user = store.users.find((item) => item.handleCanonical === canonicalHandle(req.params.handle));
+  if (!user) return res.status(404).json({ error: 'User not found.' });
+  if (Number(user.id) === Number(req.authUser.id)) return res.status(400).json({ error: 'Delete your own account from settings, not from the admin panel.' });
+  if (!isOwnerUser(req.authUser) && isOwnerUser(user)) {
+    return res.status(403).json({ error: 'Only the owner can delete the owner account.' });
+  }
+  const job = scheduleDeletionJob(store, 'user', user.id, req.authUser.id, 'Scheduled from admin panel.');
+  saveStore(store);
+  res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
+});
+
+app.delete('/api/admin/messages/:id', requireAuth, requireOperator, (req, res) => {
+  const store = loadStore();
+  const message = store.messages.find((item) => Number(item.id) === Number(req.params.id));
+  if (!message) return res.status(404).json({ error: 'Message not found.' });
+  const author = store.users.find((item) => Number(item.id) === Number(message.userId));
+  if (!isOwnerUser(req.authUser) && isOwnerUser(author)) {
+    return res.status(403).json({ error: 'Only the owner can remove the owner messages.' });
+  }
+  const job = scheduleDeletionJob(store, 'message', message.id, req.authUser.id, 'Scheduled from admin panel.');
+  saveStore(store);
+  res.json({ ok: true, scheduled: adminDeletionJobPayload(store, job, req.authUser.id) });
 });
 
 // Paginated messages endpoint
@@ -6172,17 +7639,504 @@ function truncateSeo(str, n = 300) {
   return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s;
 }
 
+function publicNavLink(pathOnly, href, label) {
+  const active = pathOnly === href || pathOnly.startsWith(href + '/');
+  return `<a href="${href}"${active ? ' class="active" aria-current="page"' : ''}>${label}</a>`;
+}
+
+function renderPublicChrome(pathOnly, bodyHtml) {
+  return `<div class="public-shell">
+    <main class="public-main">
+      <header class="public-header">
+        <a class="public-brand" href="/">
+          <img src="/logo.png" alt="justbreath logo" width="36" height="36" />
+          <span>justbreath<span>.life</span></span>
+        </a>
+        <nav class="public-nav" aria-label="Public">
+          ${publicNavLink(pathOnly, '/developers', 'Developers')}
+          ${publicNavLink(pathOnly, '/about', 'About')}
+          ${publicNavLink(pathOnly, '/privacy', 'Privacy')}
+          ${publicNavLink(pathOnly, '/terms', 'Terms')}
+          ${publicNavLink(pathOnly, '/contact', 'Contact')}
+          <a href="${BRAND_GITHUB_URL}" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </header>
+      ${bodyHtml}
+    </main>
+    <footer class="public-footer">
+      <span>justbreath.life — creator pages, private spaces, and team collaboration.</span>
+      <div class="public-footer-links">
+        <a href="/developers">Developers</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/contact">Contact</a>
+        <a href="${BRAND_GITHUB_URL}" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </footer>
+  </div>`;
+}
+
+function currentStaticSection(pathOnly, basePath, sections) {
+  const raw = pathOnly === basePath ? '' : String(pathOnly.slice(basePath.length + 1).split('/')[0] || '');
+  return sections.find((section) => section.id === raw) || sections[0];
+}
+
+function renderPublicDocPage(pathOnly, config) {
+  const current = currentStaticSection(pathOnly, config.basePath, config.sections);
+  return renderPublicChrome(pathOnly, `
+    <section class="public-section">
+      <div class="public-docs">
+        <aside class="public-docs-nav">
+          <p class="public-kicker">${config.eyebrow}</p>
+          <h1 class="public-docs-title">${config.title}</h1>
+          <p class="public-lead">${config.lead}</p>
+          ${config.downloadHref ? `<a class="public-button public-button-secondary public-button-small" href="${config.downloadHref}" download>Download .md</a>` : ''}
+          <nav class="public-docs-list" aria-label="${config.title} sections">
+            ${config.sections.map((section, index) => {
+              const href = index === 0 ? config.basePath : `${config.basePath}/${section.id}`;
+              return `<a class="public-docs-link ${current.id === section.id ? 'active' : ''}" href="${href}">${section.label}</a>`;
+            }).join('')}
+          </nav>
+        </aside>
+        <article class="public-docs-body">
+          <p class="public-kicker">${config.eyebrow}</p>
+          <h2>${current.label}</h2>
+          ${current.body}
+        </article>
+      </div>
+    </section>`);
+}
+
+function renderStaticPublicShell(pathOnly) {
+  if (pathOnly === '/developers' || pathOnly.startsWith('/developers/')) {
+    const sections = [
+      {
+        id: 'overview',
+        label: 'Overview',
+        body: `<p>Build on justbreath.life with a small REST API, real-time events, bot tokens, and static creator-site uploads.</p>
+          <ul>
+            <li><strong>Base URL:</strong> <code>${APP_ORIGIN}</code></li>
+            <li><strong>Public reads:</strong> profiles, posts, creator sites, and project pages.</li>
+            <li><strong>Authenticated:</strong> messages, rooms, settings, uploads, and workspace actions.</li>
+            <li><strong>Real-time:</strong> Server-Sent Events at <code>/api/events</code>.</li>
+          </ul>
+          <p>Full creator-site repository and setup docs: <a href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">JustBreathDevSite</a>, <a href="${SITE_CREATION_GUIDE_URL}" target="_blank" rel="noopener">SITE_CREATION_GUIDE.md</a>, and <a href="${SITE_CREATION_EXAMPLES_URL}" target="_blank" rel="noopener">SITE_CREATION_EXAMPLES_RU.md</a>.</p>
+          <pre class="public-code">GET ${APP_ORIGIN}/api/public/profile/:handle
+GET ${APP_ORIGIN}/api/public/sites
+GET ${APP_ORIGIN}/api/public/projects/:slug</pre>`
+      },
+      {
+        id: 'auth',
+        label: 'Authentication',
+        body: `<p>The browser client uses the <code>jb_sid</code> session cookie. Automation uses long-lived bot tokens created in Settings.</p>
+          <ul>
+            <li><strong>Browser auth:</strong> cookie-based sessions after sign-in.</li>
+            <li><strong>Bot auth:</strong> <code>Authorization: Bearer jb_xxx</code>.</li>
+            <li><strong>Token creation:</strong> Settings → API Tokens inside the full app.</li>
+          </ul>
+          <pre class="public-code">curl -H "Authorization: Bearer YOUR_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"body":"Hello from my bot"}' \\
+  ${APP_ORIGIN}/api/bot/rooms/&lt;room-slug&gt;/messages</pre>`
+      },
+      {
+        id: 'api',
+        label: 'REST API',
+        body: `<p>The API stays deliberately small and concrete.</p>
+          <ul>
+            <li><code>GET /api/public/profile/:handle</code> — public profile and posts.</li>
+            <li><code>GET /api/public/posts</code> — recent public posts.</li>
+            <li><code>GET /api/public/sites</code> — listed creator sites.</li>
+            <li><code>GET /api/developers/capabilities</code> — public import and studio capabilities.</li>
+            <li><code>GET /api/me</code> — full signed-in payload.</li>
+            <li><code>POST /api/posts</code> — publish a post.</li>
+            <li><code>POST /api/me/sites/upload</code> — single-file HTML creator site.</li>
+            <li><code>POST /api/me/sites/upload-archive</code> — archive upload with <code>index.html</code>.</li>
+            <li><code>POST /api/me/sites/upload-tar</code>, <code>/upload-tgz</code>, <code>/upload-7z</code>, <code>/upload-bundle</code> — extra archive aliases.</li>
+            <li><code>POST /api/me/sites/import-inspect</code> — inspect archive warnings before creating the site.</li>
+            <li><code>GET /api/me/sites/import-capabilities</code> — account-specific limits and supported formats.</li>
+          </ul>`
+      },
+      {
+        id: 'bots',
+        label: 'Bots & tokens',
+        body: `<p>Bot tokens inherit the room and posting permissions of the account that created them.</p>
+          <ol>
+            <li>Create or choose the account you want to automate.</li>
+            <li>Open Settings → API Tokens in the full app.</li>
+            <li>Name the token and store it securely when shown.</li>
+          </ol>
+          <p>Revoking a token invalidates it immediately.</p>`
+      },
+      {
+        id: 'site-imports',
+        label: 'Site imports',
+        body: `<p>Creator sites support more than a single ZIP.</p>
+          <ul>
+            <li><strong>Formats:</strong> <code>.zip</code>, <code>.tar</code>, <code>.tgz</code>, <code>.tar.gz</code>, and <code>.7z</code>.</li>
+            <li><strong>Structure:</strong> keep <code>index.html</code> at archive root.</li>
+            <li><strong>Extras:</strong> local assets, extra HTML pages, SVG/JSON/webmanifest, and text files for Site Studio are preserved.</li>
+            <li><strong>Preview:</strong> call <code>POST /api/me/sites/import-inspect</code> before upload to see compatibility warnings and optimized assets.</li>
+          </ul>
+          <pre class="public-code">curl -X POST ${APP_ORIGIN}/api/me/sites/import-inspect \\
+  -H "Content-Type: application/json" \\
+  -H "Cookie: jb_sid=..." \\
+  -d '{"archiveName":"site.tgz","archiveBase64":"..."}'</pre>`
+      },
+      {
+        id: 'webhooks',
+        label: 'Webhooks & SSE',
+        body: `<p>There are no outgoing webhooks yet. For real-time events, connect to the SSE stream.</p>
+          <pre class="public-code">const es = new EventSource('/api/events', { withCredentials: true });
+es.addEventListener('new_message', (event) =&gt; console.log(JSON.parse(event.data)));
+es.addEventListener('typing', (event) =&gt; console.log(JSON.parse(event.data)));
+es.addEventListener('notification', (event) =&gt; console.log(JSON.parse(event.data)));</pre>
+          <p>Available events include messages, typing, reactions, notifications, and presence.</p>`
+      },
+      {
+        id: 'telegram',
+        label: 'Telegram bridge',
+        body: `<p>The Telegram bridge remains a preview feature for self-hosted setups.</p>
+          <ul>
+            <li>Create a Telegram bot with <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>.</li>
+            <li>Configure <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_BOT_USERNAME</code>.</li>
+            <li>Point Telegram to <code>/api/integrations/telegram/webhook</code>.</li>
+          </ul>
+          <p>Telegram users must message your bot first; you cannot cold-DM arbitrary accounts.</p>`
+      },
+      {
+        id: 'rules',
+        label: 'Rules & limits',
+        body: `<p>justbreath does not promise “unlimited” usage. Limits stay explicit.</p>
+          <ul>
+            <li><strong>Creator sites:</strong> Free 2, Plus 6, Max 25.</li>
+            <li><strong>Rooms you own:</strong> Free 10, Plus 40, Max 150.</li>
+            <li><strong>Archive site upload:</strong> 5 MB standard, up to 512 MB for internal operators, with <code>index.html</code>.</li>
+            <li><strong>Bot tokens:</strong> Free 2, Plus 5, Max 20.</li>
+          </ul>
+          <p>Archive imports are served as raw static bundles. Backend-dependent code is preserved as files, but it never executes on the hosted copy and is reported as a compatibility warning.</p>
+          <p>Uploads containing malware, phishing, copyright abuse, or hostile automation are removed.</p>`
+      }
+    ];
+    return renderPublicDocPage(pathOnly, {
+      eyebrow: 'developers',
+      title: 'API & docs',
+      lead: 'Everything you need to build on justbreath.life without reverse-engineering the client.',
+      basePath: '/developers',
+      sections,
+      downloadHref: '',
+    });
+  }
+
+  if (pathOnly === '/privacy' || pathOnly.startsWith('/privacy/')) {
+    const sections = [
+      {
+        id: 'overview',
+        label: 'Overview',
+        body: `<p><strong>Effective date:</strong> 19 April 2026. justbreath.life collects only what is required to run accounts, creator sites, chat, and abuse protection.</p>
+          <ul>
+            <li>We do not sell personal data.</li>
+            <li>We store data on our own servers.</li>
+            <li>You can export or delete your account inside Settings.</li>
+            <li>Ads are served through Google AdSense.</li>
+          </ul>`
+      },
+      {
+        id: 'data',
+        label: 'Data we collect',
+        body: `<p>We collect account data, content you publish, technical logs for security, and anonymous telemetry for performance.</p>
+          <ul>
+            <li><strong>Account:</strong> email, handle, display name, password hash, OAuth subject IDs.</li>
+            <li><strong>Content:</strong> posts, messages, uploads, avatars, creator-site files.</li>
+            <li><strong>Technical:</strong> IP for rate limits, user-agent, session cookie, request logs.</li>
+            <li><strong>Telemetry:</strong> pageviews, JS errors, and Core Web Vitals without message contents.</li>
+          </ul>`
+      },
+      {
+        id: 'cookies',
+        label: 'Cookies',
+        body: `<p>We use essential cookies for sign-in plus local storage for client preferences.</p>
+          <ul>
+            <li><code>jb_sid</code> — session cookie for signed-in users.</li>
+            <li><code>jb_google_oauth</code> and <code>jb_discord_oauth</code> — short-lived OAuth state cookies.</li>
+            <li><code>jb_lang</code> and <code>jb_guest_mode</code> — client-side preferences in local storage.</li>
+          </ul>
+          <p>Google AdSense may set its own cookies. Manage them in <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ad Settings</a>.</p>`
+      },
+      {
+        id: 'sharing',
+        label: 'Sharing',
+        body: `<p>We share data only with providers needed to operate the service.</p>
+          <ul>
+            <li>Google AdSense for ads.</li>
+            <li>Google and Discord when you choose those sign-in methods.</li>
+            <li>SMTP infrastructure for verification and recovery emails.</li>
+            <li>Cloudflare for edge delivery and DNS.</li>
+          </ul>
+          <p>We do not sell message contents, private posts, or creator-site content.</p>`
+      },
+      {
+        id: 'retention',
+        label: 'Retention & backups',
+        body: `<p>Live data stays until you delete the account. Backups rotate every 30 minutes and keep the last 48 snapshots, roughly 24 hours.</p>
+          <ul>
+            <li>Request logs rotate after 30 days.</li>
+            <li>Anonymous telemetry files keep 180 days.</li>
+            <li>Deleted accounts are purged from the next backup rotation.</li>
+          </ul>`
+      },
+      {
+        id: 'rights',
+        label: 'Your rights',
+        body: `<p>If you are covered by GDPR, UK GDPR, CCPA, or similar law, you may request access, export, rectification, erasure, portability, and restriction.</p>
+          <p>Email <a href="mailto:${BRAND_EMAIL}">${BRAND_EMAIL}</a> for any privacy request. We reply within 30 days.</p>`
+      },
+      {
+        id: 'security',
+        label: 'Security',
+        body: `<p>We use TLS, HttpOnly sessions, bcrypt password hashing, rate limits, CSP, and static-safe creator-site handling.</p>
+          <ul>
+            <li>Passwords are hashed with bcrypt.</li>
+            <li>Authentication endpoints are rate-limited.</li>
+            <li>Uploaded creator-site code is stored and served as static files only; backend handlers inside imports do not execute.</li>
+          </ul>`
+      },
+      {
+        id: 'children',
+        label: 'Minors',
+        body: `<p>The service is not directed at children under 13. In jurisdictions with a higher digital-consent age, minors need parental or guardian consent.</p>`
+      },
+      {
+        id: 'changes',
+        label: 'Changes',
+        body: `<p>If we materially change the policy, we notify registered users by email and place a banner on the site before changes take effect.</p>
+          <p>You can also download the full markdown version at <a href="/PRIVACY.md" target="_blank" rel="noopener">PRIVACY.md</a>.</p>`
+      },
+      {
+        id: 'contact',
+        label: 'Contact',
+        body: `<p>Privacy questions and subject-access requests go to <a href="mailto:${BRAND_EMAIL}">${BRAND_EMAIL}</a>.</p>`
+      }
+    ];
+    return renderPublicDocPage(pathOnly, {
+      eyebrow: 'legal',
+      title: 'Privacy Policy',
+      lead: 'How justbreath.life collects, stores, shares, and protects data.',
+      basePath: '/privacy',
+      sections,
+      downloadHref: '/PRIVACY.md',
+    });
+  }
+
+  if (pathOnly === '/terms' || pathOnly.startsWith('/terms/')) {
+    const sections = [
+      {
+        id: 'overview',
+        label: 'Overview',
+        body: `<p><strong>Effective date:</strong> 19 April 2026. By creating an account, signing in, or using guest mode, you agree to these Terms.</p>`
+      },
+      {
+        id: 'account',
+        label: 'Your account',
+        body: `<ul>
+            <li>You must be at least 13 years old, subject to stricter local law where applicable.</li>
+            <li>You are responsible for keeping credentials secure.</li>
+            <li>Handles are unique and case-insensitive.</li>
+            <li>We may reclaim handles used for impersonation or trademark abuse.</li>
+          </ul>`
+      },
+      {
+        id: 'content',
+        label: 'Your content',
+        body: `<p>You keep ownership of what you publish. You grant justbreath a limited license to host, display, and distribute your content as required to operate the service.</p>
+          <p>Public content can be indexed by search engines; unlisted content can still be reached by direct link.</p>`
+      },
+      {
+        id: 'prohibited',
+        label: 'Prohibited uses',
+        body: `<ul>
+            <li>Illegal content or activity.</li>
+            <li>Content exploiting minors or non-consensual intimate imagery.</li>
+            <li>Harassment, doxxing, threats, phishing, or malware.</li>
+            <li>Unauthorized data collection or undisclosed trackers.</li>
+            <li>Spammy automation or copyright infringement.</li>
+          </ul>`
+      },
+      {
+        id: 'payments',
+        label: 'Paid tiers',
+        body: `<p>Paid subscriptions unlock higher quotas such as extra creator sites, storage, and priority review. Billing periods may be monthly, quarterly, semi-annual, or annual depending on the plan.</p>
+          <p>Refunds are pro-rated within the first 14 days of a billing period.</p>`
+      },
+      {
+        id: 'termination',
+        label: 'Termination',
+        body: `<p>You may delete your account at any time in Settings. We may suspend or terminate accounts that violate these Terms or applicable law.</p>
+          <p>Data remains in rotating backups for up to 24 hours after deletion.</p>`
+      },
+      {
+        id: 'liability',
+        label: 'Liability',
+        body: `<p>The service is provided “as is”. To the extent allowed by law, our aggregate liability is limited to what you paid in the previous 12 months, or €50 if you paid nothing.</p>`
+      },
+      {
+        id: 'law',
+        label: 'Governing law',
+        body: `<p>These Terms are governed by the laws of Germany. Berlin courts apply unless mandatory consumer-protection law gives you a better forum.</p>`
+      },
+      {
+        id: 'contact',
+        label: 'Contact',
+        body: `<p>Legal notices, DMCA requests, and policy questions: <a href="mailto:${BRAND_EMAIL}">${BRAND_EMAIL}</a>.</p>`
+      }
+    ];
+    return renderPublicDocPage(pathOnly, {
+      eyebrow: 'legal',
+      title: 'Terms of Service',
+      lead: 'The platform rules in plain language: account use, content ownership, prohibited behavior, and billing.',
+      basePath: '/terms',
+      sections,
+      downloadHref: '/TERMS.md',
+    });
+  }
+
+  if (pathOnly === '/about') {
+    return renderPublicChrome(pathOnly, `
+      <section class="public-hero">
+        <div>
+          <p class="public-kicker">about</p>
+          <h1 class="public-title">A creator platform built to be understandable.</h1>
+          <p class="public-lead">justbreath.life combines public pages, creator sites, private spaces, messaging, and collaboration in one product without hiding the basics behind layers of abstraction.</p>
+          <div class="public-inline-list">
+            <a href="/developers">Developers & API</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="${BRAND_GITHUB_URL}" target="_blank" rel="noopener">GitHub</a>
+            <a href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">JustBreathDevSite</a>
+          </div>
+        </div>
+        <aside class="public-hero-rail">
+          <p class="public-rail-title">Product thesis</p>
+          <div class="public-lane">
+            <strong>One home in public</strong>
+            <p>Public identity, pinned context, creator site, and next action in one place.</p>
+          </div>
+          <div class="public-lane">
+            <strong>Private when needed</strong>
+            <p>Audience rooms, team spaces, and controlled access without splitting the product.</p>
+          </div>
+          <div class="public-lane">
+            <strong>Portable by default</strong>
+            <p>Static HTML for creator sites, REST APIs, and exportable data instead of opaque lock-in.</p>
+          </div>
+        </aside>
+      </section>
+      <section class="public-section">
+        <h2>Why this exists.</h2>
+        <div class="public-grid-three">
+          <article class="public-feature">
+            <strong>Too many stitched-together stacks</strong>
+            <p>Creators and small teams keep jumping between link hubs, chat servers, docs, and lightweight CRMs. justbreath tries to collapse that sprawl.</p>
+          </article>
+          <article class="public-feature">
+            <strong>Public pages should still rank</strong>
+            <p>The public surface uses crawlable links, route-level meta, and creator pages that behave like real pages instead of JS-only traps.</p>
+          </article>
+          <article class="public-feature">
+            <strong>Software should stay readable</strong>
+            <p>The stack remains intentionally small: one Node server, one vanilla client, one CSS file, plain files on disk.</p>
+          </article>
+        </div>
+        <p class="public-lead" style="margin-top:24px">Site creation source, examples, and setup docs live in <a href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">bnfe12/JustBreathDevSite</a>.</p>
+      </section>`);
+  }
+
+  if (pathOnly === '/contact') {
+    return renderPublicChrome(pathOnly, `
+      <section class="public-section">
+        <p class="public-kicker">contact</p>
+        <h1 class="public-docs-title">Get in touch.</h1>
+        <p class="public-lead">Support, legal, privacy, security, repository, and partnership requests all go through one mailbox.</p>
+        <div class="public-grid-three">
+          <article class="public-feature">
+            <strong>General support</strong>
+            <p><a href="mailto:${BRAND_EMAIL}">${BRAND_EMAIL}</a></p>
+          </article>
+          <article class="public-feature">
+            <strong>Legal / DMCA / privacy</strong>
+            <p>Use the same address and mark the subject line with <code>[LEGAL]</code>, <code>[DMCA]</code>, or <code>[PRIVACY]</code>.</p>
+          </article>
+          <article class="public-feature">
+            <strong>Security reports</strong>
+            <p>Use <code>[SECURITY]</code> in the subject. We acknowledge reports within 72 hours.</p>
+          </article>
+        </div>
+        <div class="public-inline-list">
+          <a href="/@justbreath">Owner profile</a>
+          <a href="${BRAND_GITHUB_URL}" target="_blank" rel="noopener">GitHub</a>
+          <a href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">JustBreathDevSite</a>
+          <a href="/developers">Developers</a>
+        </div>
+      </section>`);
+  }
+
+  return null;
+}
+
+function staticPageMetaForPath(pathOnly) {
+  if (pathOnly === '/developers' || pathOnly.startsWith('/developers/')) {
+    const canonical = pathOnly === '/developers/overview' ? `${APP_ORIGIN}/developers` : APP_ORIGIN + pathOnly;
+    return {
+      title: 'Developers — justbreath API, bots, SSE, and creator-site rules',
+      description: 'Build on justbreath.life with REST APIs, bot tokens, real-time events, and static creator-site upload rules.',
+      canonical
+    };
+  }
+  if (pathOnly === '/privacy' || pathOnly.startsWith('/privacy/')) {
+    const canonical = pathOnly === '/privacy/overview' ? `${APP_ORIGIN}/privacy` : APP_ORIGIN + pathOnly;
+    return {
+      title: 'Privacy Policy — justbreath.life',
+      description: 'How justbreath.life collects, stores, shares, and protects account, content, and telemetry data.',
+      canonical
+    };
+  }
+  if (pathOnly === '/terms' || pathOnly.startsWith('/terms/')) {
+    const canonical = pathOnly === '/terms/overview' ? `${APP_ORIGIN}/terms` : APP_ORIGIN + pathOnly;
+    return {
+      title: 'Terms of Service — justbreath.life',
+      description: 'Platform rules for justbreath.life: accounts, content ownership, prohibited uses, billing, and liability.',
+      canonical
+    };
+  }
+  if (pathOnly === '/about') {
+    return {
+      title: 'About justbreath.life — creator pages, private spaces, and team collaboration',
+      description: 'What justbreath.life is, why it exists, and how it combines public pages, private spaces, and collaboration.',
+      canonical: APP_ORIGIN + pathOnly
+    };
+  }
+  if (pathOnly === '/contact') {
+    return {
+      title: 'Contact — justbreath.life',
+      description: 'Support, legal, privacy, security, press, and partnership contact information for justbreath.life.',
+      canonical: APP_ORIGIN + pathOnly
+    };
+  }
+  return null;
+}
+
 function renderSpaShell(req, meta) {
   if (!_indexHtmlCache) loadIndexHtml();
   let html = _indexHtmlCache;
   const pathOnly = (req.path || '/');
-  const canonical = (meta && meta.canonical) || (APP_ORIGIN + pathOnly);
-  const title = escSeo((meta && meta.title) || 'justbreath.life — profiles, creator sites, messaging and collaboration');
-  const description = escSeo(truncateSeo((meta && meta.description) || 'An open creator platform: profile, site, workspaces, chat. Build in public, keep your data yours.'));
-  const ogType = escSeo((meta && meta.ogType) || 'website');
-  const ogImage = escSeo((meta && meta.ogImage) || DEFAULT_OG_IMAGE);
-  const robots = (meta && meta.noindex) ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1';
-  const jsonLd = meta && meta.jsonLd ? meta.jsonLd : null;
+  const mergedMeta = { ...(staticPageMetaForPath(pathOnly) || {}), ...(meta || {}) };
+  const canonical = mergedMeta.canonical || (APP_ORIGIN + pathOnly);
+  const title = escSeo(mergedMeta.title || 'justbreath.life — creator pages, private spaces, and team collaboration');
+  const description = escSeo(truncateSeo(mergedMeta.description || 'Create a public creator page, launch static sites, collaborate with your team, and chat with your audience in one place.'));
+  const ogType = escSeo(mergedMeta.ogType || 'website');
+  const ogImage = escSeo(mergedMeta.ogImage || DEFAULT_OG_IMAGE);
+  const robots = mergedMeta.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1';
+  const jsonLd = mergedMeta.jsonLd || null;
+  const publicShell = renderStaticPublicShell(pathOnly);
 
   // Swap <title>
   html = html.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
@@ -6209,6 +8163,9 @@ function renderSpaShell(req, meta) {
   if (jsonLd) {
     const jsonLdTag = `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`;
     html = html.replace(/<\/head>/i, `${jsonLdTag}\n</head>`);
+  }
+  if (publicShell) {
+    html = html.replace(/<!-- PUBLIC_SHELL_START -->[\s\S]*?<!-- PUBLIC_SHELL_END -->/i, `<!-- PUBLIC_SHELL_START -->\n${publicShell}\n    <!-- PUBLIC_SHELL_END -->`);
   }
   return html;
 }
@@ -6262,8 +8219,7 @@ app.get('/sitemap.xml', (_req, res) => {
   push(`${APP_ORIGIN}/about`,     today, '0.4', 'monthly');
   // Public users
   for (const u of (store.users || [])) {
-    if (!u || u.bannedAt) continue;
-    if (u.visibility && u.visibility !== 'public') continue;
+    if (!userAppearsInPublicDirectory(u, null)) continue;
     const handle = u.handleCanonical || canonicalHandle(u.handle || '');
     if (!handle) continue;
     const lastmod = (u.updatedAt || u.createdAt || new Date().toISOString()).slice(0, 10);
@@ -6302,14 +8258,14 @@ app.get('/sitemap.xml', (_req, res) => {
 app.get('/manifest.webmanifest', (_req, res) => {
   res.type('application/manifest+json').set('Cache-Control', 'public, max-age=86400').json({
     name: SITE_NAME, short_name: 'justbreath',
-    description: 'Open creator platform — profiles, sites, workspaces and real-time chat.',
+    description: 'Creator pages, static sites, private spaces, and team collaboration.',
     start_url: '/', scope: '/', display: 'standalone',
     background_color: '#111111', theme_color: '#111111',
     orientation: 'any', lang: 'en', dir: 'ltr',
     categories: ['social', 'productivity', 'utilities'],
     icons: [
       { src: '/logo.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-      { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' }
+      { src: '/logo.png', sizes: '192x192', type: 'image/png', purpose: 'any' }
     ]
   });
 });

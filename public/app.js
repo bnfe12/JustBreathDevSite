@@ -57,6 +57,9 @@ const icons = {
   youtube: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M21.6 8.2a2.8 2.8 0 0 0-2-2C17.8 5.7 12 5.7 12 5.7s-5.8 0-7.6.5a2.8 2.8 0 0 0-2 2C2 10 2 12 2 12s0 2 .4 3.8a2.8 2.8 0 0 0 2 2c1.8.5 7.6.5 7.6.5s5.8 0 7.6-.5a2.8 2.8 0 0 0 2-2C22 14 22 12 22 12s0-2-.4-3.8ZM10 15.5v-7l6 3.5-6 3.5Z"/></svg>',
   instagram: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="12" r="3.5"/><circle cx="17.4" cy="6.6" r=".9" fill="currentColor" stroke="none"/></svg>',
   steam: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="17" cy="7" r="3"/><circle cx="8" cy="15" r="2.5"/><path d="m10.2 13.7 4.8-3.2M4 14.2l2 1.1" stroke-linecap="round"/><path d="M5.5 13.6A5.5 5.5 0 1 1 12 19.4" stroke-linecap="round"/></svg>',
+  githubBrand: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2.5a9.5 9.5 0 0 0-3 18.5c.5.1.7-.2.7-.5v-1.8c-2.9.6-3.5-1.2-3.5-1.2-.5-1.2-1.2-1.5-1.2-1.5-1-.7.1-.7.1-.7 1 .1 1.6 1 1.6 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.7-1.4-2.3-.2-4.8-1.2-4.8-5.2 0-1.1.4-2 1-2.8-.1-.2-.4-1.2.1-2.5 0 0 .8-.3 2.8 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.3.2 2.3.1 2.5.6.7 1 1.7 1 2.8 0 4-2.5 4.9-4.8 5.2.4.3.7.9.7 1.8v2.6c0 .3.2.6.7.5A9.5 9.5 0 0 0 12 2.5Z"/></svg>',
+  spotify: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="12" r="9"/><path d="M8 10.1c2.8-.8 5.8-.7 8.6.5" fill="none" stroke="#05070d" stroke-width="1.8" stroke-linecap="round"/><path d="M8.7 12.9c2.2-.5 4.5-.4 6.6.5" fill="none" stroke="#05070d" stroke-width="1.6" stroke-linecap="round"/><path d="M9.3 15.4c1.6-.3 3.3-.2 4.8.4" fill="none" stroke="#05070d" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  epicGames: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4h8l1 3v8l-5 5-5-5V7l1-3Z" stroke-linejoin="round"/><path d="M10 8h4M10 12h4M10 16h4" stroke-linecap="round"/></svg>',
   users: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 20a4 4 0 0 0-8 0"/><circle cx="12" cy="9" r="3"/><path d="M21 19a3.5 3.5 0 0 0-3-3.5M3 19A3.5 3.5 0 0 1 6 15.5"/><path d="M18 8.5a2.5 2.5 0 1 0-1-4.8M6 8.5a2.5 2.5 0 1 1 1-4.8"/></svg>',
   badge: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2 2.4 3.2-.3.9 3 2.9 1.3-1.3 2.9 1.3 2.9-2.9 1.3-.9 3-3.2-.3L12 21l-2-2.4-3.2.3-.9-3L3 14.6l1.3-2.9L3 8.8l2.9-1.3.9-3 3.2.3L12 3Z" stroke-linejoin="round"/><path d="m9.5 12.4 1.6 1.6 3.6-3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   verified: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2.4 2 3.1-.2.9 3 2.8 1.4-1 3 1 3-2.8 1.4-.9 3-3.1-.2L12 21l-2.4-2-3.1.2-.9-3L2.8 14l1-3-1-3 2.8-1.4.9-3 3.1.2L12 3Z" stroke-linejoin="round"/><path d="m9.3 12.2 1.8 1.8 3.9-4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -70,6 +73,8 @@ const icons = {
   film: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M17 9h4M3 15h4M17 15h4" stroke-linecap="round"/></svg>',
   mic: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" stroke-linecap="round"/></svg>',
   record: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg>',
+  play: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 6.5v11l9-5.5z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7 6h4v12H7zM13 6h4v12h-4z"/></svg>',
   smile: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8.5 14a4.5 4.5 0 0 0 7 0M9 10h.01M15 10h.01" stroke-linecap="round"/></svg>',
   wrench: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 6.5a4.5 4.5 0 0 0 5.2 5.2L11 20l-3-3 8.2-8.3A4.5 4.5 0 0 1 14 6.5Z" stroke-linejoin="round"/><path d="m5 19-2 2" stroke-linecap="round"/></svg>',
   grid: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>',
@@ -172,6 +177,39 @@ const MESSAGE_STYLE_OPTIONS = [
   { id: 'glass', label: { en: 'Glass', ru: 'Стекло' } },
   { id: 'minimal', label: { en: 'Minimal', ru: 'Минимал' } }
 ];
+const REPORT_REASON_OPTIONS = [
+  { id: 'spam', label: { en: 'Spam', ru: 'Спам' } },
+  { id: 'harassment', label: { en: 'Harassment', ru: 'Оскорбления' } },
+  { id: 'impersonation', label: { en: 'Impersonation', ru: 'Выдача за другого' } },
+  { id: 'scam', label: { en: 'Scam / fraud', ru: 'Скам / мошенничество' } },
+  { id: 'adult', label: { en: 'Adult / NSFW', ru: '18+ / NSFW' } },
+  { id: 'copyright', label: { en: 'Copyright', ru: 'Авторские права' } },
+  { id: 'other', label: { en: 'Other', ru: 'Другое' } }
+];
+const SITE_CHANGELOG_ENTRIES = [
+  {
+    date: '2026-04-20',
+    title: { en: 'Profile, security and moderation refresh', ru: 'Обновление профиля, безопасности и модерации' },
+    body: {
+      en: 'Fixed profile saving flows, clarified local-password rules for Discord/Google accounts, added content reports, and gave operators faster post/account cleanup tools.',
+      ru: 'Починили сохранение профиля, прояснили правила локального пароля для Discord/Google-аккаунтов, добавили жалобы на контент и ускорили удаление постов и аккаунтов для операторов.'
+    }
+  },
+  {
+    date: '2026-04-19',
+    title: { en: 'Admin subscriptions and unlimited internal uploads', ru: 'Админские подписки и безлимитные внутренние загрузки' },
+    body: {
+      en: 'Operators can manage user plans, and internal admin/owner accounts are no longer limited by standard site upload caps.',
+      ru: 'Операторы теперь могут управлять тарифами пользователей, а внутренние admin/owner-аккаунты больше не ограничены стандартными лимитами загрузки сайтов.'
+    }
+  }
+];
+const CONTACT_EMAIL = 'justbreath.business.mail@gmail.com';
+const CONTACT_EMAIL_HREF = `mailto:${CONTACT_EMAIL}`;
+const GITHUB_PROFILE_URL = 'https://github.com/bnfe12';
+const SITE_CREATION_REPO_URL = 'https://github.com/bnfe12/JustBreathDevSite';
+const SITE_CREATION_GUIDE_URL = `${SITE_CREATION_REPO_URL}/blob/main/SITE_CREATION_GUIDE.md`;
+const SITE_CREATION_EXAMPLES_URL = `${SITE_CREATION_REPO_URL}/blob/main/SITE_CREATION_EXAMPLES_RU.md`;
 
 const beaverMascot = `
 <svg viewBox="0 0 180 160" width="140" height="124" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -194,6 +232,9 @@ const beaverMascot = `
 
 const translations = {
   en: {
+    play: 'Play', pause: 'Pause', voiceMessage: 'Voice message', audioFile: 'Audio file', voicePreview: 'Voice preview', voiceDraft: 'Voice draft',
+    pressSendVoice: 'Press send to share voice message.', recordVoice: 'Record voice', stopRecording: 'Stop recording',
+    recordingNow: 'Recording now', recordingHint: 'Microphone is live. Tap again to finish.', audioContinueHint: 'Keeps playing while you switch chats or screens.',
     home: 'Home', feed: 'Feed', messages: 'Messages', sites: 'Sites', settings: 'Settings', discover: 'Discover',
     signIn: 'Sign in', signOut: 'Sign out', profile: 'Profile', notifications: 'Notifications',
     friends: 'Friends', following: 'Following', personal: 'Personal', work: 'Work', groups: 'Groups',
@@ -207,7 +248,8 @@ const translations = {
     templateSite: 'Template site', uploadSite: 'Upload HTML site', theme: 'Theme', language: 'Language', badgeRequest: 'Badge request',
     followersOnly: 'Followers only', everyone: 'Everyone', nobody: 'Nobody', public: 'Public', handleOnly: 'Handle only', private: 'Private',
     settingsLead: 'Manage your profile, privacy, notifications, billing and account security.',
-    homeLead: 'Build profiles, ship independent sites, collaborate in workspaces and message directly — all in one platform.',
+    homeHeadline: 'Create your public creator page, collaborate with your team, and chat with your audience in one place.',
+    homeLead: 'Build a public page, ship creator sites, open private spaces, and keep direct audience chat in one product.',
     noRoom: 'Choose a conversation to start.', noPosts: 'Nothing published yet.', noSites: 'No sites yet.', noProjects: 'No projects yet.',
     hiddenByPrivacy: 'This profile is private.', schedule: 'Schedule', title: 'Title', body: 'Body', summary: 'Summary', slug: 'Slug', visibility: 'Visibility',
     profileUpdated: 'Profile updated.', settingsUpdated: 'Settings saved.', accountRemoved: 'Account deleted.', chatSent: 'Message sent.', postPublished: 'Post published.',
@@ -220,7 +262,7 @@ const translations = {
     allowDMs: 'Who can message you', allowFriendRequests: 'Allow friend requests', allowInvites: 'Allow invite links', showEmail: 'Show email publicly',
     lineContact: 'Contact', heroCopy: 'Hero headline', aboutCopy: 'About copy', status: 'Status',
     activity: 'Activity', projects: 'Projects', dark: 'Dark', light: 'Light', system: 'System', details: 'Details', publish: 'Publish',
-    displayName: 'Display name', bio: 'Bio', avatar: 'Avatar', banner: 'Banner', website: 'Website', github: 'GitHub', discord: 'Discord', telegram: 'Telegram',
+    displayName: 'Display name', bio: 'Bio', avatar: 'Avatar', banner: 'Banner', website: 'Website', github: 'GitHub', discord: 'Discord', telegram: 'Telegram', steam: 'Steam', spotify: 'Spotify', epicGames: 'Epic Games',
     description: 'Description', excerpt: 'Excerpt', expiresHours: 'Hours until expiry', requestedBadge: 'Requested badge', reason: 'Reason', password: 'Password',
     cover: 'Cover', image: 'Image', html: 'HTML', links: 'Links', name: 'Name', sticker: 'Sticker', hero: 'Hero', scheduledFor: 'Scheduled for', confirm: 'Confirm', verification: 'Verification',
     copyLink: 'Copy link', scheduleFor: 'Schedule for', create: 'Create', update: 'Update', archive: 'Archive', mute: 'Mute', pin: 'Pin', leave: 'Leave', remove: 'Remove',
@@ -233,6 +275,9 @@ const translations = {
     confirmReceipt: 'Confirm',
   },
   ru: {
+    play: 'Слушать', pause: 'Пауза', voiceMessage: 'Голосовое сообщение', audioFile: 'Аудиофайл', voicePreview: 'Предпросмотр голосового', voiceDraft: 'Черновик голосового',
+    pressSendVoice: 'Нажми отправить, чтобы поделиться голосовым сообщением.', recordVoice: 'Записать голосовое', stopRecording: 'Остановить запись',
+    recordingNow: 'Идёт запись', recordingHint: 'Микрофон активен. Нажми ещё раз, чтобы завершить.', audioContinueHint: 'Продолжает играть, пока ты переключаешь чаты и экраны.',
     home: 'Главная', feed: 'Лента', messages: 'Сообщения', sites: 'Сайты', settings: 'Настройки', discover: 'Поиск',
     signIn: 'Войти', signOut: 'Выйти', profile: 'Профиль', notifications: 'Уведомления',
     friends: 'Друзья', following: 'Подписки', personal: 'Личные', work: 'Рабочие', groups: 'Группы',
@@ -246,7 +291,8 @@ const translations = {
     templateSite: 'Шаблонный сайт', uploadSite: 'Загрузить HTML-сайт', theme: 'Тема', language: 'Язык', badgeRequest: 'Запрос бейджа',
     followersOnly: 'Только подписчики', everyone: 'Все', nobody: 'Никто', public: 'Публичный', handleOnly: 'Только ник', private: 'Приватный',
     settingsLead: 'Управляй профилем, приватностью, уведомлениями, биллингом и безопасностью аккаунта.',
-    homeLead: 'Профили, независимые сайты, рабочие пространства и личные диалоги — всё в одном месте.',
+    homeHeadline: 'Создайте публичную страницу автора, работайте с командой и общайтесь с аудиторией в одном месте.',
+    homeLead: 'Публичная страница, creator sites, приватные пространства и прямой диалог с аудиторией — в одном продукте.',
     noRoom: 'Выбери диалог, чтобы начать.', noPosts: 'Пока ничего не опубликовано.', noSites: 'Пока нет сайтов.', noProjects: 'Пока нет проектов.',
     hiddenByPrivacy: 'Этот профиль закрыт.', schedule: 'Запланировать', title: 'Заголовок', body: 'Текст', summary: 'Кратко', slug: 'Slug', visibility: 'Видимость',
     profileUpdated: 'Профиль обновлён.', settingsUpdated: 'Настройки сохранены.', accountRemoved: 'Аккаунт удалён.', chatSent: 'Сообщение отправлено.', postPublished: 'Публикация создана.',
@@ -259,7 +305,7 @@ const translations = {
     allowDMs: 'Кто может писать', allowFriendRequests: 'Разрешить заявки в друзья', allowInvites: 'Разрешить инвайты', showEmail: 'Показывать почту публично',
     lineContact: 'Контакт', heroCopy: 'Главный заголовок', aboutCopy: 'Основной текст', status: 'Статус',
     activity: 'Активность', projects: 'Проекты', dark: 'Тёмная', light: 'Светлая', system: 'Системная', details: 'Детали', publish: 'Опубликовать',
-    displayName: 'Имя', bio: 'Описание', avatar: 'Аватар', banner: 'Баннер', website: 'Сайт', github: 'GitHub', discord: 'Discord', telegram: 'Telegram',
+    displayName: 'Имя', bio: 'Описание', avatar: 'Аватар', banner: 'Баннер', website: 'Сайт', github: 'GitHub', discord: 'Discord', telegram: 'Telegram', steam: 'Steam', spotify: 'Spotify', epicGames: 'Epic Games',
     description: 'Описание', excerpt: 'Выдержка', expiresHours: 'Часов до окончания', requestedBadge: 'Бейдж', reason: 'Причина', password: 'Пароль',
     cover: 'Обложка', image: 'Изображение', html: 'HTML', links: 'Ссылки', name: 'Название', sticker: 'Стикер', hero: 'Hero', scheduledFor: 'Время публикации', confirm: 'Подтвердить', verification: 'Верификация',
     copyLink: 'Скопировать ссылку', scheduleFor: 'Время публикации', create: 'Создать', update: 'Обновить', archive: 'Архив', mute: 'Без звука', pin: 'Закрепить', leave: 'Выйти', remove: 'Удалить',
@@ -272,6 +318,9 @@ const translations = {
     confirmReceipt: 'Подтвердить',
   },
   pt: {
+    play: 'Reproduzir', pause: 'Pausar', voiceMessage: 'Mensagem de voz', audioFile: 'Arquivo de áudio', voicePreview: 'Prévia de voz', voiceDraft: 'Rascunho de voz',
+    pressSendVoice: 'Toque em enviar para compartilhar a mensagem de voz.', recordVoice: 'Gravar voz', stopRecording: 'Parar gravação',
+    recordingNow: 'Gravando agora', recordingHint: 'O microfone está ativo. Toque de novo para finalizar.', audioContinueHint: 'Continua tocando enquanto você troca de chats ou telas.',
     home: 'Início', feed: 'Feed', messages: 'Mensagens', sites: 'Sites', settings: 'Configurações', discover: 'Descobrir',
     signIn: 'Entrar', signOut: 'Sair', profile: 'Perfil', notifications: 'Notificações',
     friends: 'Amigos', following: 'Seguindo', personal: 'Pessoal', work: 'Trabalho', groups: 'Grupos',
@@ -284,12 +333,16 @@ const translations = {
     accountCenter: 'Central de conta', theme: 'Tema', language: 'Idioma',
     everyone: 'Todos', nobody: 'Ninguém', public: 'Público', private: 'Privado',
     settingsLead: 'Gerencie seu perfil, privacidade, notificações e segurança.',
-    homeLead: 'Perfis, sites, workspaces e mensagens diretas — tudo em um só lugar.',
+    homeHeadline: 'Crie sua página pública de creator, colabore com sua equipe e converse com sua audiência em um só lugar.',
+    homeLead: 'Página pública, sites, espaços privados e conversa direta com a audiência em um só produto.',
     noRoom: 'Escolha uma conversa.', noPosts: 'Nada publicado ainda.', noSites: 'Sem sites ainda.', noProjects: 'Sem projetos ainda.',
     dark: 'Escuro', light: 'Claro', system: 'Sistema', save: 'Salvar alterações',
     status: 'Status', adminPanel: 'Painel Admin', emailVerified: 'Email verificado', verifyNow: 'Verificar',
   },
   pl: {
+    play: 'Odtwórz', pause: 'Pauza', voiceMessage: 'Wiadomość głosowa', audioFile: 'Plik audio', voicePreview: 'Podgląd głosu', voiceDraft: 'Szkic głosowy',
+    pressSendVoice: 'Naciśnij wyślij, aby udostępnić wiadomość głosową.', recordVoice: 'Nagraj głos', stopRecording: 'Zatrzymaj nagrywanie',
+    recordingNow: 'Nagrywanie trwa', recordingHint: 'Mikrofon jest aktywny. Dotknij ponownie, aby zakończyć.', audioContinueHint: 'Odtwarzanie trwa dalej podczas przełączania czatów i ekranów.',
     home: 'Strona główna', feed: 'Aktualności', messages: 'Wiadomości', sites: 'Strony', settings: 'Ustawienia', discover: 'Odkryj',
     signIn: 'Zaloguj się', signOut: 'Wyloguj', profile: 'Profil', notifications: 'Powiadomienia',
     friends: 'Znajomi', following: 'Obserwujesz', personal: 'Osobiste', work: 'Praca', groups: 'Grupy',
@@ -302,12 +355,16 @@ const translations = {
     accountCenter: 'Centrum konta', theme: 'Motyw', language: 'Język',
     everyone: 'Wszyscy', nobody: 'Nikt', public: 'Publiczny', private: 'Prywatny',
     settingsLead: 'Zarządzaj profilem, prywatnością i bezpieczeństwem.',
-    homeLead: 'Profile, strony, przestrzenie robocze i wiadomości — wszystko w jednym miejscu.',
+    homeHeadline: 'Stwórz publiczną stronę twórcy, współpracuj z zespołem i rozmawiaj ze swoją społecznością w jednym miejscu.',
+    homeLead: 'Publiczna strona, strony twórcy, prywatne przestrzenie i bezpośredni kontakt z odbiorcami w jednym produkcie.',
     noRoom: 'Wybierz rozmowę.', noPosts: 'Brak publikacji.', noSites: 'Brak stron.', noProjects: 'Brak projektów.',
     dark: 'Ciemny', light: 'Jasny', system: 'Systemowy',
     status: 'Status', adminPanel: 'Panel admina', emailVerified: 'Email zweryfikowany', verifyNow: 'Zweryfikuj',
   },
   fr: {
+    play: 'Lire', pause: 'Pause', voiceMessage: 'Message vocal', audioFile: 'Fichier audio', voicePreview: 'Aperçu vocal', voiceDraft: 'Brouillon vocal',
+    pressSendVoice: 'Appuyez sur envoyer pour partager le message vocal.', recordVoice: 'Enregistrer la voix', stopRecording: 'Arrêter l’enregistrement',
+    recordingNow: 'Enregistrement en cours', recordingHint: 'Le micro est actif. Touchez encore une fois pour terminer.', audioContinueHint: 'Continue de jouer pendant que vous changez de chat ou d’écran.',
     home: 'Accueil', feed: 'Fil', messages: 'Messages', sites: 'Sites', settings: 'Paramètres', discover: 'Découvrir',
     signIn: 'Se connecter', signOut: 'Déconnexion', profile: 'Profil', notifications: 'Notifications',
     friends: 'Amis', following: 'Abonnements', personal: 'Personnel', work: 'Travail', groups: 'Groupes',
@@ -320,12 +377,16 @@ const translations = {
     accountCenter: 'Centre de compte', theme: 'Thème', language: 'Langue',
     everyone: 'Tout le monde', nobody: 'Personne', public: 'Public', private: 'Privé',
     settingsLead: 'Gérez votre profil, confidentialité et sécurité.',
-    homeLead: 'Profils, sites, espaces de travail et messages directs — tout en un.',
+    homeHeadline: 'Créez votre page publique de créateur, collaborez avec votre équipe et échangez avec votre audience au même endroit.',
+    homeLead: 'Page publique, sites, espaces privés et échange direct avec votre audience dans un seul produit.',
     noRoom: 'Choisissez une conversation.', noPosts: 'Rien de publié.', noSites: 'Aucun site.', noProjects: 'Aucun projet.',
     dark: 'Sombre', light: 'Clair', system: 'Système',
     status: 'Statut', adminPanel: 'Panneau admin', emailVerified: 'Email vérifié', verifyNow: 'Vérifier',
   },
   uk: {
+    play: 'Відтворити', pause: 'Пауза', voiceMessage: 'Голосове повідомлення', audioFile: 'Аудіофайл', voicePreview: 'Перегляд голосового', voiceDraft: 'Чернетка голосового',
+    pressSendVoice: 'Натисни відправити, щоб поділитися голосовим повідомленням.', recordVoice: 'Записати голосове', stopRecording: 'Зупинити запис',
+    recordingNow: 'Триває запис', recordingHint: 'Мікрофон активний. Натисни ще раз, щоб завершити.', audioContinueHint: 'Продовжує відтворення, поки ти перемикаєш чати та екрани.',
     home: 'Головна', feed: 'Стрічка', messages: 'Повідомлення', sites: 'Сайти', settings: 'Налаштування', discover: 'Пошук',
     signIn: 'Увійти', signOut: 'Вийти', profile: 'Профіль', notifications: 'Сповіщення',
     friends: 'Друзі', following: 'Підписки', personal: 'Особисті', work: 'Робочі', groups: 'Групи',
@@ -338,7 +399,8 @@ const translations = {
     accountCenter: 'Центр акаунту', theme: 'Тема', language: 'Мова',
     everyone: 'Всі', nobody: 'Ніхто', public: 'Публічний', private: 'Приватний',
     settingsLead: 'Керуй профілем, приватністю та безпекою акаунту.',
-    homeLead: 'Профілі, сайти, робочі простори та повідомлення — все в одному місці.',
+    homeHeadline: 'Створіть публічну сторінку автора, працюйте з командою та спілкуйтеся з аудиторією в одному місці.',
+    homeLead: 'Публічна сторінка, creator sites, приватні простори та прямий звʼязок з аудиторією в одному продукті.',
     noRoom: 'Обери розмову.', noPosts: 'Ще нічого не опубліковано.', noSites: 'Немає сайтів.', noProjects: 'Немає проєктів.',
     dark: 'Темна', light: 'Світла', system: 'Системна',
     status: 'Статус', adminPanel: 'Панель адміна', emailVerified: 'Email підтверджено', verifyNow: 'Підтвердити',
@@ -362,7 +424,8 @@ const state = {
     unreadCount: 0, lastSeenMessageId: 0, previewOnly: false,
     friendsExpanded: false, roomInfoTab: 'info',
     attachments: [],
-    forceScrollBottom: false
+    forceScrollBottom: false,
+    voiceSpeed: 1
   },
   sites: { mine: [], public: [], filter: 'mine', studio: { siteId: null, site: null, files: [], activePath: '', activeFile: null, content: '', loading: false, fileLoading: false, saving: false, dirty: false, error: '', studioEnabled: false, staticRules: null } },
   mail: { inbox: [], sent: [], unread: 0, folder: 'inbox', selected: null, composing: false },
@@ -380,14 +443,17 @@ const state = {
   profileDraftMedia: { avatarDataUrl: '', bannerDataUrl: '' },
   savedAccounts: loadSavedAccounts(),
   refreshTimer: null, fastRefreshTimer: null,
+  backgroundRenderTimer: null, backgroundRenderQueued: false, backgroundRenderFrame: null,
+  renderHoldUntil: 0, filePickerActive: false,
   routeLoadSeq: 0,
+  initialUiAnimated: false,
   // SSE
   sse: null, sseStatus: 'off',
   sseUserId: 0,
   // Chat extras
   typing: {}, readReceipts: {}, pinnedMessages: [], memberList: [], memberListRoom: null, memberListLoading: false,
   // Admin
-  adminStats: null, adminUsers: [], adminTab: 'stats',
+  adminStats: null, adminUsers: [], adminReports: [], adminDeletionJobs: [], adminPosts: [], adminTab: 'stats', adminModerationView: 'overview',
   // Search
   searchResults: { messages: [], query: '' },
   // Ads — safe default, overwritten by server
@@ -399,6 +465,7 @@ const state = {
       desc: 'More storage, custom domains and priority support from €5/mo.',
       cta: 'See plans →', href: '/#billing', internal: true, active: true }
   ],
+  voicePlayback: { key: '', url: '', playing: false, currentTime: 0, duration: 0, speed: 1, title: '', label: '', kind: 'voice' },
 };
 
 function parseRoute(pathname) {
@@ -445,10 +512,14 @@ function currentLang() {
   if (state.me?.user?.languagePreference) return state.me.user.languagePreference;
   const stored = localStorage.getItem('jb_lang');
   if (stored && translations[stored]) return stored;
-  // auto-detect from browser
-  const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase().slice(0, 2);
-  const map = { ru: 'ru', pt: 'pt', pl: 'pl', fr: 'fr', uk: 'uk' };
-  return map[nav] || 'en';
+  const locales = [navigator.language, ...(navigator.languages || [])]
+    .filter(Boolean)
+    .map((item) => String(item).toLowerCase());
+  const matched = locales.find((locale) => {
+    const base = locale.split('-')[0];
+    return Boolean(translations[base]);
+  });
+  return matched ? matched.split('-')[0] : 'en';
 }
 function currentTheme() {
   const pref = state.me?.user?.themePreference || localStorage.getItem('jb_theme') || 'dark';
@@ -460,7 +531,8 @@ function currentTheme() {
 function localeLabel(source) {
   if (!source) return '';
   if (typeof source === 'string') return source;
-  return currentLang() === 'ru' ? (source.ru || source.en || '') : (source.en || source.ru || '');
+  const lang = currentLang();
+  return source[lang] || source.en || source.ru || '';
 }
 function getChatSettings() {
   return currentUser()?.settings || state.me?.user?.settings || {};
@@ -577,6 +649,15 @@ function openLightboxState(src, alt = '', type = 'image') {
   }
   state.lightbox = { items, index };
 }
+function isMessagesRouteActive() {
+  return state.route.name === 'messages';
+}
+function isVisibleChatRoomById(roomId) {
+  return isMessagesRouteActive() && Number(state.chat.room?.id || 0) === Number(roomId || 0);
+}
+function isVisibleChatRoomBySlug(roomSlug) {
+  return isMessagesRouteActive() && Boolean(roomSlug) && state.chat.room?.slug === roomSlug;
+}
 function shiftLightbox(delta) {
   if (!state.lightbox?.items?.length) return;
   const total = state.lightbox.items.length;
@@ -604,6 +685,62 @@ function renderChatThemeSwatches(inputName, selectedChoice, allowImage = false) 
     </label>` : ''}
   </div>`;
 }
+function renderChatThemeLivePreview(theme) {
+  const previewStyle = chatThemeInlineStyle(theme);
+  return `<div class="chat-theme-live-preview" data-chat-theme-preview style="${escapeHtml(previewStyle)}">
+    <div class="chat-theme-live-canvas">
+      <div class="chat-theme-live-bubble incoming">Hello there</div>
+      <div class="chat-theme-live-bubble outgoing">Preview applied</div>
+    </div>
+  </div>`;
+}
+function currentChatThemePreviewFallback(form) {
+  if (!form) return resolveChatTheme();
+  if (form.dataset.room) {
+    return getChatSettings().chatThemesByRoom?.[form.dataset.room] || resolveChatTheme(form.dataset.room);
+  }
+  return getChatSettings().chatThemeGlobal || resolveChatTheme();
+}
+async function buildChatThemePreviewPayload(form) {
+  if (!form) return resolveChatTheme();
+  const fallback = currentChatThemePreviewFallback(form);
+  const data = new FormData(form);
+  const choice = String(data.get('chatThemeChoice') || 'preset:platform');
+  if (choice === 'gradient') {
+    return {
+      mode: 'gradient',
+      preset: 'platform',
+      from: String(data.get('chatThemeFrom') || fallback?.from || '#6d28d9'),
+      to: String(data.get('chatThemeTo') || fallback?.to || '#0ea5e9'),
+      imageUrl: ''
+    };
+  }
+  if (choice === 'image') {
+    const file = data.get('chatThemeImage');
+    let imageUrl = fallback?.imageUrl || '';
+    if (file?.size) imageUrl = await readFileAsDataURL(file);
+    return {
+      mode: 'image',
+      preset: 'platform',
+      from: fallback?.from || '#6d28d9',
+      to: fallback?.to || '#0ea5e9',
+      imageUrl
+    };
+  }
+  return {
+    mode: 'preset',
+    preset: choice.startsWith('preset:') ? choice.slice(7) : 'platform',
+    from: fallback?.from || '#6d28d9',
+    to: fallback?.to || '#0ea5e9',
+    imageUrl: ''
+  };
+}
+async function updateChatThemePreview(form) {
+  const preview = form?.querySelector?.('[data-chat-theme-preview]');
+  if (!preview) return;
+  const theme = await buildChatThemePreviewPayload(form);
+  preview.setAttribute('style', chatThemeInlineStyle(theme));
+}
 function currentThemePref() {
   return state.me?.user?.themePreference || localStorage.getItem('jb_theme') || 'dark';
 }
@@ -612,6 +749,70 @@ function t(key) {
 }
 function currentUser() {
   return state.me?.user || state.bootstrap?.session || null;
+}
+function isOwnerSession() {
+  return currentUser()?.roleInternal === 'owner';
+}
+function isOperatorSession() {
+  return ['owner', 'admin'].includes(currentUser()?.roleInternal || '');
+}
+function currentSiteUploadCaps() {
+  const operator = isOperatorSession();
+  const isRu = currentLang() === 'ru';
+  const archiveBytes = operator ? 512 * 1024 * 1024 : 5 * 1024 * 1024;
+  const archiveLabel = operator
+    ? (isRu ? '≤ 512 MB для операторов' : '≤ 512 MB for operators')
+    : '≤ 5 MB';
+  return {
+    operator,
+    htmlBytes: operator ? Infinity : 1024 * 1024,
+    archiveBytes,
+    htmlLabel: operator ? (isRu ? 'без лимита для операторов' : 'no limit for operators') : '≤ 1 MB',
+    archiveLabel
+  };
+}
+function formatByteSize(bytes = 0) {
+  const value = Number(bytes || 0);
+  if (!Number.isFinite(value) || value <= 0) return '0 B';
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MB`;
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${Math.round(value)} B`;
+}
+function siteImportSummary(site) {
+  const info = site?.uploadDiagnostics || null;
+  const importReport = site?.importReport || info?.importReport || null;
+  const warnings = info?.compatibilityWarnings || [];
+  const optimizedCount = Number(importReport?.optimizedAssets?.length || 0);
+  const optimizedBytes = Number(importReport?.optimizedBytesSaved || 0);
+  if (!optimizedCount && !warnings.length) return '';
+  if (currentLang() === 'ru') {
+    const parts = [];
+    if (optimizedCount) parts.push(`оптимизировано изображений: ${optimizedCount}, сохранено ${formatByteSize(optimizedBytes)}`);
+    if (warnings.length) parts.push(`обнаружено предупреждений совместимости: ${warnings.length}`);
+    return parts.join(' · ');
+  }
+  const parts = [];
+  if (optimizedCount) parts.push(`optimized ${optimizedCount} image files, saved ${formatByteSize(optimizedBytes)}`);
+  if (warnings.length) parts.push(`${warnings.length} compatibility warnings detected`);
+  return parts.join(' · ');
+}
+function renderSiteImportDigest(site, detailed = false) {
+  const info = site?.uploadDiagnostics || null;
+  const importReport = site?.importReport || info?.importReport || null;
+  const warnings = info?.compatibilityWarnings || [];
+  const optimizedAssets = importReport?.optimizedAssets || [];
+  const fileCount = Number(info?.fileCount || 0);
+  if (!info && !warnings.length && !optimizedAssets.length) return '';
+  const chips = [];
+  if (fileCount) chips.push(`${fileCount} files`);
+  if (optimizedAssets.length) chips.push(`${optimizedAssets.length} optimized`);
+  if (warnings.length) chips.push(`${warnings.length} warnings`);
+  if (!chips.length) return '';
+  return `<div class="site-import-digest ${detailed ? 'detailed' : ''}">
+    <strong>${currentLang() === 'ru' ? 'Импорт' : 'Import'}</strong>
+    <div class="site-import-digest-row">${chips.map((chip) => `<span class="site-import-chip">${escapeHtml(chip)}</span>`).join('')}</div>
+    ${detailed && warnings.length ? `<p class="muted">${escapeHtml(warnings[0]?.title || 'Compatibility warning detected.')}</p>` : ''}
+  </div>`;
 }
 function isGuestSession() {
   if (state.guest) return true;
@@ -695,6 +896,34 @@ function saveAccountSession(user, sessionToken) {
   state.savedAccounts = [next, ...state.savedAccounts.filter((item) => item.id !== next.id)].slice(0, 8);
   persistSavedAccounts();
 }
+function syncSavedAccountProfile(user) {
+  if (!user?.id || !Array.isArray(state.savedAccounts) || !state.savedAccounts.length) return;
+  let changed = false;
+  state.savedAccounts = state.savedAccounts.map((item) => {
+    if (Number(item.id) !== Number(user.id)) return item;
+    const next = {
+      ...item,
+      handle: user.handle || item.handle,
+      displayName: user.displayName || user.handle || item.displayName,
+      avatarUrl: user.avatarUrl || '',
+      avatarText: user.avatarText || item.avatarText || initials(user)
+    };
+    if (
+      next.handle !== item.handle
+      || next.displayName !== item.displayName
+      || next.avatarUrl !== item.avatarUrl
+      || next.avatarText !== item.avatarText
+    ) changed = true;
+    return next;
+  });
+  if (changed) persistSavedAccounts();
+}
+function canReportOwner(owner) {
+  const viewer = currentUser();
+  if (!viewer || isGuestSession()) return false;
+  const ownerHandle = canonicalProfileHandle(owner);
+  return !ownerHandle || ownerHandle !== viewer.handleCanonical;
+}
 
 async function api(url, options = {}) {
   const response = await fetch(url, {
@@ -702,9 +931,19 @@ async function api(url, options = {}) {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options
   });
-  const data = await response.json().catch(() => ({}));
+  const rawText = await response.text();
+  let data = {};
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = { rawText };
+    }
+  }
   if (!response.ok) {
-    const message = data?.error || 'Request failed.';
+    const message = data?.error || (response.status === 413
+      ? 'Upload request is too large for the server. If the archive is valid, check the reverse proxy body limit (for example nginx client_max_body_size) and restart the server after upload-limit changes.'
+      : 'Request failed.');
     const error = new Error(message);
     error.status = response.status;
     Object.assign(error, data || {});
@@ -731,6 +970,16 @@ window.addEventListener('popstate', () => {
   routeLoad();
   render();
 });
+
+function shouldHandleClientNav(event, target) {
+  if (!target || target.tagName !== 'A') return true;
+  if (event.defaultPrevented) return false;
+  if (event.button !== 0) return false;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+  if (target.getAttribute('target') === '_blank') return false;
+  if (target.hasAttribute('download')) return false;
+  return true;
+}
 
 function toast(message, tone = 'info') {
   const item = { id: Math.random().toString(36).slice(2), message, tone };
@@ -765,10 +1014,20 @@ function isUserOnline(user) {
   return friendHandles.has(handle);
 }
 
-function avatar(user, size = 'md', extra = '') {
+function avatar(user, size = 'md', extra = '', options = {}) {
   if (!user) return `<span class="avatar avatar-${size} ${extra}">?</span>`;
   const online = isUserOnline(user);
-  return `<span class="avatar-wrap ${online ? 'online' : ''}"><span class="avatar avatar-${size} ${extra}" ${user.handle ? `data-action="open-profile" data-handle="${user.handleCanonical || user.handle.toLowerCase()}"` : ''}>${user.avatarUrl ? `<img src="${user.avatarUrl}" alt="${user.displayName || user.handle}" />` : `<strong>${initials(user)}</strong>`}</span>${online ? '<span class="online-dot"></span>' : ''}</span>`;
+  const link = options?.link !== false && Boolean(canonicalProfileHandle(user));
+  const avatarClass = ['avatar', `avatar-${size}`, extra].filter(Boolean).join(' ');
+  const wrapClass = ['avatar-wrap', link ? 'avatar-link' : '', online ? 'online' : ''].filter(Boolean).join(' ');
+  const body = user.avatarUrl
+    ? `<img src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName || user.handle || 'avatar')}" />`
+    : `<strong>${initials(user)}</strong>`;
+  const avatarNode = `<span class="${avatarClass}">${body}</span>`;
+  if (!link) {
+    return `<span class="${wrapClass}">${avatarNode}${online ? '<span class="online-dot"></span>' : ''}</span>`;
+  }
+  return `<a class="${wrapClass}" ${profileAttrs(user)}>${avatarNode}${online ? '<span class="online-dot"></span>' : ''}</a>`;
 }
 function roomAvatar(room, size = 'md') {
   const label = room?.avatarText || room?.title?.slice(0, 2)?.toUpperCase() || '??';
@@ -787,6 +1046,25 @@ function formatDate(iso, style = 'short') {
   if (diff < 86400000) return date.toLocaleTimeString(currentLang(), { hour: '2-digit', minute: '2-digit' });
   return date.toLocaleString(currentLang(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+function formatCountdown(ms) {
+  const total = Math.max(0, Math.ceil(Number(ms || 0) / 1000));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const isRu = currentLang() === 'ru';
+  if (days > 0) return isRu ? `${days}д ${hours}ч ${minutes}м` : `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return isRu ? `${hours}ч ${minutes}м` : `${hours}h ${minutes}m`;
+  if (minutes > 0) return isRu ? `${minutes}м ${seconds}с` : `${minutes}m ${seconds}s`;
+  return isRu ? `${seconds}с` : `${seconds}s`;
+}
+function formatDeletionCountdown(deleteAfter) {
+  const target = new Date(deleteAfter).getTime();
+  if (Number.isNaN(target)) return '';
+  const diff = target - Date.now();
+  if (diff <= 0) return currentLang() === 'ru' ? 'Удаляется сейчас' : 'Deleting now';
+  return formatCountdown(diff);
+}
 function escapeHtml(value = '') {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -794,6 +1072,67 @@ function escapeHtml(value = '') {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function trimDisplayUrl(value = '', max = 40) {
+  return String(value || '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/, '')
+    .slice(0, max);
+}
+
+function normalizeProfileHandle(value = '') {
+  return String(value || '').trim().replace(/^@+/, '');
+}
+
+function buildSocialLink(value, kind) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) {
+    return { label: trimDisplayUrl(raw), href: raw };
+  }
+  const handle = normalizeProfileHandle(raw);
+  if (!handle) return null;
+  switch (kind) {
+    case 'github':
+      return { label: `@${handle}`, href: `https://github.com/${encodeURIComponent(handle)}` };
+    case 'telegram':
+      return { label: `@${handle}`, href: `https://t.me/${encodeURIComponent(handle)}` };
+    case 'steam':
+      if (/^\d+$/.test(handle)) return { label: handle, href: `https://steamcommunity.com/profiles/${handle}` };
+      if (/^(id|profiles)\//i.test(handle)) return { label: handle.replace(/^(id|profiles)\//i, ''), href: `https://steamcommunity.com/${handle}` };
+      return { label: handle, href: `https://steamcommunity.com/id/${encodeURIComponent(handle)}` };
+    case 'spotify':
+      return { label: handle, href: `https://open.spotify.com/user/${encodeURIComponent(handle)}` };
+    case 'youtube':
+      return { label: `@${handle}`, href: `https://youtube.com/@${encodeURIComponent(handle)}` };
+    case 'instagram':
+      return { label: `@${handle}`, href: `https://instagram.com/${encodeURIComponent(handle)}` };
+    case 'epicGames':
+      return { label: handle, href: null };
+    default:
+      return { label: handle, href: null };
+  }
+}
+
+function navAttrs(path = '/') {
+  const href = String(path || '/');
+  const safeHref = escapeHtml(href);
+  return `href="${safeHref}" data-action="nav" data-path="${safeHref}"`;
+}
+
+function canonicalProfileHandle(userOrHandle) {
+  const raw = typeof userOrHandle === 'string'
+    ? userOrHandle
+    : (userOrHandle?.handleCanonical || userOrHandle?.handle || '');
+  return String(raw || '').replace(/^@+/, '').trim().toLowerCase();
+}
+
+function profileAttrs(userOrHandle) {
+  const handle = canonicalProfileHandle(userOrHandle);
+  if (!handle) return '';
+  const safeHandle = escapeHtml(handle);
+  return `href="/@${safeHandle}" data-action="open-profile" data-handle="${safeHandle}"`;
 }
 
 const DECOR_ICON_MAP = {
@@ -853,10 +1192,26 @@ function renderAdVisual(slot = {}, variant = 'banner') {
 
 function statusMeta(status) {
   return {
-    active: { label: 'Online', short: 'Online', tone: 'active' },
-    away: { label: 'Away', short: 'Away', tone: 'away' },
-    dnd: { label: 'Do not disturb', short: 'Busy', tone: 'dnd' },
-    offline: { label: 'Invisible', short: 'Hidden', tone: 'offline' }
+    active: {
+      label: localeLabel({ en: 'Online', ru: 'Онлайн', uk: 'Онлайн', pt: 'Online', pl: 'Online', fr: 'En ligne' }),
+      short: localeLabel({ en: 'Online', ru: 'Онлайн', uk: 'Онлайн', pt: 'Online', pl: 'Online', fr: 'En ligne' }),
+      tone: 'active'
+    },
+    away: {
+      label: localeLabel({ en: 'Away', ru: 'Отошёл', uk: 'Відійшов', pt: 'Ausente', pl: 'Zaraz wracam', fr: 'Absent' }),
+      short: localeLabel({ en: 'Away', ru: 'Отошёл', uk: 'Відійшов', pt: 'Ausente', pl: 'Z dala', fr: 'Absent' }),
+      tone: 'away'
+    },
+    dnd: {
+      label: localeLabel({ en: 'Do not disturb', ru: 'Не беспокоить', uk: 'Не турбувати', pt: 'Não incomodar', pl: 'Nie przeszkadzać', fr: 'Ne pas déranger' }),
+      short: localeLabel({ en: 'Busy', ru: 'Занят', uk: 'Зайнятий', pt: 'Ocupado', pl: 'Zajęty', fr: 'Occupé' }),
+      tone: 'dnd'
+    },
+    offline: {
+      label: localeLabel({ en: 'Invisible', ru: 'Невидимый', uk: 'Невидимий', pt: 'Invisível', pl: 'Niewidoczny', fr: 'Invisible' }),
+      short: localeLabel({ en: 'Hidden', ru: 'Скрыт', uk: 'Прихований', pt: 'Oculto', pl: 'Ukryty', fr: 'Masqué' }),
+      tone: 'offline'
+    }
   }[status] || { label: 'Online', short: 'Online', tone: 'active' };
 }
 
@@ -930,6 +1285,7 @@ async function loadBootstrap() {
   state.me = payload.me;
   state.meLoaded = Boolean(payload.me);
   if (state.me?.user) {
+    syncSavedAccountProfile(state.me.user);
     localStorage.setItem('jb_lang', state.me.user.languagePreference || 'en');
     localStorage.setItem('jb_theme', state.me.user.themePreference || 'dark');
     await ensureE2EEKeys();
@@ -1144,6 +1500,307 @@ function compressImageFile(file, maxWidth = 1440, quality = 0.82) {
   });
 }
 
+function formatMediaDuration(totalSeconds = 0) {
+  const seconds = Math.max(0, Math.round(Number(totalSeconds || 0)));
+  const minutes = Math.floor(seconds / 60);
+  const remain = seconds % 60;
+  return `${minutes}:${String(remain).padStart(2, '0')}`;
+}
+
+function getVoicePlaybackProgress(playback = state.voicePlayback || {}) {
+  const duration = Number(playback.duration || 0);
+  if (!duration) return 0;
+  return Math.max(0, Math.min(1, Number(playback.currentTime || 0) / duration));
+}
+
+function voicePlaybackLabel(kind = 'voice') {
+  return kind === 'audio'
+    ? (t('audioFile') || 'Audio file')
+    : (t('voiceMessage') || 'Voice message');
+}
+
+function stopVoicePlayback(reset = true) {
+  if (_voicePlaybackAudio) {
+    try { _voicePlaybackAudio.pause(); } catch {}
+    if (reset) {
+      try { _voicePlaybackAudio.currentTime = 0; } catch {}
+    }
+  }
+  if (_voicePlaybackTick) cancelAnimationFrame(_voicePlaybackTick);
+  _voicePlaybackTick = null;
+  state.voicePlayback = {
+    ...(state.voicePlayback || {}),
+    playing: false,
+    currentTime: reset ? 0 : Number(state.voicePlayback?.currentTime || 0)
+  };
+  syncVoicePlaybackUi();
+}
+
+function syncVoicePlaybackState() {
+  if (!_voicePlaybackAudio) return;
+  state.voicePlayback = {
+    ...(state.voicePlayback || {}),
+    currentTime: Number(_voicePlaybackAudio.currentTime || 0),
+    duration: Number(_voicePlaybackAudio.duration || state.voicePlayback?.duration || 0),
+    playing: !_voicePlaybackAudio.paused,
+    speed: Number(_voicePlaybackAudio.playbackRate || state.voicePlayback?.speed || 1)
+  };
+}
+
+function ensureVoicePlaybackTicker() {
+  if (_voicePlaybackTick) return;
+  _voicePlaybackTick = requestAnimationFrame(() => {
+    _voicePlaybackTick = null;
+    if (!_voicePlaybackAudio) return;
+    syncVoicePlaybackState();
+    syncVoicePlaybackUi();
+    if (!_voicePlaybackAudio.paused) ensureVoicePlaybackTicker();
+  });
+}
+
+function syncVoicePlaybackUi() {
+  const playback = state.voicePlayback || {};
+  const activeKey = String(playback.key || '');
+  const activeUrl = String(playback.url || '');
+  const progress = getVoicePlaybackProgress(playback);
+
+  const globalPlayer = document.querySelector('[data-global-audio-player]');
+  if (globalPlayer) {
+    const visible = Boolean(activeUrl);
+    globalPlayer.hidden = !visible;
+    globalPlayer.classList.toggle('is-playing', visible && playback.playing);
+    if (visible) {
+      globalPlayer.querySelector('[data-role="audio-hub-title"]')?.replaceChildren(document.createTextNode(playback.title || voicePlaybackLabel(playback.kind)));
+      globalPlayer.querySelector('[data-role="audio-hub-label"]')?.replaceChildren(document.createTextNode(playback.label || voicePlaybackLabel(playback.kind)));
+      globalPlayer.querySelector('[data-role="audio-hub-current"]')?.replaceChildren(document.createTextNode(formatMediaDuration(playback.currentTime || 0)));
+      globalPlayer.querySelector('[data-role="audio-hub-total"]')?.replaceChildren(document.createTextNode(formatMediaDuration(playback.duration || 0)));
+      globalPlayer.querySelector('[data-role="audio-hub-speed"]')?.replaceChildren(document.createTextNode(`${Number(playback.speed || 1)}x`));
+      const playBtn = globalPlayer.querySelector('[data-role="audio-hub-play"]');
+      if (playBtn) {
+        playBtn.innerHTML = playback.playing ? icons.pause : icons.play;
+        playBtn.setAttribute('aria-label', playback.playing ? (t('pause') || 'Pause') : (t('play') || 'Play'));
+      }
+      const slider = globalPlayer.querySelector('[data-input="global-audio-progress"]');
+      if (slider) slider.value = String(Math.round(progress * 1000));
+    }
+  }
+
+  document.querySelectorAll('[data-voice-player]').forEach((player) => {
+    const key = String(player.dataset.voiceKey || '');
+    const url = String(player.dataset.voiceUrl || '');
+    const baseDuration = Number(player.dataset.voiceDuration || 0);
+    const active = key === activeKey && url === activeUrl;
+    const currentTime = active ? Number(playback.currentTime || 0) : 0;
+    const total = active ? Number(playback.duration || baseDuration || 0) : baseDuration;
+    const itemProgress = total > 0 ? Math.max(0, Math.min(1, currentTime / total)) : 0;
+    player.classList.toggle('is-active', active);
+    player.classList.toggle('is-playing', active && playback.playing);
+    const playBtn = player.querySelector('[data-role="voice-play"]');
+    if (playBtn) {
+      playBtn.innerHTML = active && playback.playing ? icons.pause : icons.play;
+      playBtn.setAttribute('aria-label', active && playback.playing ? (t('pause') || 'Pause') : (t('play') || 'Play'));
+    }
+    player.querySelector('[data-role="voice-current"]')?.replaceChildren(document.createTextNode(formatMediaDuration(currentTime)));
+    player.querySelector('[data-role="voice-total"]')?.replaceChildren(document.createTextNode(formatMediaDuration(total)));
+    player.querySelectorAll('[data-voice-bar]').forEach((bar) => {
+      const index = Number(bar.dataset.voiceBar || 0);
+      bar.classList.toggle('active', itemProgress > 0 && (index + 1) / 20 <= itemProgress + 0.001);
+    });
+  });
+}
+
+function syncVoiceRecordingUi() {
+  const panels = document.querySelectorAll('[data-voice-recording-panel]');
+  if (!panels.length) return;
+  const elapsed = state.chat.recording ? Math.max(0, Math.floor((Date.now() - Number(_voiceStartedAt || Date.now())) / 1000)) : 0;
+  panels.forEach((panel) => {
+    panel.hidden = !state.chat.recording;
+    panel.classList.toggle('is-live', state.chat.recording);
+    panel.querySelector('[data-role="recording-time"]')?.replaceChildren(document.createTextNode(formatMediaDuration(elapsed)));
+  });
+}
+
+function ensureVoiceRecordingTicker() {
+  if (_voiceRecordTick) return;
+  _voiceRecordTick = setInterval(() => {
+    if (!state.chat.recording) {
+      clearInterval(_voiceRecordTick);
+      _voiceRecordTick = null;
+      syncVoiceRecordingUi();
+      return;
+    }
+    syncVoiceRecordingUi();
+  }, 250);
+}
+
+function voiceBars(seed = '', count = 20) {
+  return Array.from({ length: count }, (_item, index) => {
+    const code = seed.charCodeAt(index % Math.max(1, seed.length)) || 77;
+    return 20 + ((code + index * 17) % 70);
+  });
+}
+
+async function toggleVoicePlayback(key, url, duration = 0, options = {}) {
+  if (!url) return;
+  if (!_voicePlaybackAudio) {
+    _voicePlaybackAudio = new Audio();
+    _voicePlaybackAudio.preload = 'metadata';
+    _voicePlaybackAudio.addEventListener('ended', () => {
+      stopVoicePlayback(true);
+    });
+    _voicePlaybackAudio.addEventListener('pause', () => {
+      syncVoicePlaybackState();
+      syncVoicePlaybackUi();
+    });
+    _voicePlaybackAudio.addEventListener('play', () => {
+      syncVoicePlaybackState();
+      syncVoicePlaybackUi();
+      ensureVoicePlaybackTicker();
+    });
+    _voicePlaybackAudio.addEventListener('loadedmetadata', () => {
+      syncVoicePlaybackState();
+      syncVoicePlaybackUi();
+    });
+    _voicePlaybackAudio.addEventListener('ratechange', () => {
+      syncVoicePlaybackState();
+      syncVoicePlaybackUi();
+    });
+  }
+  const sameTrack = state.voicePlayback?.key === key && state.voicePlayback?.url === url;
+  if (sameTrack && !_voicePlaybackAudio.paused) {
+    stopVoicePlayback(false);
+    return;
+  }
+  if (!sameTrack) {
+    stopVoicePlayback(true);
+    _voicePlaybackAudio.src = url;
+    state.voicePlayback = {
+      key,
+      url,
+      playing: false,
+      currentTime: 0,
+      duration: Number(duration || 0),
+      speed: Number(state.chat.voiceSpeed || 1),
+      title: options.title || voicePlaybackLabel(options.kind || 'voice'),
+      label: options.label || voicePlaybackLabel(options.kind || 'voice'),
+      kind: options.kind === 'audio' ? 'audio' : 'voice'
+    };
+  }
+  _voicePlaybackAudio.playbackRate = Number(state.chat.voiceSpeed || state.voicePlayback?.speed || 1);
+  try {
+    await _voicePlaybackAudio.play();
+    syncVoicePlaybackState();
+    syncVoicePlaybackUi();
+  } catch (error) {
+    toast(error.message || 'Audio playback failed.', 'error');
+  }
+}
+
+function seekVoicePlayback(progress) {
+  if (!_voicePlaybackAudio || !state.voicePlayback?.duration) return;
+  const next = Math.max(0, Math.min(1, Number(progress || 0)));
+  _voicePlaybackAudio.currentTime = next * state.voicePlayback.duration;
+  syncVoicePlaybackState();
+  syncVoicePlaybackUi();
+}
+
+function setVoicePlaybackSpeed(value) {
+  const next = [1, 1.5, 2].includes(Number(value)) ? Number(value) : 1;
+  state.chat.voiceSpeed = next;
+  if (_voicePlaybackAudio) {
+    _voicePlaybackAudio.playbackRate = next;
+    syncVoicePlaybackState();
+  } else {
+    state.voicePlayback = { ...(state.voicePlayback || {}), speed: next };
+  }
+  syncVoicePlaybackUi();
+  render();
+}
+
+function readVideoDuration(file) {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    const objectUrl = URL.createObjectURL(file);
+    video.onloadedmetadata = () => {
+      const durationMs = Math.max(0, Math.round((video.duration || 0) * 1000));
+      URL.revokeObjectURL(objectUrl);
+      resolve(durationMs);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(0);
+    };
+    video.src = objectUrl;
+  });
+}
+
+async function prepareStickerUpload(file) {
+  const lowerName = String(file?.name || '').toLowerCase();
+  if (!file?.size) throw new Error('Choose a sticker file.');
+  if (file.type.includes('svg') || lowerName.endsWith('.svg')) {
+    return {
+      dataUrl: await readFileAsDataURL(file),
+      sourceType: 'svg',
+      durationMs: 0,
+      width: 0,
+      height: 0
+    };
+  }
+  if (file.type === 'image/gif' || lowerName.endsWith('.gif')) {
+    return {
+      dataUrl: await readFileAsDataURL(file),
+      sourceType: 'gif',
+      durationMs: 1000,
+      width: 0,
+      height: 0
+    };
+  }
+  if (file.type.includes('webm') || lowerName.endsWith('.webm')) {
+    const durationMs = await readVideoDuration(file);
+    if (durationMs > 1000) throw new Error('Animated stickers must stay within 1 second.');
+    return {
+      dataUrl: await readFileAsDataURL(file),
+      sourceType: 'webm',
+      durationMs,
+      width: 0,
+      height: 0
+    };
+  }
+  const compressed = await compressImageFile(file, 512, 0.92);
+  return {
+    dataUrl: compressed.dataUrl,
+    sourceType: file.type.includes('png') ? 'png' : 'jpg',
+    durationMs: 0,
+    width: compressed.width || 0,
+    height: compressed.height || 0
+  };
+}
+
+async function handleChatImageFiles(files = []) {
+  const list = Array.from(files || []).filter((file) => file?.type?.startsWith('image/'));
+  if (!list.length) return 0;
+  const existing = state.chat.attachments || [];
+  const capacity = Math.max(0, 10 - existing.length);
+  if (!capacity) {
+    toast('Max 10 photos per message.', 'info');
+    return 0;
+  }
+  const take = list.slice(0, capacity);
+  const prepared = [];
+  for (const file of take) {
+    try {
+      prepared.push(await compressImageFile(file, 1440, 0.82));
+    } catch {}
+  }
+  if (!prepared.length) return 0;
+  state.chat.attachments = existing.concat(prepared);
+  if (list.length > capacity) toast(`Only ${capacity} photo(s) added (max 10 per message).`, 'info');
+  render();
+  return prepared.length;
+}
+
 async function ensureE2EEKeys() {
   if (!window.crypto?.subtle || !currentUser()) return;
   const key = `jb_e2ee_keypair_${currentUser().id}`;
@@ -1185,27 +1842,40 @@ async function decryptMessage(room, message) {
 }
 
 async function loadAdminData() {
-  if (currentUser()?.roleInternal !== 'owner') return;
-  const [stats, users, ads, logs] = await Promise.all([
+  if (!isOperatorSession()) return;
+  const [stats, users, ads, logs, reports, posts, deletions] = await Promise.all([
     api('/api/admin/stats').catch(() => null),
     api('/api/admin/users').catch(() => ({ users: [] })),
     api('/api/admin/ads').catch(() => ({ ads: [] })),
-    api('/api/admin/logs').catch(() => ({ logs: [] }))
+    api('/api/admin/logs').catch(() => ({ logs: [] })),
+    api('/api/admin/reports').catch(() => ({ reports: [] })),
+    api('/api/admin/posts').catch(() => ({ posts: [] })),
+    api('/api/admin/deletions').catch(() => ({ jobs: [] }))
   ]);
   state.adminStats = stats;
   state.adminUsers = users.users || [];
+  state.adminReports = reports.reports || [];
+  state.adminDeletionJobs = deletions.jobs || [];
+  state.adminPosts = posts.posts || [];
   state.adminLogs = logs.logs || [];
   if (ads?.ads?.length) state.ads = ads.ads;
 }
 async function loadAdminUsers(q = '') {
+  if (!isOperatorSession()) return;
   const data = await api(`/api/admin/users${q ? `?q=${encodeURIComponent(q)}` : ''}`);
   state.adminUsers = data.users || [];
+}
+async function loadAdminPosts(q = '') {
+  if (!isOperatorSession()) return;
+  const data = await api(`/api/admin/posts${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+  state.adminPosts = data.posts || [];
 }
 
 function renderDevelopersPage() {
   const section = state.route.section || 'overview';
   const sections = [
     ['overview', 'Overview'],
+    ['sites', 'Sites & Studio'],
     ['auth', 'Authentication'],
     ['api', 'REST API'],
     ['bots', 'Bots & tokens'],
@@ -1219,7 +1889,7 @@ function renderDevelopersPage() {
       <aside class="dev-docs-nav">
         <div class="dev-docs-head"><span class="eyebrow">developers</span><h1>API &amp; docs</h1><p class="muted">Everything you need to build on justbreath.life.</p></div>
         <nav class="dev-docs-list">
-          ${sections.map(([id, label]) => `<button class="dev-docs-link ${section === id ? 'active' : ''}" data-action="nav" data-path="/developers/${id}">${label}</button>`).join('')}
+          ${sections.map(([id, label], index) => `<a class="dev-docs-link ${section === id ? 'active' : ''}" ${navAttrs(index === 0 ? '/developers' : `/developers/${id}`)}>${label}</a>`).join('')}
         </nav>
       </aside>
       <div class="dev-docs-body">${panel}</div>
@@ -1235,14 +1905,57 @@ const devDocsSections = {
       <li><strong>Rate limits:</strong> auth endpoints are strict (5/min), general API is 120/min per IP.</li>
       <li><strong>Real-time:</strong> Server-Sent Events at <code>GET /api/events</code> (session-authenticated).</li>
     </ul>
-    <p class="muted">This is an evolving surface — endpoints marked <em>preview</em> may change. We never promise unlimited anything; every tier has concrete limits listed in <a data-action="nav" data-path="/developers/rules">Rules &amp; limits</a>.</p>`,
+    <p class="muted">This is an evolving surface — endpoints marked <em>preview</em> may change. We never promise unlimited anything; every tier has concrete limits listed in <a ${navAttrs('/developers/rules')}>Rules &amp; limits</a>.</p>`,
+  sites: () => `
+    <h2>Sites &amp; Studio</h2>
+    <p>Creator sites on justbreath are static. Pick the smallest mode that matches your build, then keep auth, comments, and discussion on the main justbreath profile or project page.</p>
+    <div class="stack-list">
+      <article class="tile">
+        <strong>Choose the right mode</strong>
+        <ul>
+          <li><code>Template site</code> — launch page, docs, portfolio, or pitch page without a custom frontend bundle.</li>
+          <li><code>Single HTML</code> — only when the whole site is one final <code>index.html</code> file.</li>
+          <li><code>Archive package</code> — use for full static imports with <code>css/</code>, <code>js/</code>, <code>img/</code>, <code>fonts/</code>, extra pages, downloadable files, or exported folders.</li>
+          <li>Supported archive formats: <code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code>, <code>.7z</code>. Regular-user archive limit: <code>5 MB</code>.</li>
+        </ul>
+      </article>
+      <article class="tile">
+        <strong>Static-only rules</strong>
+        <ul>
+          <li>No site-local auth, signup, dashboards, or executable custom server code inside the hosted copy.</li>
+          <li>Archive uploads must include <code>index.html</code>.</li>
+          <li>When a site has local assets or more than one page, upload the whole exported build as an archive. The platform serves uploaded archives as raw static bundles without wrapping the design.</li>
+          <li>If multiple <code>index.html</code> files exist, the root <code>index.html</code> is used as the entry point.</li>
+          <li>If backend/API code is detected, the import still succeeds, but those backend-dependent features are disabled and reported as compatibility warnings.</li>
+        </ul>
+      </article>
+      <article class="tile">
+        <strong>Editing after upload</strong>
+        <ul>
+          <li><code>Edit</code> changes title, summary, visibility, replacement upload, and import diagnostics.</li>
+          <li><code>Site Studio</code> edits internal text files such as <code>html</code>, <code>css</code>, <code>js</code>, <code>svg</code>, <code>json</code>, <code>md</code>, and <code>xml</code>.</li>
+          <li>If the site started as one HTML file, creating the first extra file upgrades it to bundle mode automatically.</li>
+          <li>Imported images may be compressed automatically for storage when the server can save space without changing the stored path.</li>
+        </ul>
+      </article>
+      <article class="tile">
+        <strong>Move a build from another repository</strong>
+        <ol>
+          <li>Export the final static build.</li>
+          <li>Verify that the output contains <code>index.html</code>.</li>
+          <li>Package the whole output folder if local assets or extra pages exist.</li>
+          <li>Upload the archive, then use <code>Site Studio</code> for fast text/CSS/JS polish.</li>
+        </ol>
+      </article>
+    </div>
+    <p class="muted">Full repository context: <a href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">JustBreathDevSite</a>, <a href="${SITE_CREATION_GUIDE_URL}" target="_blank" rel="noopener">SITE_CREATION_GUIDE.md</a>, <a href="${SITE_CREATION_EXAMPLES_URL}" target="_blank" rel="noopener">SITE_CREATION_EXAMPLES_RU.md</a>.</p>`,
   auth: () => `
     <h2>Authentication</h2>
     <p>Two methods are supported:</p>
     <h3>Session cookie</h3>
     <p>Browser users authenticate with the <code>jb_sid</code> cookie issued at sign-in. You don't need to do anything special from the client — credentials are cookie-based.</p>
     <h3>Bot token</h3>
-    <p>Create a bot token in <a data-action="nav" data-path="/settings">Settings → API Tokens</a>. Tokens are shown once — store them in a secret manager.</p>
+    <p>Create a bot token in <a ${navAttrs('/settings')}>Settings → API Tokens</a>. Tokens are shown once — store them in a secret manager.</p>
     <pre><code>curl -H "Authorization: Bearer YOUR_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"body":"Hello from my bot"}' \\
@@ -1267,14 +1980,16 @@ const devDocsSections = {
       <li><code>POST /api/posts</code> — create a post</li>
       <li><code>POST /api/chat/rooms/:slug/messages</code> — send a message (attachments up to 10 images)</li>
       <li><code>POST /api/me/sites/upload</code> — single-file HTML site</li>
-      <li><code>POST /api/me/sites/upload-archive</code> — archive site (≤ 5 MB, supports <code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code>; must contain <code>index.html</code>)</li>
+      <li><code>POST /api/me/sites/upload-archive</code> — legacy JSON archive upload (best for smaller archives).</li>
+      <li><code>POST /api/me/sites/upload-archive-binary</code> — direct binary archive upload with <code>index.html</code>; streams to a temp file and avoids base64 overhead.</li>
+      <li><code>PUT /api/me/sites/:id/archive-binary</code> — replace an uploaded archive without converting it to base64 first.</li>
     </ul>`,
   bots: () => `
     <h2>Bots &amp; tokens</h2>
     <p>A bot is a regular account whose sessions are replaced by long-lived tokens. To create one:</p>
     <ol>
       <li>Sign in as the account you want to automate.</li>
-      <li>Open <a data-action="nav" data-path="/settings">Settings → API Tokens</a>.</li>
+      <li>Open <a ${navAttrs('/settings')}>Settings → API Tokens</a>.</li>
       <li>Name the token and copy the value when it's shown.</li>
     </ol>
     <h3>Example: send a message</h3>
@@ -1312,7 +2027,7 @@ es.addEventListener('notification', (e) => console.log(JSON.parse(e.data)));</co
         <tr><td>Creator sites</td><td>2</td><td>6</td><td>25</td></tr>
         <tr><td>Rooms you own</td><td>10</td><td>40</td><td>150</td></tr>
         <tr><td>File per upload</td><td>8 MB</td><td>8 MB</td><td>8 MB</td></tr>
-        <tr><td>ZIP site archive</td><td>5 MB</td><td>5 MB</td><td>5 MB</td></tr>
+        <tr><td>Archive site upload</td><td>5 MB</td><td>5 MB</td><td>5 MB</td></tr>
         <tr><td>Bot tokens</td><td>2</td><td>5</td><td>20</td></tr>
       </tbody>
     </table>
@@ -1331,14 +2046,14 @@ const privacySections = {
   overview: () => `
     <h2>Privacy Policy</h2>
     <p class="muted">Effective date: 19 April 2026 · Last updated: 19 April 2026</p>
-    <p>This Privacy Policy explains what justbreath.life (operated by the justbreath team, hereafter "justbreath", "we", "us") collects when you use the service, why we collect it, who we share it with, and what rights you have. If something here is unclear, write to <a href="mailto:hello@justbreath.life">hello@justbreath.life</a>.</p>
+    <p>This Privacy Policy explains what justbreath.life (operated by the justbreath team, hereafter "justbreath", "we", "us") collects when you use the service, why we collect it, who we share it with, and what rights you have. If something here is unclear, write to <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a>.</p>
     <p>Key points at a glance:</p>
     <ul>
       <li>We collect only what we need to run the service: account data, content you publish, basic logs, anonymous telemetry.</li>
       <li>We do not sell your personal data.</li>
       <li>We show ads via Google AdSense. AdSense uses cookies and you can opt out of personalised ads at <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ad Settings</a>.</li>
       <li>We store data on our own servers. Automatic backups run every 30 minutes and keep the last 48 snapshots (≈24 hours).</li>
-      <li>You can export or delete your account at any time in <a data-action="nav" data-path="/settings">Settings</a>.</li>
+      <li>You can export or delete your account at any time in <a ${navAttrs('/settings')}>Settings</a>.</li>
     </ul>
     <p>The sections on the left cover each topic in detail.</p>`,
   data: () => `
@@ -1405,14 +2120,14 @@ const privacySections = {
     <h2>Your rights (GDPR, CCPA, UK GDPR)</h2>
     <p>If you live in the EU/EEA, the UK, California, or a jurisdiction with similar law, you have the following rights:</p>
     <ul>
-      <li><strong>Access</strong> — request a copy of your data. Available as a one-click export in <a data-action="nav" data-path="/settings">Settings → Export</a>.</li>
+      <li><strong>Access</strong> — request a copy of your data. Available as a one-click export in <a ${navAttrs('/settings')}>Settings → Export</a>.</li>
       <li><strong>Rectification</strong> — edit your profile, posts and settings at any time.</li>
-      <li><strong>Erasure</strong> — delete your account in <a data-action="nav" data-path="/settings">Settings → Account</a>. Irreversible after the next backup rotation.</li>
+      <li><strong>Erasure</strong> — delete your account in <a ${navAttrs('/settings')}>Settings → Account</a>. Irreversible after the next backup rotation.</li>
       <li><strong>Restriction &amp; objection</strong> — write to us to pause processing.</li>
       <li><strong>Portability</strong> — the export format is plain JSON.</li>
       <li><strong>Complaint</strong> — you may complain to your local data-protection authority.</li>
     </ul>
-    <p>To exercise any right, email <a href="mailto:hello@justbreath.life">hello@justbreath.life</a>. We reply within 30 days.</p>`,
+    <p>To exercise any right, email <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a>. We reply within 30 days.</p>`,
   security: () => `
     <h2>Security</h2>
     <ul>
@@ -1421,12 +2136,12 @@ const privacySections = {
       <li>Sessions bound to HttpOnly cookies with SameSite=Lax.</li>
       <li>Rate limits on authentication endpoints (5/min/IP) and general API (120/min/IP).</li>
       <li>Content Security Policy restricts which third-party scripts can run.</li>
-      <li>Uploaded creator-site HTML is sandboxed inside an <code>&lt;iframe sandbox&gt;</code>.</li>
+      <li>Uploaded creator-site imports are served as static files only. Backend handlers inside an import do not execute on the hosted copy.</li>
     </ul>
-    <p>No system is perfectly secure. If you find a vulnerability, please report responsibly to <a href="mailto:hello@justbreath.life">hello@justbreath.life</a>. We acknowledge reports within 72 hours.</p>`,
+    <p>No system is perfectly secure. If you find a vulnerability, please report responsibly to <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a>. We acknowledge reports within 72 hours.</p>`,
   children: () => `
     <h2>Minors</h2>
-    <p>The service is not directed at children under 13. If you are a parent or guardian and believe a child has given us personal data, email <a href="mailto:hello@justbreath.life">hello@justbreath.life</a> and we will delete the account.</p>
+    <p>The service is not directed at children under 13. If you are a parent or guardian and believe a child has given us personal data, email <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a> and we will delete the account.</p>
     <p>Between 13 and the age of digital consent in your jurisdiction (14–16 in most EU countries), you may only use the service with the verifiable consent of a parent or legal guardian.</p>`,
   changes: () => `
     <h2>Changes to this policy</h2>
@@ -1435,8 +2150,8 @@ const privacySections = {
   contact: () => `
     <h2>Contact</h2>
     <p>Data controller: <strong>justbreath</strong></p>
-    <p>Email: <a href="mailto:hello@justbreath.life">hello@justbreath.life</a><br/>
-       Owner profile: <a data-action="nav" data-path="/@justbreath">@justbreath</a></p>
+    <p>Email: <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a><br/>
+       Owner profile: <a ${navAttrs('/@justbreath')}>@justbreath</a></p>
     <p>For legal / DMCA / GDPR subject-access requests, please mark the subject line accordingly.</p>`
 };
 
@@ -1460,7 +2175,7 @@ function renderPrivacyPage() {
       <aside class="dev-docs-nav">
         <div class="dev-docs-head"><span class="eyebrow">legal</span><h1>Privacy Policy</h1><p class="muted">How we handle your data. No dark patterns.</p><a class="soft-button" href="/PRIVACY.md" download style="margin-top:8px">Download .md</a></div>
         <nav class="dev-docs-list">
-          ${sections.map(([id, label]) => `<button class="dev-docs-link ${section === id ? 'active' : ''}" data-action="nav" data-path="/privacy/${id}">${label}</button>`).join('')}
+          ${sections.map(([id, label], index) => `<a class="dev-docs-link ${section === id ? 'active' : ''}" ${navAttrs(index === 0 ? '/privacy' : `/privacy/${id}`)}>${label}</a>`).join('')}
         </nav>
       </aside>
       <div class="dev-docs-body">${panel}</div>
@@ -1483,7 +2198,7 @@ const termsSections = {
   content: () => `
     <h2>Your content</h2>
     <p>You keep ownership of everything you publish. By publishing you grant us a worldwide, royalty-free license to host, serve, and display your content as necessary to operate the service. Public content may be mirrored by third-party search engines; unlisted content is not listed in search but is still accessible by direct link.</p>
-    <p>You must not publish content that is illegal, infringes rights, contains malware, facilitates harassment, sexually exploits minors, or otherwise violates our <a data-action="nav" data-path="/terms/prohibited">Prohibited uses</a> policy.</p>`,
+    <p>You must not publish content that is illegal, infringes rights, contains malware, facilitates harassment, sexually exploits minors, or otherwise violates our <a ${navAttrs('/terms/prohibited')}>Prohibited uses</a> policy.</p>`,
   prohibited: () => `
     <h2>Prohibited uses</h2>
     <ul>
@@ -1502,7 +2217,7 @@ const termsSections = {
     <p>We reserve the right to change prices; existing subscriptions run at their current price until renewal.</p>`,
   termination: () => `
     <h2>Termination</h2>
-    <p>You may delete your account at any time in <a data-action="nav" data-path="/settings">Settings</a>. We may suspend or terminate an account that violates these Terms or applicable law.</p>
+    <p>You may delete your account at any time in <a ${navAttrs('/settings')}>Settings</a>. We may suspend or terminate an account that violates these Terms or applicable law.</p>
     <p>After termination we retain your data for up to 24 hours in rotating backups, then it is permanently removed.</p>`,
   liability: () => `
     <h2>Disclaimers &amp; liability</h2>
@@ -1513,7 +2228,7 @@ const termsSections = {
     <p>These Terms are governed by the laws of Germany (Bundesrepublik Deutschland). Disputes will be resolved in Berlin courts, unless mandatory consumer-protection law of your residence gives you a better forum.</p>`,
   contact: () => `
     <h2>Contact</h2>
-    <p>Email: <a href="mailto:hello@justbreath.life">hello@justbreath.life</a><br/>
+    <p>Email: <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a><br/>
        For legal or DMCA notices, please mark the subject line accordingly.</p>`
 };
 
@@ -1536,7 +2251,7 @@ function renderTermsPage() {
       <aside class="dev-docs-nav">
         <div class="dev-docs-head"><span class="eyebrow">legal</span><h1>Terms of Service</h1><p class="muted">The rules of the platform, in plain language.</p><a class="soft-button" href="/TERMS.md" download style="margin-top:8px">Download .md</a></div>
         <nav class="dev-docs-list">
-          ${sections.map(([id, label]) => `<button class="dev-docs-link ${section === id ? 'active' : ''}" data-action="nav" data-path="/terms/${id}">${label}</button>`).join('')}
+          ${sections.map(([id, label], index) => `<a class="dev-docs-link ${section === id ? 'active' : ''}" ${navAttrs(index === 0 ? '/terms' : `/terms/${id}`)}>${label}</a>`).join('')}
         </nav>
       </aside>
       <div class="dev-docs-body">${panel}</div>
@@ -1546,23 +2261,25 @@ function renderTermsPage() {
 function renderContactPage() {
   return `
     <section class="section-shell">
-      <div class="page-heading-row"><div><span class="eyebrow">contact</span><h1>Get in touch</h1><p class="muted">For support, press, legal or partnership.</p></div></div>
+      <div class="page-heading-row"><div><span class="eyebrow">contact</span><h1>Get in touch</h1><p class="muted">For support, legal, documentation, or GitHub-related questions.</p></div></div>
       <div class="dev-docs-body" style="margin-top:24px">
         <h2>Email</h2>
         <ul>
-          <li><strong>General:</strong> <a href="mailto:hello@justbreath.life">hello@justbreath.life</a></li>
+          <li><strong>General:</strong> <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a></li>
           <li><strong>Legal / DMCA / Privacy:</strong> same address, subject line <code>[LEGAL]</code> / <code>[DMCA]</code> / <code>[PRIVACY]</code>.</li>
           <li><strong>Security reports:</strong> subject line <code>[SECURITY]</code>. We acknowledge within 72 h.</li>
           <li><strong>Press:</strong> subject line <code>[PRESS]</code>.</li>
         </ul>
         <h2>On the platform</h2>
         <ul>
-          <li>Owner profile — <a data-action="nav" data-path="/@justbreath">@justbreath</a></li>
-          <li>Ship feedback — open a post in <a data-action="nav" data-path="/feed">Feed</a> with the <code>#feedback</code> tag.</li>
+          <li>Owner profile — <a ${navAttrs('/@justbreath')}>@justbreath</a></li>
+          <li>Ship feedback — open a post in <a ${navAttrs('/feed')}>Feed</a> with the <code>#feedback</code> tag.</li>
         </ul>
         <h2>Elsewhere</h2>
         <ul>
-          <li>GitHub — <a href="https://github.com/justbreath" target="_blank" rel="noopener">github.com/justbreath</a></li>
+          <li>GitHub profile — <a href="${GITHUB_PROFILE_URL}" target="_blank" rel="noopener">${GITHUB_PROFILE_URL.replace('https://', '')}</a></li>
+          <li>Project repository — <a href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">bnfe12/JustBreathDevSite</a></li>
+          <li>Site creation guide — <a href="${SITE_CREATION_GUIDE_URL}" target="_blank" rel="noopener">SITE_CREATION_GUIDE.md</a></li>
         </ul>
       </div>
     </section>`;
@@ -1578,9 +2295,11 @@ function renderAboutPage() {
         <h2>Why</h2>
         <p>Most creator tools lock you in. This one stays out of your way: your data is plain JSON, your site is plain HTML, your API is plain REST. You can export everything in one click.</p>
         <h2>Who</h2>
-        <p>Built by <a data-action="nav" data-path="/@tcheler">@tcheler</a> and contributors.</p>
+        <p>Built by <a ${navAttrs('/@tcheler')}>@tcheler</a> and contributors.</p>
         <h2>Where</h2>
-        <p>Hosted on our own infrastructure, behind Cloudflare. The code is intentionally small — one Express app, one vanilla-JS client, one CSS file. See <a data-action="nav" data-path="/developers">Developers</a> for how to build on it.</p>
+        <p>Hosted on our own infrastructure, behind Cloudflare. The code is intentionally small — one Express app, one vanilla-JS client, one CSS file. See <a ${navAttrs('/developers')}>Developers</a> for how to build on it.</p>
+        <h2>Docs &amp; repository</h2>
+        <p>Main GitHub profile: <a href="${GITHUB_PROFILE_URL}" target="_blank" rel="noopener">${GITHUB_PROFILE_URL.replace('https://', '')}</a>. Creator-site source and full setup docs: <a href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">bnfe12/JustBreathDevSite</a>, including <a href="${SITE_CREATION_GUIDE_URL}" target="_blank" rel="noopener">the site creation guide</a>.</p>
       </div>
     </section>`;
 }
@@ -1602,34 +2321,34 @@ function renderSiteFooter() {
       <nav class="site-footer-cols" aria-label="Footer">
         <div class="site-footer-col">
           <h4>Product</h4>
-          <a data-action="nav" data-path="/">Home</a>
-          <a data-action="nav" data-path="/feed">Feed</a>
-          <a data-action="nav" data-path="/discover">Discover</a>
-          <a data-action="nav" data-path="/sites">Sites</a>
+          <a ${navAttrs('/')}>Home</a>
+          <a ${navAttrs('/feed')}>Feed</a>
+          <a ${navAttrs('/discover')}>Discover</a>
+          <a ${navAttrs('/sites')}>Sites</a>
         </div>
         <div class="site-footer-col">
           <h4>Developers</h4>
-          <a data-action="nav" data-path="/developers">API &amp; docs</a>
-          <a data-action="nav" data-path="/developers/auth">Authentication</a>
-          <a data-action="nav" data-path="/developers/api">REST API</a>
-          <a data-action="nav" data-path="/developers/webhooks">SSE &amp; events</a>
-          <a data-action="nav" data-path="/developers/rules">Rules &amp; limits</a>
+          <a ${navAttrs('/developers')}>API &amp; docs</a>
+          <a ${navAttrs('/developers/auth')}>Authentication</a>
+          <a ${navAttrs('/developers/api')}>REST API</a>
+          <a ${navAttrs('/developers/webhooks')}>SSE &amp; events</a>
+          <a ${navAttrs('/developers/rules')}>Rules &amp; limits</a>
         </div>
         <div class="site-footer-col">
           <h4>Legal</h4>
-          <a data-action="nav" data-path="/privacy">Privacy Policy</a>
-          <a data-action="nav" data-path="/terms">Terms of Service</a>
+          <a ${navAttrs('/privacy')}>Privacy Policy</a>
+          <a ${navAttrs('/terms')}>Terms of Service</a>
           <a href="/PRIVACY.md" download>Privacy (.md)</a>
           <a href="/TERMS.md" download>Terms (.md)</a>
           <a href="/TRADEMARK.md" download>Trademark</a>
         </div>
         <div class="site-footer-col">
           <h4>Company</h4>
-          <a data-action="nav" data-path="/about">About</a>
-          <a data-action="nav" data-path="/contact">Contact</a>
-          <a href="mailto:hello@justbreath.life">hello@justbreath.life</a>
+          <a ${navAttrs('/about')}>About</a>
+          <a ${navAttrs('/contact')}>Contact</a>
+          <a href="${CONTACT_EMAIL_HREF}">${CONTACT_EMAIL}</a>
           <a href="/sitemap.xml">Sitemap</a>
-          <a href="https://github.com/justbreath" target="_blank" rel="noopener">GitHub</a>
+          <a href="${GITHUB_PROFILE_URL}" target="_blank" rel="noopener">GitHub</a>
         </div>
       </nav>
     </div>
@@ -1720,7 +2439,7 @@ function renderVerifyPage() {
       <div class="gate-illustration">${iconBadge('verified', 'success')}</div>
       <h1>Email verified</h1>
       <p>Your account is fully verified.</p>
-      <button class="primary-button" data-action="nav" data-path="/">Back to home</button>
+      <a class="primary-button" ${navAttrs('/')}>Back to home</a>
     </div>
   </section>`;
   return `<section class="section-shell gate-shell">
@@ -1736,39 +2455,46 @@ function renderVerifyPage() {
         </label>
         <button class="primary-button" type="submit">Verify</button>
       </form>
-      <button class="soft-button" data-action="nav" data-path="/settings">Skip for now</button>
+      <a class="soft-button" ${navAttrs('/settings')}>Skip for now</a>
     </div>
   </section>`;
 }
 
 function renderAdminPage() {
   if (!currentUser()) return renderGate('Sign in first.');
-  if (currentUser().roleInternal !== 'owner') return renderGate('Access restricted to operators.');
+  if (!isOperatorSession()) return renderGate('Access restricted to operators.');
   const stats = state.adminStats;
-  const tabs = [
-    { id: 'stats', label: t('stats') || 'Stats' },
-    { id: 'users', label: t('users') || 'Users' },
-    { id: 'moderation', label: t('moderation') || 'Moderation' },
-    { id: 'verification', label: 'Verification' },
-    { id: 'ads', label: t('ads') || 'Ads' },
-    { id: 'logs', label: t('logs') || 'Logs' },
-  ];
+  const ownerMode = isOwnerSession();
+  const tabs = ownerMode
+    ? [
+        { id: 'stats', label: t('stats') || 'Stats' },
+        { id: 'users', label: t('users') || 'Users' },
+        { id: 'moderation', label: t('moderation') || 'Moderation' },
+        { id: 'verification', label: 'Verification' },
+        { id: 'ads', label: t('ads') || 'Ads' },
+        { id: 'logs', label: t('logs') || 'Logs' },
+      ]
+    : [
+        { id: 'users', label: currentLang() === 'ru' ? 'Пользователи и подписки' : 'Users & subscriptions' },
+        { id: 'moderation', label: currentLang() === 'ru' ? 'Модерация' : 'Moderation' }
+      ];
+  const activeTab = tabs.some(({ id }) => id === state.adminTab) ? state.adminTab : tabs[0].id;
   return `
     <div class="admin-page-head">
-      <span class="eyebrow">operator</span>
+      <span class="eyebrow">${ownerMode ? 'operator' : 'admin'}</span>
       <h1>${t('adminPanel') || 'Admin Panel'}</h1>
     </div>
     <section class="settings-shell section-shell">
       <aside class="settings-nav">
-        ${tabs.map(({ id, label }) => `<button class="settings-tab ${state.adminTab === id ? 'active' : ''}" data-action="admin-tab" data-tab="${id}">${label}</button>`).join('')}
+        ${tabs.map(({ id, label }) => `<button class="settings-tab ${activeTab === id ? 'active' : ''}" data-action="admin-tab" data-tab="${id}">${label}</button>`).join('')}
       </aside>
       <div class="settings-content">
-        ${state.adminTab === 'stats' ? renderAdminStats(stats) : ''}
-        ${state.adminTab === 'users' ? renderAdminUsers() : ''}
-        ${state.adminTab === 'moderation' ? renderAdminModeration() : ''}
-        ${state.adminTab === 'ads' ? renderAdminAds() : ''}
-        ${state.adminTab === 'verification' ? renderAdminVerification() : ''}
-        ${state.adminTab === 'logs' ? renderAdminLogs() : ''}
+        ${activeTab === 'stats' ? renderAdminStats(stats) : ''}
+        ${activeTab === 'users' ? renderAdminUsers() : ''}
+        ${activeTab === 'moderation' ? renderAdminModeration() : ''}
+        ${activeTab === 'ads' ? renderAdminAds() : ''}
+        ${activeTab === 'verification' ? renderAdminVerification() : ''}
+        ${activeTab === 'logs' ? renderAdminLogs() : ''}
       </div>
     </section>`;
 }
@@ -1784,12 +2510,17 @@ function renderAdminStats(stats) {
       <div class="admin-stat"><strong>${stats.rooms?.total || 0}</strong><span>Rooms</span></div>
       <div class="admin-stat"><strong>${stats.sites?.public || 0}</strong><span>Public sites</span></div>
       <div class="admin-stat"><strong>${stats.posts?.total || 0}</strong><span>Posts</span></div>
+      <div class="admin-stat"><strong>${stats.reports?.open || 0}</strong><span>Open reports</span></div>
+      <div class="admin-stat"><strong>${stats.deletions?.scheduled || 0}</strong><span>24h deletion queue</span></div>
       <div class="admin-stat"><strong>${stats.workspaces || 0}</strong><span>Workspaces</span></div>
     </div>
     ${state.maintenance ? `<div class="inline-alert inline-alert-warning" style="margin-top:10px">${iconBadge('alert', 'warning')}<div class="inline-alert-copy"><strong>Maintenance mode</strong><span>Public API access is currently restricted.</span></div></div>` : ''}
   </section>`;
 }
 function renderAdminUsers() {
+  const ownerMode = isOwnerSession();
+  const plans = state.meta?.subscriptions || [];
+  const isRu = currentLang() === 'ru';
   return `<section class="settings-panel"><h2>Users (${state.adminUsers.length})</h2>
     <div class="search-control" style="margin-bottom:12px">
       ${icons.search}
@@ -1798,14 +2529,31 @@ function renderAdminUsers() {
     <div class="social-list">${state.adminUsers.map(u => `
       <div class="social-row admin-user-row ${u.bannedAt ? 'banned-row' : ''}">
         ${avatar(u, 'sm')}
-        <div><strong>${escapeHtml(u.displayName)}</strong><span>@${escapeHtml(u.handle)} · ${escapeHtml(u.email || '')} · <em>${u.roleLabel || u.roleInternal || 'member'}</em></span><div class="badge-row">${badgePills(u)}</div></div>
+        <div>
+          <strong>${escapeHtml(u.displayName)}</strong>
+          <span>@${escapeHtml(u.handle)} · ${escapeHtml(u.email || '')} · <em>${escapeHtml(u.roleInternal || u.roleLabel || 'member')}</em></span>
+          <div class="badge-row">${badgePills(u)}</div>
+          <span class="muted" style="display:block;font-size:12px;margin-top:4px">
+            ${isRu ? 'Тариф' : 'Plan'}: ${escapeHtml((['owner', 'admin'].includes(u.roleInternal || '') ? (isRu ? 'доступ оператора' : 'Operator access') : (u.billing?.planLabel || 'Free')))}
+            · ${isRu ? 'Сайты' : 'Sites'}: ${u.siteCount || 0}/${u.siteUnlimited ? '∞' : escapeHtml(u.siteLimitLabel || '0')}
+          </span>
+        </div>
         <div class="row-actions">
-          ${!u.isSelf ? `
+          <select data-admin-plan-select="${escapeHtml(u.handleCanonical)}" ${!ownerMode && u.roleInternal === 'owner' ? 'disabled' : ''}>
+            <option value="">Free</option>
+            ${plans.map((plan) => `<option value="${escapeHtml(plan.id)}" ${(u.billing?.planId || '') === plan.id ? 'selected' : ''}>${escapeHtml(plan.label)}</option>`).join('')}
+          </select>
+          <button class="soft-button compact" data-action="admin-save-plan" data-handle="${escapeHtml(u.handleCanonical)}" ${!ownerMode && u.roleInternal === 'owner' ? 'disabled' : ''}>
+            ${isRu ? 'Сохранить тариф' : 'Save plan'}
+          </button>
+          ${ownerMode && !u.isSelf ? `
             ${u.bannedAt
               ? `<button class="soft-button compact" data-action="admin-unban" data-handle="${escapeHtml(u.handleCanonical)}">Unban</button>`
               : `<button class="inline-button danger compact" data-action="admin-ban" data-handle="${escapeHtml(u.handleCanonical)}">Ban</button>`}
             <button class="soft-button compact" data-action="admin-verify" data-handle="${escapeHtml(u.handleCanonical)}">${icons.check} Verify</button>
-          ` : '<span class="muted">you</span>'}
+          ` : ''}
+          ${!u.isSelf ? `<button class="inline-button danger compact" data-action="admin-delete-account" data-handle="${escapeHtml(u.handleCanonical)}" ${!ownerMode && u.roleInternal === 'owner' ? 'disabled' : ''}>${currentLang() === 'ru' ? 'Удалить аккаунт' : 'Delete account'}</button>` : ''}
+          ${!ownerMode && u.isSelf ? '<span class="muted">you</span>' : ''}
         </div>
       </div>`).join('') || renderEmpty('No users found.')}
     </div>
@@ -1853,10 +2601,154 @@ function renderAdminVerification() {
     </p>
   </section>`;
 }
+function adminReportTypeLabel(type) {
+  const isRu = currentLang() === 'ru';
+  const labels = {
+    site: isRu ? 'Сайт' : 'Site',
+    message: isRu ? 'Сообщение' : 'Message',
+    post: isRu ? 'Пост' : 'Post',
+    project: isRu ? 'Проект' : 'Project',
+    user: isRu ? 'Аккаунт' : 'Account',
+    other: isRu ? 'Другое' : 'Other'
+  };
+  return labels[type] || labels.other;
+}
+function renderAdminReportDeleteAction(report) {
+  const isRu = currentLang() === 'ru';
+  if (!report?.target) return '';
+  if (report.pendingDeletion) {
+    return `<span class="surface-pill surface-work">${isRu ? 'В очереди 24ч' : 'Queued for 24h'}</span>`;
+  }
+  if (report.target.type === 'post') {
+    return `<button class="inline-button danger compact" data-action="admin-delete-post" data-id="${report.target.id}">${isRu ? 'Удалить пост' : 'Delete post'}</button>`;
+  }
+  if (report.target.type === 'site') {
+    return `<button class="inline-button danger compact" data-action="admin-delete-site" data-id="${report.target.id}">${isRu ? 'Удалить сайт' : 'Delete site'}</button>`;
+  }
+  if (report.target.type === 'project') {
+    return `<button class="inline-button danger compact" data-action="admin-delete-project" data-id="${report.target.id}">${isRu ? 'Удалить проект' : 'Delete project'}</button>`;
+  }
+  if (report.target.type === 'message') {
+    return `<button class="inline-button danger compact" data-action="admin-delete-message" data-id="${report.target.id}">${isRu ? 'Удалить сообщение' : 'Delete message'}</button>`;
+  }
+  if (report.target.type === 'user' && report.target.handleCanonical) {
+    return `<button class="inline-button danger compact" data-action="admin-delete-account" data-handle="${escapeHtml(report.target.handleCanonical)}">${isRu ? 'Удалить аккаунт' : 'Delete account'}</button>`;
+  }
+  return '';
+}
+function renderAdminReportCard(report) {
+  const isRu = currentLang() === 'ru';
+  return `<article class="tile moderation-card" style="gap:10px">
+    <div class="inline-stack between">
+      <div style="min-width:0">
+        <div class="inline-stack" style="gap:8px;flex-wrap:wrap">
+          <strong>${escapeHtml(report.target?.label || report.reason)}</strong>
+          <span class="surface-pill surface-${report.status === 'open' ? 'group' : 'work'}">${escapeHtml(report.status)}</span>
+          <span class="surface-pill">${adminReportTypeLabel(report.target?.type || 'other')}</span>
+        </div>
+        <span style="display:block;font-size:12px;color:var(--text-muted)">${escapeHtml(report.reason)} · ${formatDate(report.createdAt)}</span>
+      </div>
+    </div>
+    ${report.reporter ? `<p style="margin:0;font-size:13px;color:var(--text-soft)">${isRu ? 'От:' : 'From:'} @${escapeHtml(report.reporter.handle || '')}</p>` : ''}
+    ${report.details ? `<p style="margin:0;font-size:13px;color:var(--text-soft)">${escapeHtml(report.details)}</p>` : ''}
+    ${report.pendingDeletion ? `<div class="inline-alert inline-alert-warning"><div class="inline-alert-copy"><strong>${isRu ? 'Удаление уже запланировано' : 'Deletion already scheduled'}</strong><span>${isRu ? `До окончательного удаления осталось ${formatDeletionCountdown(report.pendingDeletion.deleteAfter)}.` : `${formatDeletionCountdown(report.pendingDeletion.deleteAfter)} left before permanent removal.`}</span></div></div>` : ''}
+    <div class="tile-actions">
+      ${report.target?.url ? (
+        report.target.url.startsWith('http')
+          ? `<a class="soft-button compact" href="${escapeHtml(report.target.url)}" target="_blank" rel="noopener">${icons.external}<span>${isRu ? 'Открыть' : 'Open'}</span></a>`
+          : `<a class="soft-button compact" ${navAttrs(report.target.url)}>${icons.external}<span>${isRu ? 'Открыть' : 'Open'}</span></a>`
+      ) : ''}
+      ${renderAdminReportDeleteAction(report)}
+      ${report.status !== 'dismissed' ? `<button class="soft-button compact" data-action="admin-dismiss-report" data-id="${report.id}">${isRu ? 'Скрыть' : 'Dismiss'}</button>` : ''}
+      ${report.status !== 'resolved' ? `<button class="primary-button compact" data-action="admin-confirm-report" data-id="${report.id}">${icons.check}<span>${isRu ? 'Подтвердить' : 'Confirm'}</span></button>` : ''}
+    </div>
+  </article>`;
+}
+function renderAdminDeletionJobCard(job) {
+  const isRu = currentLang() === 'ru';
+  return `<article class="tile moderation-card" style="gap:10px">
+    <div class="inline-stack between">
+      <div style="min-width:0">
+        <div class="inline-stack" style="gap:8px;flex-wrap:wrap">
+          <strong>${escapeHtml(job.target?.label || (isRu ? 'Элемент' : 'Item'))}</strong>
+          <span class="surface-pill surface-work">${adminReportTypeLabel(job.target?.type || job.targetType || 'other')}</span>
+        </div>
+        <span style="display:block;font-size:12px;color:var(--text-muted)">${isRu ? 'Окончательное удаление через' : 'Permanent deletion in'} ${formatDeletionCountdown(job.deleteAfter)}</span>
+      </div>
+      <button class="soft-button compact" data-action="admin-restore-deletion" data-id="${job.id}">${isRu ? 'Вернуть' : 'Restore'}</button>
+    </div>
+    ${job.note ? `<p style="margin:0;font-size:13px;color:var(--text-soft)">${escapeHtml(job.note)}</p>` : ''}
+    <p style="margin:0;font-size:12px;color:var(--text-muted)">${isRu ? 'Запланировал:' : 'Scheduled by:'} ${job.scheduledBy ? `@${escapeHtml(job.scheduledBy.handle || '')}` : (isRu ? 'оператор' : 'operator')} · ${formatDate(job.createdAt, 'full')}</p>
+  </article>`;
+}
 function renderAdminModeration() {
   const banned = (state.adminUsers || []).filter(u => u.bannedAt);
   const guests = (state.adminUsers || []).filter(u => u.roleInternal === 'guest');
+  const reports = state.adminReports || [];
+  const deletionJobs = state.adminDeletionJobs || [];
+  const openReports = reports.filter((item) => item.status === 'open');
+  const siteReports = reports.filter((item) => item.target?.type === 'site');
+  const messageReports = reports.filter((item) => item.target?.type === 'message');
+  const posts = state.adminPosts || [];
+  const isRu = currentLang() === 'ru';
+  const viewOptions = [
+    { id: 'overview', label: isRu ? 'Все жалобы' : 'All reports', count: reports.length },
+    { id: 'sites', label: isRu ? 'По сайтам' : 'Site reports', count: siteReports.length },
+    { id: 'messages', label: isRu ? 'По сообщениям' : 'Message reports', count: messageReports.length }
+  ];
+  const activeView = viewOptions.some((item) => item.id === state.adminModerationView) ? state.adminModerationView : 'overview';
+  const filteredReports = activeView === 'sites'
+    ? siteReports
+    : activeView === 'messages'
+      ? messageReports
+      : reports;
   return `<section class="settings-panel"><h2>Moderation</h2>
+    <div class="settings-block">
+      <div class="section-heading">
+        <h3>${isRu ? 'Жалобы' : 'Reports'} (${reports.length})</h3>
+        <span class="muted">${isRu ? `${openReports.length} открытых` : `${openReports.length} open`}</span>
+      </div>
+      <div class="segment-row" style="margin-bottom:12px">
+        ${viewOptions.map((item) => `<button class="segment-button ${activeView === item.id ? 'active' : ''}" data-action="admin-moderation-view" data-view="${item.id}">${item.label} <strong>${item.count}</strong></button>`).join('')}
+      </div>
+      ${activeView === 'overview' ? `<div class="admin-stats-grid" style="margin-bottom:14px">
+        <div class="admin-stat"><strong>${siteReports.filter((item) => item.status === 'open').length}</strong><span>${isRu ? 'Открытых по сайтам' : 'Open site reports'}</span></div>
+        <div class="admin-stat"><strong>${messageReports.filter((item) => item.status === 'open').length}</strong><span>${isRu ? 'Открытых по сообщениям' : 'Open message reports'}</span></div>
+        <div class="admin-stat"><strong>${deletionJobs.length}</strong><span>${isRu ? 'В очереди на 24ч' : 'In 24h queue'}</span></div>
+      </div>` : ''}
+      <div class="stack-list">
+        ${filteredReports.length ? filteredReports.map((report) => renderAdminReportCard(report)).join('') : `<p class="muted">${isRu ? 'Для этой вкладки пока нет жалоб.' : 'No reports in this view yet.'}</p>`}
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="section-heading">
+        <h3>${isRu ? 'Очередь удаления' : 'Deletion queue'} (${deletionJobs.length})</h3>
+        <span class="muted">${isRu ? 'Полное удаление через 24 часа' : 'Permanent removal after 24 hours'}</span>
+      </div>
+      <div class="stack-list">
+        ${deletionJobs.length ? deletionJobs.map((job) => renderAdminDeletionJobCard(job)).join('') : `<p class="muted">${isRu ? 'Очередь пуста.' : 'Queue is empty.'}</p>`}
+      </div>
+    </div>
+    <div class="settings-block">
+      <h3>${isRu ? 'Быстрое удаление постов' : 'Quick post removal'} (${posts.length})</h3>
+      <div class="search-control" style="margin:10px 0 12px">
+        ${icons.search}
+        <input type="search" data-input="admin-post-search" placeholder="${isRu ? 'Поиск по постам…' : 'Search posts…'}" />
+      </div>
+      <div class="stack-list">
+        ${posts.length ? posts.map((post) => `
+          <article class="tile" style="gap:8px">
+            <div class="inline-stack between">
+              <div style="min-width:0">
+                <strong>${escapeHtml(post.title || (isRu ? 'Пост без заголовка' : 'Untitled post'))}</strong>
+                <span style="display:block;font-size:12px;color:var(--text-muted)">@${escapeHtml(post.author?.handle || '')} · ${formatDate(post.publishedAt || post.createdAt)}</span>
+              </div>
+              <button class="inline-button danger compact" data-action="admin-delete-post" data-id="${post.id}">${isRu ? 'Удалить' : 'Delete'}</button>
+            </div>
+            <p style="margin:0;font-size:13px;color:var(--text-soft)">${escapeHtml((post.excerpt || post.body || '').slice(0, 220))}</p>
+          </article>`).join('') : `<p class="muted">${isRu ? 'Посты не найдены.' : 'No posts found.'}</p>`}
+      </div>
+    </div>
     <div class="settings-block">
       <h3>Banned accounts (${banned.length})</h3>
       <div class="social-list">
@@ -1941,6 +2833,7 @@ async function routeLoad() {
     if (loadSeq !== state.routeLoadSeq) return;
     state.loading = false;
     render();
+    hidePublicShell();
     if (!state.appReady) hideSplash();
   }
 }
@@ -1969,19 +2862,19 @@ function renderTopbar() {
           ${state.sseStatus === 'live' ? '<span class="sse-dot live" title="Live"></span>' : state.sseStatus === 'error' ? '<span class="sse-dot error" title="Reconnecting…"></span>' : ''}
         </a>
         <nav class="main-nav">
-          ${navLink('/', 'home', t('home'))}
-          ${navLink('/feed', 'feed', t('feed'))}
-          ${showAccountNav ? navLink('/messages', 'messages', t('messages')) : ''}
-          ${navLink('/discover', 'discover', t('discover'))}
-          ${showAccountNav ? navLink('/sites', 'sites', t('sites')) : ''}
-          ${showAccountNav ? navLink('/mail', 'mail', t('mail') || 'Mail', state.mail.unread) : ''}
-          ${currentUser()?.roleInternal === 'owner' ? navLink('/admin', 'admin', 'Admin') : ''}
+          ${navLink('/', 'home', t('home'), undefined, icons.home)}
+          ${navLink('/feed', 'feed', t('feed'), undefined, icons.feed)}
+          ${showAccountNav ? navLink('/messages', 'messages', t('messages'), undefined, icons.message) : ''}
+          ${navLink('/discover', 'discover', t('discover'), undefined, icons.search)}
+          ${showAccountNav ? navLink('/sites', 'sites', t('sites'), undefined, icons.site) : ''}
+          ${showAccountNav ? navLink('/mail', 'mail', t('mail') || 'Mail', state.mail.unread, icons.mail) : ''}
+          ${isOperatorSession() ? navLink('/admin', 'admin', 'Admin', undefined, icons.shield) : ''}
         </nav>
         <div class="top-actions">
           <button class="icon-button ghost-button" data-action="open-search" title="${t('discover')}">${icons.search}</button>
           ${canCreate ? `<button class="primary-button" data-action="open-modal" data-modal="quick-post"><span>${icons.plus}</span><span>${t('quickPost')}</span></button>` : `<button class="primary-button" data-action="open-modal" data-modal="auth">${user ? 'Create account' : t('signIn')}</button>`}
           <button class="account-chip" data-action="toggle-drawer" title="${t('accountCenter')}">
-            ${user ? avatar(user, 'sm') : `<span class="avatar avatar-sm"><strong>?</strong></span>`}
+            ${user ? avatar(user, 'sm', '', { link: false }) : `<span class="avatar avatar-sm"><strong>?</strong></span>`}
             <span class="account-copy">
               <strong>${escapeHtml(user?.displayName || 'justbreath')}</strong>
               <span>${escapeHtml(user?.handle ? `@${user.handle}` : t('accountCenter'))}</span>
@@ -1991,13 +2884,13 @@ function renderTopbar() {
       </div>
     </header>`;
 }
-function navLink(path, name, label, unreadOverride) {
+function navLink(path, name, label, unreadOverride, icon = '') {
   const active = state.route.name === name;
   const chatUnread = name === 'messages' ? Object.values(state.chat.unread || {}).reduce((a, b) => a + b, 0) : 0;
   const mailUnread = name === 'mail' ? (state.mail?.unread || 0) : 0;
   const unread = unreadOverride !== undefined ? unreadOverride : (chatUnread || mailUnread);
   const badge = unread > 0 ? `<span class="nav-badge">${unread > 99 ? '99+' : unread}</span>` : '';
-  return `<a href="${path}" class="nav-link ${active ? 'active' : ''}" data-action="nav" data-path="${path}">${label}${badge}</a>`;
+  return `<a href="${path}" class="nav-link ${active ? 'active' : ''}" data-action="nav" data-path="${path}">${icon ? `<span class="nav-link-icon" aria-hidden="true">${icon}</span>` : ''}<span>${label}</span>${badge}</a>`;
 }
 
 function renderHome() {
@@ -2007,16 +2900,16 @@ function renderHome() {
     <section class="hero-card section-shell">
       <div class="hero-copy">
         <span class="eyebrow">justbreath.life</span>
-        <h1>Where developers and creators ship, chat, and build together.</h1>
+        <h1>${t('homeHeadline') || 'Create your public creator page, collaborate with your team, and chat with your audience in one place.'}</h1>
         <p>${t('homeLead')}</p>
         <div class="hero-actions">
           ${!currentUser() ? `
             <button class="primary-button" data-action="open-modal" data-modal="auth">${icons.user || ''}<span>Create free account</span></button>
             <button class="soft-button" data-action="guest-login">${icons.eye || ''}<span>Try as guest</span></button>
-            <button class="ghost-button" data-action="nav" data-path="/discover">${t('discover')}</button>
+            <a class="ghost-button" ${navAttrs('/discover')}>${t('discover')}</a>
           ` : `
-            <button class="primary-button" data-action="nav" data-path="/discover">${icons.search}<span>${t('discover')}</span></button>
-            <button class="soft-button" data-action="nav" data-path="/messages">${icons.message}<span>${t('openMessages')}</span></button>
+            <a class="primary-button" ${navAttrs('/discover')}>${icons.search}<span>${t('discover')}</span></a>
+            <a class="soft-button" ${navAttrs('/messages')}>${icons.message}<span>${t('openMessages')}</span></a>
           `}
         </div>
         ${isGuest && currentUser() ? `<p style="font-size:12px;color:var(--text-muted);margin-top:10px">You're browsing as a guest. <button class="text-link" data-action="open-modal" data-modal="auth">Sign up</button> to keep your data, chat with others, and publish sites.</p>` : ''}
@@ -2069,12 +2962,14 @@ function renderProfileLinks(user) {
   const links = user.links || {};
   const items = [
     links.website && { label: links.website.replace(/^https?:\/\//, '').slice(0, 32), href: links.website, icon: icons.link },
-    links.github && { label: links.github, href: `https://github.com/${links.github}`, icon: icons.external },
+    links.github && { ...buildSocialLink(links.github, 'github'), icon: icons.githubBrand },
     links.discord && { label: links.discord, href: null, icon: icons.message },
-    links.telegram && { label: links.telegram, href: `https://t.me/${links.telegram}`, icon: icons.plane },
-    links.steam && { label: links.steam, href: `https://steamcommunity.com/id/${links.steam}`, icon: icons.steam },
-    links.youtube && { label: links.youtube, href: `https://youtube.com/@${links.youtube}`, icon: icons.youtube },
-    links.instagram && { label: links.instagram, href: `https://instagram.com/${links.instagram}`, icon: icons.instagram },
+    links.telegram && { ...buildSocialLink(links.telegram, 'telegram'), icon: icons.plane },
+    links.steam && { ...buildSocialLink(links.steam, 'steam'), icon: icons.steam },
+    links.spotify && { ...buildSocialLink(links.spotify, 'spotify'), icon: icons.spotify },
+    links.epicGames && { ...buildSocialLink(links.epicGames, 'epicGames'), icon: icons.epicGames },
+    links.youtube && { ...buildSocialLink(links.youtube, 'youtube'), icon: icons.youtube },
+    links.instagram && { ...buildSocialLink(links.instagram, 'instagram'), icon: icons.instagram },
   ].filter(Boolean);
   if (!items.length) return '';
   return `<div class="profile-links">${items.map(item =>
@@ -2149,32 +3044,25 @@ function renderAdCard(slot) {
     </div>
   </div>`;
 }
-function renderUserCard(user) {
-  return `<article class="tile tile-user" data-hover-user="${user.handleCanonical || user.handle.toLowerCase()}">
-    <div class="tile-top">
-      ${avatar(user, 'lg')}
-      <div class="tile-copy">
-        <button class="text-link strong" data-action="open-profile" data-handle="${user.handleCanonical || user.handle.toLowerCase()}">${escapeHtml(user.displayName)}</button>
-        <span>@${escapeHtml(user.handle)}</span>
-      </div>
-      <div class="badge-row">${badgePills(user)}</div>
-    </div>
-    <p>${escapeHtml(user.bio || 'No public bio yet.')}</p>
-    <div class="tile-meta"><span>${user.stats.projects} projects</span><span>${user.stats.sites} sites</span><span>${user.stats.followers} followers</span></div>
-  </article>`;
-}
 function renderProjectCard(project) {
+  const reportButton = canReportOwner(project.owner)
+    ? `<button class="icon-button compact" data-action="report-target" data-target-type="project" data-target-id="${project.id}" data-target-label="${escapeHtml(`Project: ${project.title}`)}" data-target-url="/project/${escapeHtml(project.slug)}" title="${currentLang() === 'ru' ? 'Пожаловаться' : 'Report'}">${icons.alert}</button>`
+    : '';
   return `<article class="tile tile-project">
-    <div class="tile-top between"><div><span class="kicker">${escapeHtml(project.category || 'project')}</span><button class="text-link strong" data-action="nav" data-path="/project/${project.slug}">${escapeHtml(project.title)}</button></div>${project.owner ? avatar(project.owner, 'sm') : ''}</div>
+    <div class="tile-top between"><div><span class="kicker">${escapeHtml(project.category || 'project')}</span><a class="text-link strong" ${navAttrs(`/project/${project.slug}`)}>${escapeHtml(project.title)}</a></div><div class="inline-stack">${reportButton}${project.owner ? avatar(project.owner, 'sm') : ''}</div></div>
     <p>${escapeHtml(project.summary || '')}</p>
     <div class="tag-row">${(project.tags || []).slice(0, 4).map((tag) => `<span class="tag-pill">#${escapeHtml(tag)}</span>`).join('')}</div>
   </article>`;
 }
 function renderSiteCard(site) {
+  const reportButton = canReportOwner(site.owner)
+    ? `<button class="soft-button compact" data-action="report-target" data-target-type="site" data-target-id="${site.id}" data-target-label="${escapeHtml(`Site: ${site.title}`)}" data-target-url="${escapeHtml(site.path)}">${icons.alert}<span>${currentLang() === 'ru' ? 'Пожаловаться' : 'Report'}</span></button>`
+    : '';
   return `<article class="tile tile-site">
     <div class="tile-top between"><div class="site-title-row">${renderSiteIcon(site)}<div><span class="kicker">${site.mode === 'upload' ? 'custom' : 'template'}</span><a class="text-link strong" href="${site.path}">${escapeHtml(site.title)}</a></div></div>${site.owner ? avatar(site.owner, 'sm') : ''}</div>
     <p>${escapeHtml(site.summary || '')}</p>
-    <div class="tile-actions"><a class="inline-button" href="${site.path}">${icons.external}<span>${t('openSite')}</span></a></div>
+    ${site.mode === 'upload' ? renderSiteImportDigest(site) : ''}
+    <div class="tile-actions"><a class="inline-button" href="${site.path}">${icons.external}<span>${t('openSite')}</span></a>${reportButton}</div>
   </article>`;
 }
 function findKnownRoom(slug) {
@@ -2411,8 +3299,9 @@ function renderSiteCreationGuide() {
     <ul>
       <li>${isRu ? 'Template site: быстрый лонч, портфолио, питч, event-страница или docs без собственного фронтенд-пака.' : 'Template site: for a fast launch page, portfolio, pitch, event page or docs without your own frontend bundle.'}</li>
       <li>${isRu ? 'Single HTML: если весь сайт живёт в одном <code>.html</code> и не зависит от локальных <code>css/js/images</code>.' : 'Single HTML: when everything lives in one <code>.html</code> file with no local css/js/images dependencies.'}</li>
-      <li>${isRu ? 'Archive package: если у сайта несколько страниц или есть локальные папки <code>css/</code>, <code>js/</code>, <code>img/</code>.' : 'Archive package: when the site has multiple pages or local <code>css/</code>, <code>js/</code>, <code>img/</code> folders.'}</li>
-      <li>${isRu ? '7z требует отдельного extractor на сервере. ZIP/TAR/TGZ работают сразу, если архив содержит <code>index.html</code>.' : '7z needs an extra server-side extractor. ZIP/TAR/TGZ work immediately when the archive contains <code>index.html</code>.'}</li>
+      <li>${isRu ? 'Archive package: полноценный импорт статического сайта с несколькими страницами, локальными папками <code>css/</code>, <code>js/</code>, <code>img/</code>, <code>fonts/</code> и файлами для скачивания.' : 'Archive package: full static-site import with multiple pages, local <code>css/</code>, <code>js/</code>, <code>img/</code>, <code>fonts/</code> folders and downloadable files.'}</li>
+      <li>${isRu ? 'Архив может быть <code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code> или <code>.7z</code>. Для обычных пользователей лимит архива сейчас <code>5 MB</code>; если внутри несколько <code>index.html</code>, приоритет у корневого файла.' : 'Archive packages can be <code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code> or <code>.7z</code>. Regular-user archive limit is now <code>5 MB</code>; if multiple <code>index.html</code> files exist, the root one wins.'}</li>
+      <li>${isRu ? 'Если внутри есть backend/API-код, сайт всё равно импортируется как статика: интерфейс и дизайн сохраняются, а конфликтующие server-side функции только предупреждаются и не исполняются.' : 'If the archive contains backend/API code, the site is still imported as static: the UI and design are preserved, while conflicting server-side features are only warned about and never executed.'}</li>
     </ul>
   </div>`;
 }
@@ -2426,12 +3315,15 @@ function renderSiteUploadDiagnostics(site) {
     : 'Single HTML';
   const shownFiles = (info.files || []).slice(0, 12);
   const remaining = Math.max(Number(info.fileCount || 0) - shownFiles.length, 0);
+  const importReport = info.importReport || site?.importReport || {};
+  const optimizedAssets = importReport.optimizedAssets || [];
+  const compatibilityWarnings = info.compatibilityWarnings || [];
   return `<div class="site-upload-diagnostics">
     <div class="site-upload-diagnostic-card">
       <strong>${modeLabel}</strong>
       <span>${isRu ? `Точка входа: ${info.entryFile || 'index.html'}` : `Entry file: ${info.entryFile || 'index.html'}`}</span>
       <small>${info.variant === 'archive'
-        ? (isRu ? 'Можно обновлять metadata отдельно, а css/js/images и дополнительные страницы менять повторной загрузкой архива.' : 'Metadata can be edited here; update css/js/images and extra pages by re-uploading the archive.')
+        ? (isRu ? 'Архив хранится как полноценный static bundle. Дизайн и структура сайта отдаются как есть, а server-side части только предупреждаются и не исполняются.' : 'Archive uploads are stored as a full static bundle. The site design and structure are served as-is, while server-side parts are only flagged and never executed.')
         : (isRu ? 'Этот режим подходит только для одного HTML-файла без локальных ассетов.' : 'This mode only works for one HTML file without local bundled assets.')}</small>
     </div>
     ${(info.files || []).length ? `<div class="site-upload-diagnostic-card">
@@ -2439,26 +3331,45 @@ function renderSiteUploadDiagnostics(site) {
       <div class="site-upload-file-list">${shownFiles.map((file) => `<code>${escapeHtml(file)}</code>`).join('')}</div>
       ${remaining ? `<small>${isRu ? `И ещё ${remaining} файлов` : `${remaining} more files`}</small>` : ''}
     </div>` : ''}
+    ${Number(importReport.scannedImageCount || 0) ? `<div class="site-upload-diagnostic-card warning">
+      <strong>${isRu ? 'Оптимизация изображений' : 'Image optimization'}</strong>
+      <small>${optimizedAssets.length
+        ? (isRu
+            ? `Во время импорта сервер автоматически сжал ${optimizedAssets.length} изображений для хранения и сэкономил ${formatByteSize(importReport.optimizedBytesSaved || 0)}.`
+            : `During import the server compressed ${optimizedAssets.length} image files for storage and saved ${formatByteSize(importReport.optimizedBytesSaved || 0)}.`)
+        : (isRu
+            ? 'Изображения были проверены на оптимизацию. Сжатие применяется только когда новый файл реально меньше исходного.'
+            : 'Images were scanned for optimization. Compression is applied only when the new file is actually smaller than the original.')}</small>
+      ${optimizedAssets.length ? `<div class="site-upload-file-list">${optimizedAssets.slice(0, 10).map((item) => `<code>${escapeHtml(item.path)} · ${formatByteSize(item.beforeBytes)} → ${formatByteSize(item.afterBytes)}</code>`).join('')}</div>` : ''}
+    </div>` : ''}
     ${(info.missingRefs || []).length ? `<div class="site-upload-diagnostic-card warning">
       <strong>${isRu ? 'Битые локальные ссылки' : 'Broken local references'}</strong>
       <small>${isRu ? 'Эти пути встречаются в HTML, но сейчас не доступны. Именно они вызывают ошибки MIME и отсутствие стилей/скриптов.' : 'These paths are referenced by the HTML but are not currently available. They cause the MIME errors and missing styles/scripts.'}</small>
       <div class="site-upload-file-list">${info.missingRefs.slice(0, 12).map((file) => `<code>${escapeHtml(file)}</code>`).join('')}</div>
     </div>` : ''}
+    ${compatibilityWarnings.map((warning) => `<div class="site-upload-diagnostic-card warning">
+      <strong>${escapeHtml(warning.title || (isRu ? 'Предупреждение совместимости' : 'Compatibility warning'))}</strong>
+      <small>${escapeHtml(warning.message || '')}</small>
+      ${(warning.paths || []).length ? `<div class="site-upload-file-list">${warning.paths.slice(0, 12).map((file) => `<code>${escapeHtml(file)}</code>`).join('')}</div>` : ''}
+    </div>`).join('')}
   </div>`;
 }
 function renderPostCard(post) {
   const attachment = post.attachment && post.attachment.url ? (post.attachment.type === 'image' ? `<img class="post-media clickable-img" src="${post.attachment.url}" data-action="open-lightbox" data-src="${post.attachment.url}" data-alt="${escapeHtml(post.attachment.name || 'image')}" alt="${escapeHtml(post.attachment.name || 'image')}" />` : `<a class="attachment-chip" href="${post.attachment.url}" target="_blank" rel="noreferrer">${icons.file}<span>${escapeHtml(post.attachment.name)}</span></a>`) : '';
-  const sticker = post.sticker ? `<img class="sticker-inline" src="${post.sticker.dataUrl}" alt="${escapeHtml(post.sticker.name)}" />` : '';
+  const sticker = post.sticker ? `<img class="sticker-inline" src="${post.sticker.previewUrl || post.sticker.dataUrl}" alt="${escapeHtml(post.sticker.name)}" />` : '';
+  const reportButton = canReportOwner(post.author)
+    ? `<button class="icon-button compact" data-action="report-target" data-target-type="post" data-target-id="${post.id}" data-target-label="${escapeHtml(post.title ? `Post: ${post.title}` : `Post by @${post.author?.handle || ''}`)}" data-target-url="${escapeHtml(`/@${post.author?.handleCanonical || post.author?.handle || ''}`)}" title="${currentLang() === 'ru' ? 'Пожаловаться' : 'Report'}">${icons.alert}</button>`
+    : '';
   return `<article class="post-card">
     <header class="post-head">
       <div class="inline-stack">
         ${avatar(post.author, 'sm')}
         <div>
-          <button class="text-link strong" data-action="open-profile" data-handle="${post.author?.handleCanonical || post.author?.handle?.toLowerCase()}">${escapeHtml(post.author?.displayName || '')}</button>
+          <a class="text-link strong" ${profileAttrs(post.author)}>${escapeHtml(post.author?.displayName || '')}</a>
           <span>@${escapeHtml(post.author?.handle || '')} · ${formatDate(post.publishedAt || post.createdAt)}</span>
         </div>
       </div>
-      <div class="inline-stack">${post.kind === 'devlog' ? '<span class="surface-pill surface-work">DEVLOG</span>' : ''}<button class="icon-button compact" data-action="open-modal" data-modal="post-info" data-post-id="${post.id}" title="Post info">${icons.info}</button>${post.ownedBySession ? `<button class="icon-button compact" data-action="edit-post" data-id="${post.id}" title="${t('update')}">${icons.settings}</button>` : ''}</div>
+      <div class="inline-stack">${post.kind === 'devlog' ? '<span class="surface-pill surface-work">DEVLOG</span>' : ''}${reportButton}<button class="icon-button compact" data-action="open-modal" data-modal="post-info" data-post-id="${post.id}" title="Post info">${icons.info}</button>${post.ownedBySession ? `<button class="icon-button compact" data-action="edit-post" data-id="${post.id}" title="${t('update')}">${icons.settings}</button>` : ''}</div>
     </header>
     ${post.title ? `<h3>${escapeHtml(post.title)}</h3>` : ''}
     <div class="post-body">${renderMarkdown(post.body)}</div>
@@ -2477,7 +3388,7 @@ function renderComments(postId) {
   if (!entry?.open) return '';
   const list = entry.items || [];
   return `<div class="comments-block">
-    ${list.length ? list.map((comment) => `<div class="comment-row">${avatar(comment.author, 'xs')}<div class="comment-body"><div class="comment-head"><button class="text-link strong" data-action="open-profile" data-handle="${comment.author?.handleCanonical || comment.author?.handle?.toLowerCase()}">${escapeHtml(comment.author?.displayName || '')}</button><span class="comment-meta">@${escapeHtml(comment.author?.handle || '')} · ${formatDate(comment.createdAt)}</span></div><div class="post-body">${renderMarkdown(comment.body || '')}</div>${comment.sticker ? `<img class="sticker-inline" src="${comment.sticker.dataUrl}" alt="${escapeHtml(comment.sticker.name)}" />` : ''}</div></div>`).join('') : '<p class="comment-empty">Be the first to reply.</p>'}
+    ${list.length ? list.map((comment) => `<div class="comment-row">${avatar(comment.author, 'xs')}<div class="comment-body"><div class="comment-head"><a class="text-link strong" ${profileAttrs(comment.author)}>${escapeHtml(comment.author?.displayName || '')}</a><span class="comment-meta">@${escapeHtml(comment.author?.handle || '')} · ${formatDate(comment.createdAt)}</span></div><div class="post-body">${renderMarkdown(comment.body || '')}</div>${comment.sticker ? `<img class="sticker-inline" src="${comment.sticker.previewUrl || comment.sticker.dataUrl}" alt="${escapeHtml(comment.sticker.name)}" />` : ''}</div></div>`).join('') : '<p class="comment-empty">Be the first to reply.</p>'}
     ${currentUser() && !isGuestSession() ? `
       <form class="comment-form" data-form="comment" data-post-id="${postId}">
         <input type="text" name="body" placeholder="Write your reply…" data-reply-input="${postId}" maxlength="1800" />
@@ -2510,6 +3421,9 @@ function renderProfilePage() {
   const posts = Array.isArray(payload.posts) ? payload.posts : [];
   const stats = user.stats || {};
   const isSelf = currentUser() && user.handleCanonical === currentUser().handleCanonical;
+  const reportProfileButton = !isSelf && canReportOwner(user)
+    ? `<button class="soft-button" data-action="report-target" data-target-type="user" data-target-id="${user.id}" data-target-label="${escapeHtml(`Profile @${user.handleCanonical || user.handle || ''}`)}" data-target-url="${escapeHtml(`/@${user.handleCanonical || user.handle || ''}`)}">${icons.alert}<span>${currentLang() === 'ru' ? 'Пожаловаться' : 'Report'}</span></button>`
+    : '';
   return `
     <section class="profile-hero section-shell">
       <div class="profile-banner">${user.bannerUrl ? `<img src="${user.bannerUrl}" alt="banner" />` : '<div class="banner-fallback"></div>'}</div>
@@ -2529,7 +3443,7 @@ function renderProfilePage() {
           </div>
         </div>
         <div class="profile-actions">
-          ${isSelf ? `<button class="soft-button" data-action="nav" data-path="/settings">${icons.settings}<span>${t('settings')}</span></button><button class="primary-button" data-action="open-modal" data-modal="project">${icons.plus}<span>${t('createProject')}</span></button>` : `<button class="soft-button" data-action="start-chat" data-handle="${user.handleCanonical}" data-surface="personal">${icons.message}<span>${t('message')}</span></button><button class="soft-button" data-action="friend-request" data-handle="${user.handleCanonical}">${icons.people}<span>${t('addFriend')}</span></button><button class="soft-button" data-action="toggle-follow" data-handle="${user.handleCanonical}">${icons.star}<span>${user.relation?.following ? t('unfollow') : t('follow')}</span></button>`}
+          ${isSelf ? `<a class="soft-button" ${navAttrs('/settings')}>${icons.settings}<span>${t('settings')}</span></a><button class="primary-button" data-action="open-modal" data-modal="project">${icons.plus}<span>${t('createProject')}</span></button>` : `<button class="soft-button" data-action="start-chat" data-handle="${user.handleCanonical}" data-surface="personal">${icons.message}<span>${t('message')}</span></button><button class="soft-button" data-action="friend-request" data-handle="${user.handleCanonical}">${icons.people}<span>${t('addFriend')}</span></button><button class="soft-button" data-action="toggle-follow" data-handle="${user.handleCanonical}">${icons.star}<span>${user.relation?.following ? t('unfollow') : t('follow')}</span></button>${reportProfileButton}`}
         </div>
       </div>
     </section>
@@ -2651,7 +3565,7 @@ function renderChatTabItems(items) {
   if (state.chat.tab === 'friends' || state.chat.tab === 'following') {
     return items.map((user) => `<article class="chat-row user-row" data-hover-user="${user.handleCanonical || user.handle.toLowerCase()}">
       ${avatar(user, 'sm')}
-      <div class="chat-row-copy"><button class="text-link strong" data-action="open-profile" data-handle="${user.handleCanonical || user.handle.toLowerCase()}">${escapeHtml(user.displayName)}</button><span>@${escapeHtml(user.handle)}</span></div>
+      <div class="chat-row-copy"><a class="text-link strong" ${profileAttrs(user)}>${escapeHtml(user.displayName)}</a><span>@${escapeHtml(user.handle)}</span></div>
       <div class="row-actions"><button class="icon-button compact" data-action="start-chat" data-handle="${user.handleCanonical}" data-surface="personal" title="${t('message')}">${icons.message}</button><button class="icon-button compact" data-action="start-chat" data-handle="${user.handleCanonical}" data-surface="work" title="work">${icons.file}</button></div>
     </article>`).join('');
   }
@@ -2701,6 +3615,7 @@ function renderMessagesWithDividers(room) {
 
 function renderRoomAccessBanner(room) {
   if (!room || room.kind === 'direct') return '';
+  const canPost = roomAllowsPosting(room);
   if (roomNeedsUpgrade(room)) {
     const label = room.subscription?.requiredPlanLabel || planLabel(room.subscription?.requiredPlanId);
     return `<div class="chat-empty-msg">
@@ -2716,7 +3631,7 @@ function renderRoomAccessBanner(room) {
       <div class="detail-actions"><button class="primary-button" type="button" data-action="join-room" data-slug="${room.slug}">${icons.plus}<span>${currentLang() === 'ru' ? 'Вступить' : 'Join room'}</span></button></div>
     </div>`;
   }
-  if (!room.canPost) {
+  if (!canPost) {
     return `<div class="chat-empty-msg">
       <strong>${currentLang() === 'ru' ? 'Только админы могут писать' : 'Only admins can post'}</strong>
       <p>${currentLang() === 'ru' ? 'Этот чат переведён в режим канала.' : 'This room is currently in channel mode.'}</p>
@@ -2737,18 +3652,33 @@ function renderReadOnlyChannelComposer(room) {
   </div>`;
 }
 
+function roomAllowsPosting(room) {
+  if (!room) return false;
+  if (typeof room.canPost === 'boolean') return room.canPost;
+  return room.kind === 'direct' || Boolean(room.joined);
+}
+
 function renderRoomComposer(room) {
   if (!room) return '';
-  if (!room.canPost) {
+  const canPost = roomAllowsPosting(room);
+  if (!canPost) {
     if (room.kind !== 'direct' && room.joined && room.permissions?.posting === 'admins' && !roomNeedsUpgrade(room)) {
       return renderReadOnlyChannelComposer(room);
     }
     return '';
   }
   return `<form class="chat-composer" data-form="send-message">
+      <div class="voice-recording-panel" data-voice-recording-panel ${state.chat.recording ? '' : 'hidden'}>
+        <div class="voice-recording-led" aria-hidden="true"></div>
+        <div class="voice-recording-copy">
+          <strong>${t('recordingNow') || 'Recording now'}</strong>
+          <span>${t('recordingHint') || 'Microphone is live. Tap again to finish.'}</span>
+        </div>
+        <div class="voice-recording-time" data-role="recording-time">${formatMediaDuration(0)}</div>
+      </div>
       ${state.chat.attachment ? `<div class="composer-preview">
         ${state.chat.attachment.type === 'audio'
-          ? `<audio class="composer-audio" controls src="${state.chat.attachment.dataUrl}"></audio>`
+          ? renderVoicePlayer(state.chat.attachment, { key: 'composer-preview', compact: true, title: t('voicePreview') || 'Voice preview', label: state.chat.attachment.name || (t('voiceDraft') || 'Voice draft'), kind: state.chat.attachment.voice ? 'voice' : 'audio' })
           : `<img src="${state.chat.attachment.dataUrl}" alt="attachment" data-action="open-lightbox" data-src="${state.chat.attachment.dataUrl}" />`}
         <div class="preview-meta">
           <strong>${escapeHtml(state.chat.attachment.name || 'Image')}</strong>
@@ -2779,9 +3709,13 @@ function renderRoomComposer(room) {
 
 function renderChatRoom(room) {
   const unread = state.chat.unreadCount || 0;
+  const directProfileLink = room?.kind === 'direct' && room?.otherUser ? profileAttrs(room.otherUser) : '';
+  const roomHeaderIdentity = room?.kind === 'direct' && directProfileLink
+    ? `<a class="chat-room-identity" ${directProfileLink}>${roomAvatar(room, 'sm')}<div><strong>${escapeHtml(room.title)}</strong><span>${escapeHtml(room.description || '')}</span></div></a>`
+    : `${roomAvatar(room, 'sm')}<div><strong>${escapeHtml(room.title)}</strong><span>${escapeHtml(room.description || '')}</span></div>`;
   return `
     <header class="chat-room-head">
-      <div class="inline-stack">${window.matchMedia('(max-width: 900px)').matches ? `<button class="icon-button compact" data-action="chat-back">${icons.chevronLeft}</button>` : ''}${roomAvatar(room, 'sm')}<div><strong>${escapeHtml(room.title)}</strong><span>${escapeHtml(room.description || '')}</span></div></div>
+      <div class="inline-stack">${window.matchMedia('(max-width: 900px)').matches ? `<button class="icon-button compact" data-action="chat-back">${icons.chevronLeft}</button>` : ''}${roomHeaderIdentity}</div>
       <div class="inline-stack">${room.subscription?.enabled ? `<span class="surface-pill surface-group">${escapeHtml(roomPremiumSummary(room))}</span>` : ''}${(room.tags || []).map((tag) => `<span class="tag-pill">#${escapeHtml(tag)}</span>`).join('')}<button class="icon-button compact" data-action="open-chat-settings" data-slug="${room.slug}" title="${t('details')}">${icons.more}</button></div>
     </header>
     ${renderRoomAccessBanner(room)}
@@ -2803,8 +3737,74 @@ function findStickerFromPacks(stickerId) {
   return null;
 }
 
+function renderVoicePlayer(attachment, options = {}) {
+  if (!attachment?.url) return '';
+  const key = options.key || attachment.url;
+  const duration = Number(attachment.duration || 0);
+  const playback = state.voicePlayback || {};
+  const active = playback.key === key && playback.url === attachment.url;
+  const playing = active && playback.playing;
+  const currentTime = active ? Number(playback.currentTime || 0) : 0;
+  const total = active ? Number(playback.duration || duration || 0) : duration;
+  const progress = total > 0 ? Math.max(0, Math.min(1, currentTime / total)) : 0;
+  const bars = voiceBars(String(key || attachment.name || 'voice'));
+  const speeds = [1, 1.5, 2];
+  const kind = options.kind || (attachment.voice ? 'voice' : 'audio');
+  const title = options.title || voicePlaybackLabel(kind);
+  const label = options.label || attachment.name || voicePlaybackLabel(kind);
+  return `<div class="voice-player ${options.compact ? 'compact' : ''} ${playing ? 'is-playing' : ''}" data-voice-player data-voice-key="${escapeHtml(String(key))}" data-voice-url="${escapeHtml(attachment.url)}" data-voice-duration="${total}">
+    <div class="voice-player-top">
+      <span class="voice-player-kind">${title}</span>
+      <div class="voice-player-speeds">
+        ${speeds.map((speed) => `<button type="button" class="voice-speed-btn ${Number(state.chat.voiceSpeed || 1) === speed ? 'active' : ''}" data-action="set-voice-speed" data-speed="${speed}">${speed}x</button>`).join('')}
+      </div>
+    </div>
+    <div class="voice-player-main">
+      <button type="button" class="voice-play-btn" data-role="voice-play" data-action="toggle-voice-play" data-voice-key="${escapeHtml(String(key))}" data-voice-url="${escapeHtml(attachment.url)}" data-voice-duration="${total}" data-voice-title="${escapeHtml(title)}" data-voice-label="${escapeHtml(label)}" data-voice-kind="${escapeHtml(kind)}">
+        ${playing ? icons.pause : icons.play}
+      </button>
+      <button type="button" class="voice-wave" data-action="seek-voice" data-voice-key="${escapeHtml(String(key))}">
+        ${bars.map((height, index) => `<span class="voice-wave-bar ${index / bars.length <= progress ? 'active' : ''}" data-voice-bar="${index}" style="height:${height}%"></span>`).join('')}
+      </button>
+      <div class="voice-meta">
+        <strong>${escapeHtml(label)}</strong>
+        <span><span data-role="voice-current">${formatMediaDuration(currentTime || 0)}</span> / <span data-role="voice-total">${formatMediaDuration(total || 0)}</span></span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderGlobalAudioPlayer() {
+  const playback = state.voicePlayback || {};
+  if (!playback.url) return '<section class="audio-hub" data-global-audio-player hidden></section>';
+  const progress = Math.round(getVoicePlaybackProgress(playback) * 1000);
+  return `<section class="audio-hub ${playback.playing ? 'is-playing' : ''}" data-global-audio-player>
+    <div class="audio-hub-copy">
+      <span class="audio-hub-kicker" data-role="audio-hub-title">${escapeHtml(playback.title || voicePlaybackLabel(playback.kind))}</span>
+      <strong data-role="audio-hub-label">${escapeHtml(playback.label || voicePlaybackLabel(playback.kind))}</strong>
+      <span class="audio-hub-hint">${t('audioContinueHint') || 'Keeps playing while you switch chats or screens.'}</span>
+    </div>
+    <div class="audio-hub-controls">
+      <button type="button" class="audio-hub-play" data-role="audio-hub-play" data-action="toggle-voice-play" data-voice-key="${escapeHtml(String(playback.key || playback.url))}" data-voice-url="${escapeHtml(playback.url)}" data-voice-duration="${Number(playback.duration || 0)}" data-voice-title="${escapeHtml(playback.title || voicePlaybackLabel(playback.kind))}" data-voice-label="${escapeHtml(playback.label || voicePlaybackLabel(playback.kind))}" data-voice-kind="${escapeHtml(playback.kind || 'voice')}">
+        ${playback.playing ? icons.pause : icons.play}
+      </button>
+      <div class="audio-hub-timeline">
+        <input type="range" min="0" max="1000" value="${progress}" data-input="global-audio-progress" />
+        <div class="audio-hub-meta"><span data-role="audio-hub-current">${formatMediaDuration(playback.currentTime || 0)}</span><span data-role="audio-hub-total">${formatMediaDuration(playback.duration || 0)}</span><span data-role="audio-hub-speed">${Number(playback.speed || 1)}x</span></div>
+      </div>
+    </div>
+  </section>`;
+}
+
 function getMessageDeliveryStatus(room, message) {
-  if (!room || room.kind !== 'direct' || !message?.ownedBySession) return null;
+  if (!room || room.kind !== 'direct' || !message) return null;
+  if (!message.ownedBySession) {
+    if (room.surface === 'work') {
+      if (message.confirmedAt) return { key: 'confirmed', label: t('statusConfirmed'), icon: icons.statusConfirmed, passive: true };
+      return { key: 'read', label: t('statusReadPendingConfirm'), icon: icons.statusRead, passive: true };
+    }
+    return { key: 'read', label: t('statusRead'), icon: icons.eye, passive: true };
+  }
   if (message.pending) return { key: 'sending', label: t('statusSending'), icon: '' };
   const otherUserId = Number(room.otherUser?.id || 0);
   const readReceipt = Number((state.readReceipts[room.slug] || {})[otherUserId] || 0);
@@ -2833,6 +3833,9 @@ function canConfirmMessage(room, message) {
 function renderMessageStatusControl(room, message) {
   const status = getMessageDeliveryStatus(room, message);
   if (!status || !status.icon) return '';
+  if (status.passive) {
+    return `<span class="message-status-btn ${status.key} passive" title="${escapeHtml(status.label)}" aria-label="${escapeHtml(status.label)}">${status.icon}</span>`;
+  }
   return `<button class="message-status-btn ${status.key}" type="button" data-action="message-status-info" data-label="${escapeHtml(status.label)}" title="${escapeHtml(status.label)}" aria-label="${escapeHtml(status.label)}">${status.icon}</button>`;
 }
 
@@ -2858,12 +3861,17 @@ function renderMessageBubble(room, message) {
     </div>`;
   } else if (message.attachment?.url) {
     attachment = message.attachment.type === 'audio'
-      ? `<audio class="message-audio" controls preload="metadata" src="${message.attachment.url}"></audio>`
+      ? renderVoicePlayer(message.attachment, {
+          key: `message-${message.id}`,
+          compact: true,
+          title: 'Voice',
+          label: message.author?.displayName || message.attachment.name || 'Voice message'
+        })
       : message.attachment.type === 'video'
         ? `<video class="message-image clickable-img" src="${message.attachment.url}" playsinline muted preload="metadata" data-action="open-lightbox" data-src="${message.attachment.url}" data-media-type="video" data-alt="${escapeHtml(message.attachment.name || 'video')}"></video>`
         : `<img class="message-image clickable-img" src="${message.attachment.url}" alt="${escapeHtml(message.attachment.name || 'image')}" data-action="open-lightbox" data-src="${message.attachment.url}" data-media-type="${escapeHtml(message.attachment.type || 'image')}" data-alt="${escapeHtml(message.attachment.name || 'image')}" />`;
   }
-  const sticker = message.sticker ? `<img class="message-sticker" src="${message.sticker.dataUrl}" alt="${escapeHtml(message.sticker.name)}" />` : '';
+  const sticker = message.sticker ? `<img class="message-sticker" src="${message.sticker.previewUrl || message.sticker.dataUrl}" alt="${escapeHtml(message.sticker.name)}" />` : '';
   // Reply preview
   const replyPreview = message.replyTo
     ? `<div class="reply-preview"><span class="reply-author">${escapeHtml(message.replyTo.author?.displayName || '')}</span><span>${escapeHtml((message.replyTo.body || '').slice(0, 80))}</span></div>`
@@ -2884,6 +3892,7 @@ function renderMessageBubble(room, message) {
   const actions = message.deleted || message.pending ? '' : `<div class="msg-actions">
     <button class="msg-action-btn" data-action="reply-message" data-msg-id="${message.id}" title="Reply">${icons.comment}</button>
     <button class="msg-action-btn" data-action="react-emoji" data-msg-id="${message.id}" title="React">${icons.smile}</button>
+    ${!own && canReportOwner(message.author) ? `<button class="msg-action-btn" data-action="report-target" data-target-type="message" data-target-id="${message.id}" data-target-label="${escapeHtml(`Message in ${room?.title || 'chat'}`)}" data-target-url="${escapeHtml(room?.slug ? `/messages/${room.slug}` : '/messages')}" title="${currentLang() === 'ru' ? 'Пожаловаться' : 'Report'}">${icons.alert}</button>` : ''}
     ${own ? `<button class="msg-action-btn" data-action="edit-message" data-msg-id="${message.id}" title="Edit">${icons.edit}</button>` : ''}
     ${own || room?.currentRole === 'owner' || room?.currentRole === 'admin' || room?.currentRole === 'moderator'
       ? `<button class="msg-action-btn danger" data-action="delete-message" data-msg-id="${message.id}" data-room-slug="${room?.slug}" title="Delete">${icons.trash}</button>`
@@ -2907,10 +3916,12 @@ function renderMessageBubble(room, message) {
       ${replyPreview}
       <div class="message-bubble ${state.chat.editingMessageId === message.id ? 'editing' : ''}">
         <div class="message-meta">
-          <button class="text-link strong" data-action="open-profile" data-handle="${message.author?.handleCanonical || message.author?.handle?.toLowerCase()}">${escapeHtml(message.author?.displayName || '')}</button>
-          <span title="${message.createdAt}">${formatDate(message.createdAt, 'time')}</span>
-          ${editTag}
-          ${statusControl}
+          <div class="message-meta-main">
+            <a class="text-link strong" ${profileAttrs(message.author)}>${escapeHtml(message.author?.displayName || '')}</a>
+            <span title="${message.createdAt}">${formatDate(message.createdAt, 'time')}</span>
+            ${editTag}
+          </div>
+          ${statusControl ? `<div class="message-meta-status">${statusControl}</div>` : ''}
         </div>
         ${bodyHtml}
         ${attachment}${sticker}
@@ -2959,7 +3970,7 @@ function renderMediaPicker() {
       body = `<div class="sticker-pack-label">${label}</div>
         <div class="sticker-full-grid">
           ${stickersToShow.map(s => `<button type="button" class="sticker-full-btn" data-action="pick-sticker" data-id="${s.id}">
-            <img src="${s.dataUrl}" alt="${escapeHtml(s.name)}" />
+            <img src="${s.previewUrl || s.dataUrl}" alt="${escapeHtml(s.name)}" />
           </button>`).join('')}
         </div>`;
       if (!stickersToShow.length) body = '<p style="color:var(--text-muted);text-align:center;padding:20px">No stickers</p>';
@@ -2989,7 +4000,7 @@ function renderMediaPicker() {
       <button type="button" class="pack-tab-icon ${!state.chat.mediaPackId ? 'active' : ''}" data-action="pick-media-pack" data-pack-id="">${icons.grid}</button>
       ${packs.map(p => {
         const first = p.stickers[0];
-        return `<button type="button" class="pack-tab-icon ${String(state.chat.mediaPackId) === String(p.id) ? 'active' : ''}" data-action="pick-media-pack" data-pack-id="${p.id}" title="${escapeHtml(p.title)}">${first ? `<img src="${first.dataUrl}" alt="" />` : icons.sticker}</button>`;
+        return `<button type="button" class="pack-tab-icon ${String(state.chat.mediaPackId) === String(p.id) ? 'active' : ''}" data-action="pick-media-pack" data-pack-id="${p.id}" title="${escapeHtml(p.title)}">${first ? `<img src="${first.previewUrl || first.dataUrl}" alt="" />` : icons.sticker}</button>`;
       }).join('')}
     </div>` : '';
 
@@ -3189,7 +4200,12 @@ function renderRoomMediaTab(room, tab) {
     return `<div class="detail-card"><div class="room-voice-list">
       ${items.map(({ m, a }) => `<div class="room-voice-item">
         <span class="room-voice-meta">${escapeHtml(m.author?.displayName || '')} · ${formatDate(m.createdAt, 'time')}</span>
-        <audio controls preload="metadata" src="${escapeHtml(a.url)}"></audio>
+        ${renderVoicePlayer(a, {
+          key: `room-${m.id}`,
+          compact: true,
+          title: 'Voice',
+          label: m.author?.displayName || a.name || 'Voice message'
+        })}
       </div>`).join('')}
     </div></div>`;
   }
@@ -3218,8 +4234,23 @@ function renderSitesPage() {
   const publicSites = state.sites.public || [];
   return `
     <section class="section-shell page-heading-row">
-      <div><span class="eyebrow">sites</span><h1>${t('sites')}</h1><p class="muted">Upload a static HTML site, unpack an archive, or open Studio to edit internal files and visual polish without adding auth/comments inside the site itself.</p></div>
+      <div><span class="eyebrow">sites</span><h1>${t('sites')}</h1><p class="muted">Upload a static HTML site, import a full archive as raw static hosting, or open Studio to edit internal files. Backend-dependent code is flagged during import and stays disabled.</p></div>
       <div class="page-tools"><button class="soft-button" data-action="open-modal" data-modal="site-template">${icons.plus}<span>${t('templateSite')}</span></button><button class="primary-button" data-action="open-modal" data-modal="site-upload">${icons.upload}<span>${t('uploadSite')}</span></button></div>
+    </section>
+    <section class="section-shell">
+      <div class="tile" style="gap:10px">
+        <div class="inline-stack between">
+          <div>
+            <strong>${currentLang() === 'ru' ? 'Как правильно загружать сайт' : 'How to upload a site correctly'}</strong>
+            <span style="display:block;font-size:13px;color:var(--text-muted)">${currentLang() === 'ru' ? 'Короткий путь: template для простых страниц, single HTML для одного файла, archive для полноценной статики с assets/' : 'Short version: use template for simple pages, single HTML for one-file sites, and archive for full static builds with assets/.'}</span>
+          </div>
+          <div class="tile-actions">
+            <a class="soft-button compact" ${navAttrs('/developers/sites')}>${icons.help}<span>${currentLang() === 'ru' ? 'Гайд внутри сайта' : 'Guide in app'}</span></a>
+            <a class="inline-button compact" href="${SITE_CREATION_GUIDE_URL}" target="_blank" rel="noopener">${icons.external}<span>${currentLang() === 'ru' ? 'Полная документация' : 'Full docs'}</span></a>
+            <a class="soft-button compact" href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">${icons.archive}<span>${currentLang() === 'ru' ? 'Репозиторий' : 'Repository'}</span></a>
+          </div>
+        </div>
+      </div>
     </section>
     <section class="section-shell split-grid">
       <div><div class="section-heading"><h2>My sites</h2></div><div class="stack-list">${own.length ? own.map(renderOwnedSiteCard).join('') : renderEmpty(t('noSites'))}</div></div>
@@ -3233,6 +4264,7 @@ function renderOwnedSiteCard(site) {
   return `<article class="tile tile-site owned-site-card">
     <div class="tile-top between"><div class="site-title-row">${renderSiteIcon(site)}<div><span class="kicker">${site.mode} · ${reviewLabel}</span><a class="text-link strong" href="${site.path}">${escapeHtml(site.title)}</a></div></div><div class="row-actions">${canEditSite ? `<button class="icon-button compact" data-action="open-site-studio" data-id="${site.id}" title="Open Studio">${icons.wrench}</button><button class="icon-button compact" data-action="open-edit-site" data-id="${site.id}" title="${t('update')}">${icons.edit}</button>` : ''}<button class="icon-button compact" data-action="copy-site-link" data-path="${site.path}">${icons.share}</button><button class="icon-button compact" data-action="delete-site" data-id="${site.id}">${icons.trash}</button></div></div>
     <p>${escapeHtml(site.summary || '')}</p>
+    ${site.mode === 'upload' ? renderSiteImportDigest(site, true) : ''}
     ${site.reviewNote ? `<p class="muted" style="margin:0;font-size:12px">${escapeHtml(site.reviewNote)}</p>` : ''}
     <div class="tile-actions">${canEditSite ? `<button class="inline-button" data-action="open-site-studio" data-id="${site.id}">${icons.wrench}<span>Studio</span></button><button class="inline-button" data-action="open-edit-site" data-id="${site.id}">${icons.edit}<span>${t('update')}</span></button>` : ''}${canSubmitReview ? `<button class="inline-button" data-action="submit-site-review" data-id="${site.id}">${icons.check}<span>Submit review</span></button>` : ''}<a class="inline-button" href="${site.path}">${icons.external}<span>${t('launch')}</span></a></div>
   </article>`;
@@ -3242,6 +4274,26 @@ function renderSiteStudioDesignForm(site, studio) {
   const config = site?.templateConfig || {};
   const discussionPath = studio?.staticRules?.discussionPath || site?.discussionPath || '';
   const discussionLabel = studio?.staticRules?.discussionLabel || (currentLang() === 'ru' ? 'Обсуждение на justbreath' : 'Discussion on justbreath');
+  if (site?.mode === 'upload') {
+    return `<form class="settings-form site-studio-design-form" data-form="site-studio-design" data-site-id="${site.id}">
+      <div class="site-studio-rule-card">
+        <strong>${currentLang() === 'ru' ? 'Raw static import' : 'Raw static import'}</strong>
+        <span>${currentLang() === 'ru'
+          ? 'Сайт отдаётся как есть: HTML, CSS, JS и assets живут в архиве и не оборачиваются платформой. Если в коде есть backend/API-логика, она сохраняется только как статический код и не исполняется.'
+          : 'The site is served as-is: HTML, CSS, JS and assets live in the archive and are not wrapped by the platform. If the code contains backend/API logic, it is preserved only as static code and never executed.'}</span>
+        ${discussionPath ? `<a class="inline-button" href="${discussionPath}">${icons.comment}<span>${escapeHtml(discussionLabel)}</span></a>` : ''}
+      </div>
+      <div class="settings-grid-two">
+        <label><span>${t('title')}</span><input name="title" value="${escapeHtml(site.title || '')}" /></label>
+        <label><span>${t('summary')}</span><input name="summary" value="${escapeHtml(site.summary || '')}" /></label>
+        <label><span>Visibility</span><select name="visibility"><option value="public" ${site.visibility === 'public' ? 'selected' : ''}>${t('public')}</option><option value="unlisted" ${site.visibility === 'unlisted' ? 'selected' : ''}>Unlisted</option><option value="private" ${site.visibility === 'private' ? 'selected' : ''}>${t('private')}</option></select></label>
+      </div>
+      <p class="site-editor-note">${currentLang() === 'ru'
+        ? 'Для визуальных и функциональных изменений правь реальные файлы сайта справа или перезагружай архив. Локальные изображения могут быть автоматически сжаты для хранения, если это уменьшает размер файла.'
+        : 'For visual and functional changes, edit the real site files on the right or re-upload the archive. Local images may be compressed automatically for storage when that produces a smaller file.'}</p>
+      <button class="primary-button" type="submit" ${studio?.saving ? 'disabled' : ''}>${icons.wrench}<span>${studio?.saving ? (currentLang() === 'ru' ? 'Сохраняю…' : 'Saving…') : (currentLang() === 'ru' ? 'Сохранить настройки' : 'Save settings')}</span></button>
+    </form>`;
+  }
   return `<form class="settings-form site-studio-design-form" data-form="site-studio-design" data-site-id="${site.id}">
     <div class="site-studio-rule-card">
       <strong>${currentLang() === 'ru' ? 'Статический режим' : 'Static-only rule'}</strong>
@@ -3294,11 +4346,15 @@ function renderSiteStudioPage() {
         <span class="eyebrow">site studio</span>
         <h1>${escapeHtml(site.title)}</h1>
         <p class="muted">${currentLang() === 'ru'
-          ? 'Редактируй внутренние файлы статического сайта, иконки, цвета, фон и CSS в одном рабочем экране.'
-          : 'Edit internal files, icons, color system, background and CSS for your static site in one workspace.'}</p>
+          ? (site.mode === 'upload'
+              ? 'Редактируй реальные файлы импортированного статического сайта и смотри предупреждения совместимости в одном рабочем экране.'
+              : 'Редактируй внутренние файлы статического сайта, иконки, цвета, фон и CSS в одном рабочем экране.')
+          : (site.mode === 'upload'
+              ? 'Edit the real files of your imported static site and review compatibility warnings in one workspace.'
+              : 'Edit internal files, icons, color system, background and CSS for your static site in one workspace.')}</p>
       </div>
       <div class="site-studio-hero-actions">
-        <button class="soft-button" data-action="nav" data-path="/sites">${icons.arrowLeft}<span>${currentLang() === 'ru' ? 'К списку сайтов' : 'Back to sites'}</span></button>
+        <a class="soft-button" ${navAttrs('/sites')}>${icons.arrowLeft}<span>${currentLang() === 'ru' ? 'К списку сайтов' : 'Back to sites'}</span></a>
         <button class="soft-button" data-action="open-edit-site" data-id="${site.id}">${icons.edit}<span>${t('update')}</span></button>
         <button class="soft-button" data-action="copy-site-link" data-path="${site.path}">${icons.share}<span>${t('copyLink')}</span></button>
         <a class="primary-button" href="${site.path}">${icons.external}<span>${t('launch')}</span></a>
@@ -3360,7 +4416,10 @@ function renderSiteStudioPage() {
         </form>` : `<div class="site-studio-empty"><strong>${currentLang() === 'ru' ? 'Выбери файл слева' : 'Choose a file on the left'}</strong><span>${currentLang() === 'ru' ? 'Начни с index.html или создай assets/site.css.' : 'Start with index.html or create assets/site.css.'}</span></div>`}
       </section>
       <aside class="site-studio-pane site-studio-inspector">
-        <div class="section-heading"><h2>${currentLang() === 'ru' ? 'Дизайн и правила' : 'Design & rules'}</h2><span class="muted">${currentLang() === 'ru' ? 'Быстрый polish поверх статики' : 'Quick polish on top of static files'}</span></div>
+        <div class="section-heading"><h2>${currentLang() === 'ru' ? 'Правила и настройки' : 'Rules & settings'}</h2><span class="muted">${site.mode === 'upload'
+          ? (currentLang() === 'ru' ? 'Raw import, предупреждения совместимости и базовые настройки' : 'Raw import, compatibility warnings and basic settings')
+          : (currentLang() === 'ru' ? 'Быстрый polish поверх статики' : 'Quick polish on top of static files')}</span></div>
+        ${site.mode === 'upload' ? renderSiteImportDigest(site, true) : ''}
         ${renderSiteStudioDesignForm(site, studio)}
       </aside>
     </section>`;
@@ -3439,7 +4498,7 @@ function renderSettingsProfile(user, links) {
   const draftBanner = state.profileDraftMedia?.bannerDataUrl || '';
   const emailBanner = !user.emailVerified ? `<div class="email-verify-banner">
     <span>${icons.bell} ${t('emailNotVerified')||'Email not verified'} — <strong>${escapeHtml(user.email||'')}</strong></span>
-    <button class="soft-button compact" data-action="nav" data-path="/verify">${t('verifyNow')||'Verify now'}</button>
+    <a class="soft-button compact" ${navAttrs('/verify')}>${t('verifyNow')||'Verify now'}</a>
   </div>` : '';
   return `<section class="settings-panel"><h2>${t('profile')}</h2>
     ${emailBanner}
@@ -3596,6 +4655,7 @@ function renderGlobalChatThemeControls(settings) {
       <label><span>${currentLang() === 'ru' ? 'Цвет A' : 'Color A'}</span><input type="color" name="chatThemeFrom" value="${escapeHtml(theme.from || '#6d28d9')}" /></label>
       <label><span>${currentLang() === 'ru' ? 'Цвет B' : 'Color B'}</span><input type="color" name="chatThemeTo" value="${escapeHtml(theme.to || '#0ea5e9')}" /></label>
     </div>
+    ${renderChatThemeLivePreview(theme)}
     <label class="upload-field chat-theme-upload">
       <span>${currentLang() === 'ru' ? 'Свое изображение' : 'Upload wallpaper'}</span>
       <input type="file" name="chatThemeImage" accept="image/*" />
@@ -3616,6 +4676,7 @@ function renderRoomChatThemeControls(room) {
         <label><span>${currentLang() === 'ru' ? 'Цвет A' : 'Color A'}</span><input type="color" name="chatThemeFrom" value="${escapeHtml(theme.from || '#6d28d9')}" /></label>
         <label><span>${currentLang() === 'ru' ? 'Цвет B' : 'Color B'}</span><input type="color" name="chatThemeTo" value="${escapeHtml(theme.to || '#0ea5e9')}" /></label>
       </div>
+      ${renderChatThemeLivePreview(theme)}
       <div class="detail-actions">
         <button class="inline-button" type="submit">${currentLang() === 'ru' ? 'Применить' : 'Apply'}</button>
         <button class="soft-button compact" type="button" data-action="clear-room-chat-theme" data-room-slug="${room.slug}">${currentLang() === 'ru' ? 'Как везде' : 'Use global'}</button>
@@ -3686,9 +4747,11 @@ function renderSettingsSocial() {
 
 function renderSettingsSecurity(user) {
   const hasPK = Boolean(user?.security?.hasPublicKey);
+  const hasPassword = Boolean(user?.security?.hasPassword);
   const oauth = state.meta?.oauthProviders || {};
   const googleLinked = Boolean(user?.googleConnected);
   const discordLinked = Boolean(user?.discordConnected);
+  const isRu = currentLang() === 'ru';
   const next = encodeURIComponent(location.pathname + location.search);
   const providerRow = (name, logo, label, linked, enabled, hrefStart) => `
     <div class="linked-account-row">
@@ -3707,9 +4770,17 @@ function renderSettingsSecurity(user) {
         <span class="badge-pill badge-usr">Soon</span>
       </div>
     </div>
+    <div class="security-block">
+      <h3>${isRu ? 'Локальный пароль justbreath' : 'Local justbreath password'}</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin:0">
+        ${hasPassword
+          ? (isRu ? 'Пароль уже установлен. Он используется для смены email и удаления аккаунта.' : 'A local password is already set. It is used for email changes and account deletion.')
+          : (isRu ? 'Пароль ещё не задан. Если ты входишь через Discord, Google или email-код, сначала создай локальный пароль justbreath. Здесь не используется пароль провайдера.' : 'No local password is set yet. If you sign in with Discord, Google, or email code, create a local justbreath password first. Provider passwords are not used here.')}
+      </p>
+    </div>
     <div class="security-block"><h3>Credentials</h3>
       <div class="detail-actions">
-        <button class="soft-button" data-action="open-change-password">${icons.key}<span>Change password</span></button>
+        <button class="soft-button" data-action="open-change-password">${icons.key}<span>${hasPassword ? (isRu ? 'Сменить пароль' : 'Change password') : (isRu ? 'Задать пароль' : 'Set password')}</span></button>
         <button class="soft-button" data-action="open-change-email">${icons.mail}<span>Change email</span></button>
         <button class="soft-button" data-action="open-change-handle">${icons.user}<span>Change handle</span></button>
       </div>
@@ -3789,19 +4860,28 @@ function renderSettingsBots() {
 
 function renderSettingsBilling() {
   const current = state.me?.user?.billing?.planId;
+  const operator = isOperatorSession();
+  const isRu = currentLang() === 'ru';
   const maxFree = state.meta?.maxSitesFree ?? 3;
-  const currentLabel = current ? current : 'Free';
+  const currentLabel = operator
+    ? (isRu ? 'Доступ оператора' : 'Operator access')
+    : (current ? planLabel(current) : 'Free');
+  const summary = operator
+    ? (isRu ? 'Для внутренних админов нет лимита по количеству сайтов, а архивы можно грузить до 512 MB.' : 'Internal operators have no site-count cap, and archive uploads go up to 512 MB.')
+    : (isRu ? `Включено ${maxFree} сайт${maxFree === 1 ? '' : maxFree < 5 ? 'а' : 'ов'}` : `${maxFree} site space${maxFree === 1 ? '' : 's'} included`);
   return `<section class="settings-panel identity-billing">
     <div class="settings-panel-head"><h2>${t('billing')}</h2></div>
     <div class="billing-simple">
       <div class="billing-simple-row">
         <div>
-          <strong>Your plan</strong>
-          <p class="muted">${escapeHtml(currentLabel)} · ${maxFree} site space${maxFree === 1 ? '' : 's'} included</p>
+          <strong>${isRu ? 'Ваш план' : 'Your plan'}</strong>
+          <p class="muted">${escapeHtml(currentLabel)} · ${escapeHtml(summary)}</p>
         </div>
-        <button class="primary-button" data-action="open-modal" data-modal="plans">${current ? 'Change plan' : 'See plans'}</button>
+        <button class="primary-button" data-action="open-modal" data-modal="plans">${current ? (isRu ? 'Сменить план' : 'Change plan') : (isRu ? 'Посмотреть планы' : 'See plans')}</button>
       </div>
-      <p class="muted" style="font-size:12px;margin:10px 0 0">Plans unlock more site spaces and priority review. You can cancel anytime.</p>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">${operator
+        ? (isRu ? 'Тариф всё ещё можно назначать пользователям из админки.' : 'You can still assign plans to users from the admin panel.')
+        : (isRu ? 'Планы открывают больше сайтов и приоритетную модерацию. Отменить можно в любой момент.' : 'Plans unlock more site spaces and priority review. You can cancel anytime.')}</p>
     </div>
   </section>`;
 }
@@ -3815,7 +4895,24 @@ function renderSupportPanel() {
       ${discordUrl ? `<a class="support-link discord" href="${escapeHtml(discordUrl)}" target="_blank" rel="noopener">${icons.discord || ''}<span>Join our Discord</span></a>` : '<p class="muted">Discord support link is being set up.</p>'}
       <a class="support-link mail" href="/mail">${icons.mail || ''}<span>Send internal mail to support</span></a>
     </div>
+    ${renderChangelogPanel()}
   </section>`;
+}
+function renderChangelogPanel() {
+  const isRu = currentLang() === 'ru';
+  return `<div class="settings-block changelog-block">
+    <div class="section-heading"><h3>${isRu ? 'Changelog' : 'Changelog'}</h3><span class="muted">${isRu ? 'Крупные изменения платформы' : 'Major platform updates'}</span></div>
+    <div class="stack-list">
+      ${SITE_CHANGELOG_ENTRIES.map((entry) => `
+        <article class="tile" style="gap:8px">
+          <div class="inline-stack between">
+            <strong>${escapeHtml(localeLabel(entry.title))}</strong>
+            <span class="muted" style="font-size:12px">${escapeHtml(entry.date)}</span>
+          </div>
+          <p style="margin:0;font-size:13px;color:var(--text-soft)">${escapeHtml(localeLabel(entry.body))}</p>
+        </article>`).join('')}
+    </div>
+  </div>`;
 }
 function renderSettingsVerification() {
   const latest = state.me?.verificationRequests?.[0];
@@ -3829,20 +4926,51 @@ function renderSettingsVerification() {
     </form></section>`;
 }
 function renderSettingsData() {
+  const hasPassword = Boolean(state.me?.user?.security?.hasPassword);
+  const isRu = currentLang() === 'ru';
+  const deleteBlock = hasPassword
+    ? `<form data-form="delete-account" class="settings-form danger-form">
+        <p>${t('accountDeleted')}</p>
+        <p class="muted" style="font-size:12px;margin:-6px 0 0">${isRu ? 'Для удаления нужен локальный пароль justbreath, а не пароль Discord/Google.' : 'Account deletion uses your local justbreath password, not your Discord/Google password.'}</p>
+        <label><span>${t('confirmDelete')}</span><input name="confirm" placeholder="DELETE" /></label>
+        <label><span>Password</span><input type="password" name="password" /></label>
+        <button class="soft-button danger" type="submit">${icons.trash}<span>${t('deleteAccount')}</span></button>
+      </form>`
+    : `<div class="settings-block danger-form">
+        <p>${t('accountDeleted')}</p>
+        <p class="muted" style="font-size:13px;margin:0">${isRu ? 'Сначала задай локальный пароль justbreath в разделе Security. Удаление аккаунта не использует пароль Discord/Google.' : 'Set a local justbreath password in Security first. Account deletion does not use your Discord/Google password.'}</p>
+        <div class="detail-actions" style="margin-top:12px">
+          <button class="soft-button" data-action="open-change-password">${icons.key}<span>${isRu ? 'Задать пароль' : 'Set password'}</span></button>
+        </div>
+      </div>`;
   return `<section class="settings-panel danger-zone"><h2>${t('dataAndBackups')}</h2>
     <div class="settings-actions-row"><button class="soft-button" data-action="export-data">${icons.file}<span>${t('exportData')}</span></button><button class="soft-button" data-action="create-backup">${icons.archive}<span>${t('createBackup')}</span></button></div>
-    <form data-form="delete-account" class="settings-form danger-form">
-      <p>${t('accountDeleted')}</p>
-      <label><span>${t('confirmDelete')}</span><input name="confirm" placeholder="DELETE" /></label>
-      <label><span>Password</span><input type="password" name="password" /></label>
-      <button class="soft-button danger" type="submit">${icons.trash}<span>${t('deleteAccount')}</span></button>
-    </form></section>`;
+    ${deleteBlock}</section>`;
 }
 
 function renderDrawer() {
   const user = currentUser();
   const guest = isGuestSession();
   const hasSwitchable = Array.isArray(state.savedAccounts) && state.savedAccounts.length > 0;
+  const isRu = currentLang() === 'ru';
+  const switchLabel = localeLabel({
+    en: hasSwitchable ? 'Switch account' : 'Connect account',
+    ru: hasSwitchable ? 'Сменить аккаунт' : 'Подключить аккаунт',
+    uk: hasSwitchable ? 'Змінити акаунт' : 'Підключити акаунт',
+    pt: hasSwitchable ? 'Trocar conta' : 'Conectar conta',
+    pl: hasSwitchable ? 'Przełącz konto' : 'Połącz konto',
+    fr: hasSwitchable ? 'Changer de compte' : 'Connecter un compte'
+  });
+  const switchHint = localeLabel({
+    en: hasSwitchable ? 'Move between saved sessions' : 'Add another saved session',
+    ru: hasSwitchable ? 'Быстрое переключение между сохранёнными сессиями' : 'Добавь ещё одну сохранённую сессию',
+    uk: hasSwitchable ? 'Швидке перемикання між збереженими сесіями' : 'Додай ще одну збережену сесію',
+    pt: hasSwitchable ? 'Troque entre sessões salvas' : 'Adicione outra sessão salva',
+    pl: hasSwitchable ? 'Przełączaj zapisane sesje' : 'Dodaj kolejną zapisaną sesję',
+    fr: hasSwitchable ? 'Passe entre les sessions enregistrées' : 'Ajoutez une autre session enregistrée'
+  });
+  const linksLabel = localeLabel({ en: 'Links', ru: 'Ссылки', uk: 'Посилання', pt: 'Links', pl: 'Linki', fr: 'Liens' });
+  const notificationsEmpty = localeLabel({ en: 'No notifications', ru: 'Нет уведомлений', uk: 'Немає сповіщень', pt: 'Sem notificações', pl: 'Brak powiadomień', fr: 'Aucune notification' });
   return `<aside class="drawer ${state.drawerOpen ? 'open' : ''}">
     <div class="drawer-backdrop" data-action="toggle-drawer"></div>
     <div class="drawer-panel" role="dialog" aria-label="${t('accountCenter')}">
@@ -3850,24 +4978,33 @@ function renderDrawer() {
       ${user ? `
         <div class="drawer-hero">
           <div class="drawer-hero-banner" style="${user.bannerUrl ? `background-image:url('${escapeHtml(user.bannerUrl)}')` : ''}">
-            <button class="drawer-switch-chip" data-action="open-modal" data-modal="switch-account" title="${hasSwitchable ? 'Switch account' : 'Connect another account'}">${icons.refresh || '⇄'}</button>
+            <button class="drawer-switch-chip" data-action="open-modal" data-modal="switch-account" title="${switchLabel}">
+              <span class="drawer-switch-chip-icon">${icons.user}</span>
+              <span class="drawer-switch-chip-copy">
+                <strong>${switchLabel}</strong>
+                <em>${switchHint}</em>
+              </span>
+              <span class="drawer-switch-chip-arrow">${icons.chevronRight}</span>
+            </button>
           </div>
-          <button class="drawer-hero-identity" data-action="open-profile" data-handle="${escapeHtml(user.handleCanonical || user.handle)}">
-            ${avatar(user, 'lg')}
+          <a class="drawer-hero-identity" ${profileAttrs(user)}>
+            ${avatar(user, 'lg', '', { link: false })}
             <div class="drawer-hero-meta">
               <strong>${escapeHtml(user.displayName)}</strong>
               <span>@${escapeHtml(user.handle)}</span>
               <div class="badge-row">${badgePills(user)}</div>
             </div>
-          </button>
+          </a>
         </div>
         <div class="drawer-actions">
-          <button class="drawer-link" data-action="open-profile" data-handle="${escapeHtml(user.handleCanonical || user.handle)}">${icons.user}<span>${t('profile')}</span></button>
+          <a class="drawer-link" ${profileAttrs(user)}>${icons.user}<span>${t('profile')}</span></a>
           ${guest
             ? `<button class="drawer-link" data-action="open-modal" data-modal="auth">${icons.user}<span>Create account</span></button>`
-            : `<button class="drawer-link" data-action="nav" data-path="/messages">${icons.message}<span>${t('messages')}</span></button>
-               <button class="drawer-link" data-action="nav" data-path="/settings">${icons.settings}<span>${t('settings')}</span></button>
-               <button class="drawer-link" data-action="nav" data-path="/sites">${icons.site}<span>${t('sites')}</span></button>`}
+            : `<a class="drawer-link" ${navAttrs('/messages')}>${icons.message}<span>${t('messages')}</span></a>
+               <a class="drawer-link" ${navAttrs('/mail')}>${icons.mail}<span>${t('mail') || 'Mail'}</span></a>
+               <a class="drawer-link" ${navAttrs('/settings')}>${icons.settings}<span>${t('settings')}</span></a>
+               <a class="drawer-link" ${navAttrs('/sites')}>${icons.site}<span>${t('sites')}</span></a>
+               ${isOperatorSession() ? `<a class="drawer-link" ${navAttrs('/admin')}>${icons.shield}<span>Admin</span></a>` : ''}`}
         </div>
         <div class="drawer-section">
           <div class="section-heading">
@@ -3877,24 +5014,30 @@ function renderDrawer() {
           ${(state.me?.notifications || []).slice(0, 5).map((note) => `
             <button class="drawer-note" data-action="read-notification" data-id="${note.id}" ${note.href ? `data-href="${escapeHtml(note.href)}"` : ''}>
               <strong>${escapeHtml(note.title)}</strong><span>${escapeHtml(note.body)}</span>
-            </button>`).join('') || '<p class="muted">No notifications</p>'}
+            </button>`).join('') || `<p class="muted">${notificationsEmpty}</p>`}
         </div>
         <div class="drawer-section compact-settings">
-          <div class="drawer-row"><span>${t('theme')}</span>
-            <div class="segment-row mini">
+          <div class="drawer-settings-card">
+            <span class="drawer-settings-label">${t('theme')}</span>
+            <div class="segment-row mini drawer-settings-segments">
               ${['dark','light','system'].map((mode) => `<button class="segment-button ${currentThemePref() === mode ? 'active' : ''}" data-action="quick-theme" data-value="${mode}">${t(mode)||mode}</button>`).join('')}
             </div>
           </div>
-          <div class="drawer-row between"><span>${t('language')}</span>
-            <select class="lang-select" data-input="quick-lang-select">
-              ${[['en','English'],['ru','Русский'],['uk','Українська'],['pt','Português'],['pl','Polski'],['fr','Français']].map(([code,label]) => `<option value="${code}" ${currentLang()===code?'selected':''}>${label}</option>`).join('')}
-            </select>
-          </div>
-          <div class="drawer-row"><span>Status</span>
-            <div class="segment-row mini">
+          <div class="drawer-settings-card">
+            <span class="drawer-settings-label">${t('status')}</span>
+            <div class="segment-row mini drawer-settings-segments">
               ${['active','away','dnd'].map(s => `<button class="segment-button ${(currentUser()?.status||'active')===s?'active':''}" data-action="set-status" data-value="${s}" style="font-size:11px">${renderStatusPill(s, true)}</button>`).join('')}
             </div>
           </div>
+        </div>
+        <div class="drawer-section">
+          <div class="section-heading">
+            <h3>${linksLabel}</h3>
+          </div>
+          <a class="drawer-link" href="${GITHUB_PROFILE_URL}" target="_blank" rel="noopener">${icons.link}<span>GitHub</span></a>
+          <a class="drawer-link" href="${SITE_CREATION_REPO_URL}" target="_blank" rel="noopener">${icons.archive}<span>${isRu ? 'Репозиторий сайта' : 'Site repository'}</span></a>
+          <a class="drawer-link" href="${SITE_CREATION_GUIDE_URL}" target="_blank" rel="noopener">${icons.external}<span>${isRu ? 'Гайд по сайту' : 'Site guide'}</span></a>
+          <a class="drawer-link" href="${CONTACT_EMAIL_HREF}">${icons.mail}<span>${CONTACT_EMAIL}</span></a>
         </div>` : `
         <div class="drawer-empty">
           <h3>${t('accountCenter')}</h3>
@@ -3939,6 +5082,87 @@ function renderSwitchAccountModal() {
       </div>
     </div>`;
 }
+function renderChangePasswordModal() {
+  const user = state.me?.user || currentUser();
+  const hasPassword = Boolean(user?.security?.hasPassword);
+  const isRu = currentLang() === 'ru';
+  return `<div class="modal-head"><span class="eyebrow">security</span><h2>${hasPassword ? (isRu ? 'Сменить пароль' : 'Change password') : (isRu ? 'Задать пароль' : 'Set password')}</h2></div>
+    <form class="settings-form" data-form="change-password">
+      <p class="muted" style="margin:0 0 10px;font-size:13px">
+        ${hasPassword
+          ? (isRu ? 'Используется локальный пароль justbreath.' : 'This uses your local justbreath password.')
+          : (isRu ? 'Создай локальный пароль justbreath. Пароль Discord/Google здесь не используется.' : 'Create a local justbreath password. Your Discord/Google password is not used here.')}
+      </p>
+      ${hasPassword ? `<label><span>${isRu ? 'Текущий пароль' : 'Current password'}</span><input type="password" name="currentPassword" autocomplete="current-password" /></label>` : ''}
+      <label><span>${isRu ? 'Новый пароль' : 'New password'}</span><input type="password" name="newPassword" autocomplete="new-password" minlength="8" /></label>
+      <label><span>${isRu ? 'Повтори пароль' : 'Repeat password'}</span><input type="password" name="confirmPassword" autocomplete="new-password" minlength="8" /></label>
+      <div class="modal-actions">
+        <button class="soft-button" type="button" data-action="close-modal">${isRu ? 'Отмена' : 'Cancel'}</button>
+        <button class="primary-button" type="submit">${icons.key}<span>${hasPassword ? (isRu ? 'Сохранить пароль' : 'Save password') : (isRu ? 'Создать пароль' : 'Create password')}</span></button>
+      </div>
+    </form>`;
+}
+function renderChangeEmailModal() {
+  const user = state.me?.user || currentUser();
+  const hasPassword = Boolean(user?.security?.hasPassword);
+  const isRu = currentLang() === 'ru';
+  if (!hasPassword) {
+    return `<div class="modal-head"><span class="eyebrow">security</span><h2>${isRu ? 'Сменить email' : 'Change email'}</h2></div>
+      <div class="modal-inner">
+        <p class="muted" style="margin:0;font-size:13px">${isRu ? 'Сначала задай локальный пароль justbreath. Для смены email не подходит пароль Discord/Google.' : 'Set a local justbreath password first. Discord/Google passwords cannot be used for email changes.'}</p>
+        <div class="modal-actions">
+          <button class="soft-button" data-action="open-change-password">${icons.key}<span>${isRu ? 'Задать пароль' : 'Set password'}</span></button>
+          <button class="primary-button" data-action="close-modal">${isRu ? 'Закрыть' : 'Close'}</button>
+        </div>
+      </div>`;
+  }
+  return `<div class="modal-head"><span class="eyebrow">security</span><h2>${isRu ? 'Сменить email' : 'Change email'}</h2></div>
+    <form class="settings-form" data-form="change-email">
+      <label><span>${isRu ? 'Новый email' : 'New email'}</span><input name="email" type="email" autocomplete="email" value="${escapeHtml(user?.email || '')}" /></label>
+      <label><span>${isRu ? 'Пароль justbreath' : 'justbreath password'}</span><input type="password" name="password" autocomplete="current-password" /></label>
+      <p class="muted" style="margin:0;font-size:12px">${isRu ? 'После смены email потребуется повторная верификация.' : 'Changing your email will require re-verification.'}</p>
+      <div class="modal-actions">
+        <button class="soft-button" type="button" data-action="close-modal">${isRu ? 'Отмена' : 'Cancel'}</button>
+        <button class="primary-button" type="submit">${icons.mail}<span>${isRu ? 'Сохранить email' : 'Save email'}</span></button>
+      </div>
+    </form>`;
+}
+function renderChangeHandleModal() {
+  const user = state.me?.user || currentUser();
+  const isRu = currentLang() === 'ru';
+  return `<div class="modal-head"><span class="eyebrow">profile</span><h2>${isRu ? 'Сменить handle' : 'Change handle'}</h2></div>
+    <form class="settings-form" data-form="change-handle">
+      <label><span>${isRu ? 'Новый handle' : 'New handle'}</span><input name="handle" value="${escapeHtml(user?.handle || '')}" autocomplete="nickname" /></label>
+      <p class="muted" style="margin:0;font-size:12px">${isRu ? 'Используй буквы, цифры, дефис или подчёркивание. Публичные ссылки обновятся после сохранения.' : 'Use letters, numbers, dashes, or underscores. Public profile links update after save.'}</p>
+      <div class="modal-actions">
+        <button class="soft-button" type="button" data-action="close-modal">${isRu ? 'Отмена' : 'Cancel'}</button>
+        <button class="primary-button" type="submit">${icons.user}<span>${isRu ? 'Сохранить handle' : 'Save handle'}</span></button>
+      </div>
+    </form>`;
+}
+function renderReportContentModal(modal) {
+  const isRu = currentLang() === 'ru';
+  return `<div class="modal-head"><span class="eyebrow">moderation</span><h2>${isRu ? 'Пожаловаться' : 'Report content'}</h2></div>
+    <form class="settings-form" data-form="report-content">
+      <p class="muted" style="margin:0 0 8px;font-size:13px">${isRu ? 'Жалоба попадёт в админ-панель модерации.' : 'This report will be sent to the admin moderation queue.'}</p>
+      <div class="settings-block" style="padding:12px">
+        <strong>${escapeHtml(modal.targetLabel || (isRu ? 'Контент' : 'Content'))}</strong>
+        ${modal.targetUrl ? `<span class="muted" style="display:block;font-size:12px;margin-top:4px">${escapeHtml(modal.targetUrl)}</span>` : ''}
+      </div>
+      <label><span>${isRu ? 'Причина' : 'Reason'}</span>
+        <select name="reason">
+          ${REPORT_REASON_OPTIONS.map((item) => `<option value="${item.id}" ${item.id === 'spam' ? 'selected' : ''}>${escapeHtml(localeLabel(item.label))}</option>`).join('')}
+        </select>
+      </label>
+      <label><span>${isRu ? 'Детали' : 'Details'}</span><textarea name="details" rows="5" placeholder="${isRu ? 'Коротко опиши, что не так' : 'Briefly explain the issue'}"></textarea></label>
+      <input type="hidden" name="targetType" value="${escapeHtml(modal.targetType || 'other')}" />
+      <input type="hidden" name="targetId" value="${escapeHtml(String(modal.targetId ?? ''))}" />
+      <div class="modal-actions">
+        <button class="soft-button" type="button" data-action="close-modal">${isRu ? 'Отмена' : 'Cancel'}</button>
+        <button class="primary-button" type="submit">${icons.alert}<span>${isRu ? 'Отправить жалобу' : 'Send report'}</span></button>
+      </div>
+    </form>`;
+}
 
 function renderModal() {
   if (!state.modal) return '';
@@ -3971,6 +5195,7 @@ function renderModalInner(modal) {
     case 'chat-room-settings': return renderChatRoomSettingsModal(modal);
     case 'crop-image': return renderCropModal(modal);
     case 'switch-account': return renderSwitchAccountModal();
+    case 'report-content': return renderReportContentModal(modal);
     default: return '';
   }
 }
@@ -4006,10 +5231,10 @@ function renderProfileListModal(modal) {
       : (!modal.users || !modal.users.length)
         ? `<div class="modal-empty"><span>No one here yet.</span></div>`
         : `<div class="social-list people-list">${modal.users.map((u) => `
-            <button class="people-row" data-action="open-profile" data-handle="${escapeHtml(u.handleCanonical || u.handle)}">
-              ${avatar(u, 'sm')}
+            <a class="people-row" ${profileAttrs(u)}>
+              ${avatar(u, 'sm', '', { link: false })}
               <div class="people-copy"><strong>${escapeHtml(u.displayName || u.handle || '')}</strong><span>@${escapeHtml(u.handle || '')}</span></div>
-            </button>`).join('')}</div>`;
+            </a>`).join('')}</div>`;
   return `<div class="modal-head"><span class="eyebrow">${modal.list === 'sites' || modal.list === 'projects' ? 'profile' : 'people'}</span><h2>${title}</h2></div><div class="modal-inner">${body}</div>`;
 }
 
@@ -4068,6 +5293,7 @@ function renderEditSiteModal(modal) {
   const config = site.templateConfig || {};
   const htmlContent = site.htmlContent || '';
   const uploadInfo = site.uploadDiagnostics || null;
+  const uploadCaps = currentSiteUploadCaps();
   const previewSite = { ...site, iconUrl: config.faviconUrl || config.logoUrl || site.iconUrl };
   const canSubmitReview = site.visibility === 'public' && ['draft', 'rejected'].includes(site.reviewStatus || 'draft');
   const reviewLabel = escapeHtml(String(site.reviewStatus || 'draft'));
@@ -4093,7 +5319,7 @@ function renderEditSiteModal(modal) {
         ${canSubmitReview ? `<button class="inline-button" type="button" data-action="submit-site-review" data-id="${site.id}">${icons.check}<span>Submit review</span></button>` : ''}
       </div>
     </div>
-    ${renderSiteReadiness(site, config)}
+    ${isTemplate ? renderSiteReadiness(site, config) : ''}
     <form class="settings-form" data-form="edit-site" data-site-id="${site.id}">
       <fieldset class="settings-fieldset">
         <legend>Publishing</legend>
@@ -4101,14 +5327,19 @@ function renderEditSiteModal(modal) {
           <label><span>${t('title')}</span><input name="title" value="${escapeHtml(site.title || '')}" /></label>
           <label><span>Site path</span><input value="${escapeHtml(site.path || '')}" disabled /></label>
           <label><span>${t('visibility')}</span><select name="visibility"><option value="public" ${site.visibility === 'public' ? 'selected' : ''}>${t('public')}</option><option value="unlisted" ${site.visibility === 'unlisted' ? 'selected' : ''}>Unlisted</option><option value="private" ${site.visibility === 'private' ? 'selected' : ''}>${t('private')}</option></select></label>
-          <label><span>Search indexing</span><select name="indexingMode"><option value="auto" ${(!config.indexingMode || config.indexingMode === 'auto') ? 'selected' : ''}>Automatic</option><option value="index" ${config.indexingMode === 'index' ? 'selected' : ''}>Force index</option><option value="noindex" ${config.indexingMode === 'noindex' ? 'selected' : ''}>Noindex</option></select></label>
+          ${isTemplate ? `<label><span>Search indexing</span><select name="indexingMode"><option value="auto" ${(!config.indexingMode || config.indexingMode === 'auto') ? 'selected' : ''}>Automatic</option><option value="index" ${config.indexingMode === 'index' ? 'selected' : ''}>Force index</option><option value="noindex" ${config.indexingMode === 'noindex' ? 'selected' : ''}>Noindex</option></select></label>` : `<label><span>Import mode</span><input value="${currentLang() === 'ru' ? 'Raw static import' : 'Raw static import'}" disabled /></label>`}
           <label><span>Review status</span><input value="${reviewLabel}" disabled /></label>
           <label><span>Mode</span><input value="${uploadModeLabel}" disabled /></label>
         </div>
         <label><span>${t('summary')}</span><textarea name="summary" rows="3">${escapeHtml(site.summary || '')}</textarea></label>
-        <p class="site-editor-note">Public sites look more legitimate when they have a favicon, description, contact details and legal links before review.</p>
+        <p class="site-editor-note">${isTemplate
+          ? 'Public sites look more legitimate when they have a favicon, description, contact details and legal links before review.'
+          : (currentLang() === 'ru'
+              ? 'Для uploaded imports важнее целостный архив, рабочие статические ссылки и понятные предупреждения совместимости, чем platform-level SEO поля.'
+              : 'For uploaded imports, a complete archive, working static links and clear compatibility warnings matter more than platform-level SEO fields.')}</p>
       </fieldset>
 
+      ${isTemplate ? `
       <fieldset class="settings-fieldset">
         <legend>Brand & browser tab</legend>
         <div class="settings-grid-two">
@@ -4124,7 +5355,7 @@ function renderEditSiteModal(modal) {
         <legend>Design</legend>
         <div class="settings-grid-two">
           <label><span>Theme preset</span><select name="themePreset"><option value="platform" ${(!config.themePreset || config.themePreset === 'platform') ? 'selected' : ''}>Platform</option><option value="clean" ${config.themePreset === 'clean' ? 'selected' : ''}>Clean</option><option value="editorial" ${config.themePreset === 'editorial' ? 'selected' : ''}>Editorial</option><option value="noir" ${config.themePreset === 'noir' ? 'selected' : ''}>Noir</option></select></label>
-          ${isTemplate ? `<label><span>Layout mode</span><input value="Template layout" disabled /></label>` : `<label><span>Polish mode</span><select name="polishMode"><option value="wrap" ${(!config.polishMode || config.polishMode === 'wrap') ? 'selected' : ''}>Wrap uploaded HTML</option><option value="css-only" ${config.polishMode === 'css-only' ? 'selected' : ''}>Inject CSS only</option><option value="none" ${config.polishMode === 'none' ? 'selected' : ''}>Leave HTML untouched</option></select></label>`}
+          <label><span>Layout mode</span><input value="Template layout" disabled /></label>
           <label><span>Accent</span><input name="accent" type="color" value="${escapeHtml(config.accent || '#7c3aed')}" /></label>
           <label><span>Background</span><input name="bg" type="color" value="${escapeHtml(config.bg || '#05070d')}" /></label>
           <label><span>Surface</span><input name="surface" type="color" value="${escapeHtml(config.surface || '#101827')}" /></label>
@@ -4167,7 +5398,16 @@ function renderEditSiteModal(modal) {
           <label><span>CTA label</span><input name="ctaLabel" value="${escapeHtml(config.ctaLabel || '')}" placeholder="Book now / Contact / Buy" /></label>
           <label><span>CTA URL</span><input name="ctaHref" value="${escapeHtml(config.ctaHref || '')}" placeholder="https://... or /path" /></label>
         </div>
-      </fieldset>
+      </fieldset>` : `
+      <fieldset class="settings-fieldset">
+        <legend>${currentLang() === 'ru' ? 'Raw import mode' : 'Raw import mode'}</legend>
+        <p class="site-editor-note">${currentLang() === 'ru'
+          ? 'Uploaded site теперь отдаётся как полноценная статика без platform-shell поверх дизайна. Меняй HTML/CSS/JS внутри архива или через Site Studio; server-side части только предупреждаются и не исполняются.'
+          : 'Uploaded sites are now served as a full static import with no platform shell layered over the design. Edit the real HTML/CSS/JS in the archive or in Site Studio; server-side parts are only flagged and never executed.'}</p>
+        <p class="site-editor-note">${currentLang() === 'ru'
+          ? 'Локальные изображения могут быть автоматически сжаты для хранения, если сервер получает меньший файл без смены пути.'
+          : 'Local images may be compressed automatically for storage when the server can store a smaller file without changing its path.'}</p>
+      </fieldset>`}
 
       ${isTemplate ? `
       <fieldset class="settings-fieldset">
@@ -4183,7 +5423,7 @@ function renderEditSiteModal(modal) {
       ${renderSiteUploadDiagnostics(site)}
       <fieldset class="settings-fieldset">
         <legend>Archive tools</legend>
-        <label class="upload-field"><span>${uploadInfo?.variant === 'archive' ? 'Replace archive package (.zip, .tar, .tar.gz, .tgz, .7z)' : 'Attach archive package (.zip, .tar, .tar.gz, .tgz, .7z)'}</span><input type="file" name="archive" accept=".zip,.tar,.tgz,.tar.gz,.7z,application/zip,application/x-tar,application/gzip,application/x-gzip" /></label>
+        <label class="upload-field"><span>${uploadInfo?.variant === 'archive' ? `Replace archive package (${uploadCaps.archiveLabel}) (.zip, .tar, .tar.gz, .tgz, .7z)` : `Attach archive package (${uploadCaps.archiveLabel}) (.zip, .tar, .tar.gz, .tgz, .7z)`}</span><input type="file" name="archive" accept=".zip,.tar,.tgz,.tar.gz,.7z,application/zip,application/x-tar,application/gzip,application/x-gzip,application/x-7z-compressed" /></label>
         <p class="site-editor-note">${uploadInfo?.variant === 'archive'
           ? 'Re-upload an archive to update CSS, JS, images and extra HTML pages together. The editor below only changes the entry HTML file.'
           : 'If this site references local css/js/images or extra pages, switch it to an archive package so the platform keeps the whole site together.'}</p>
@@ -4191,13 +5431,14 @@ function renderEditSiteModal(modal) {
       <fieldset class="settings-fieldset">
         <legend>Uploaded HTML</legend>
         <label><span>HTML</span><textarea name="htmlContent" rows="18" spellcheck="false" style="font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)">${escapeHtml(htmlContent)}</textarea></label>
-        <p class="site-editor-note">Static HTML only. Limit: 1 MB. Use the design controls above to give uploaded pages a branded shell, favicon and SEO metadata.</p>
+        <p class="site-editor-note">${currentLang() === 'ru'
+          ? `Static HTML only. Limit: ${escapeHtml(uploadCaps.htmlLabel)}. Для archive-импорта дизайн больше не оборачивается платформой: правь исходный HTML здесь или в Studio.`
+          : `Static HTML only. Limit: ${escapeHtml(uploadCaps.htmlLabel)}. Archive imports are no longer wrapped by the platform: edit the source HTML here or in Studio.`}</p>
       </fieldset>`}
-
-      <fieldset class="settings-fieldset">
+      ${isTemplate ? `<fieldset class="settings-fieldset">
         <legend>Custom CSS</legend>
         <label><span>Extra CSS</span><textarea name="customCss" rows="8" spellcheck="false" style="font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)">${escapeHtml(config.customCss || '')}</textarea></label>
-      </fieldset>
+      </fieldset>` : ''}
       <div class="modal-actions">
         <button class="soft-button" type="button" data-action="close-modal">${t('close')}</button>
         <button class="primary-button" type="submit">${t('update')}</button>
@@ -4239,7 +5480,7 @@ function renderAuthModal() {
     <div class="divider-text" style="margin:12px 0">or</div>
     <div class="oauth-stack">${googleBtn}${discordBtn}</div>
     <p style="font-size:11.5px;color:var(--text-muted);text-align:center;margin:8px 0 0;line-height:1.5">
-      By continuing you agree to our <a data-action="nav" data-path="/terms">Terms</a> and <a data-action="nav" data-path="/privacy">Privacy Policy</a>.
+      By continuing you agree to our <a ${navAttrs('/terms')}>Terms</a> and <a ${navAttrs('/privacy')}>Privacy Policy</a>.
     </p>` : '';
 
   const loginView = `
@@ -4270,7 +5511,7 @@ function renderAuthModal() {
     <div class="consent-block">
       <label class="consent-row">
         <input type="checkbox" name="agreeTos" required />
-        <span>I have read and agree to the <a data-action="nav" data-path="/terms">Terms of Service</a> and <a data-action="nav" data-path="/privacy">Privacy Policy</a>. <strong>(required)</strong></span>
+        <span>I have read and agree to the <a ${navAttrs('/terms')}>Terms of Service</a> and <a ${navAttrs('/privacy')}>Privacy Policy</a>. <strong>(required)</strong></span>
       </label>
       <label class="consent-row">
         <input type="checkbox" name="agreeAge" required />
@@ -4431,17 +5672,45 @@ function renderSiteTemplateModal() {
     </form>`;
 }
 function renderSiteUploadModal() {
-  return `<div class="modal-head"><span class="eyebrow">custom site</span><h2>${t('uploadSite')}</h2></div>
+  const caps = currentSiteUploadCaps();
+  const uploadState = state.modal?.siteUpload || null;
+  const customSiteLabel = localeLabel({ en: 'custom site', ru: 'кастомный сайт', uk: 'кастомний сайт', pt: 'site customizado', pl: 'własna strona', fr: 'site personnalisé' });
+  const beforeUploadLabel = localeLabel({ en: 'Before you upload', ru: 'Перед загрузкой', uk: 'Перед завантаженням', pt: 'Antes de enviar', pl: 'Przed wysłaniem', fr: 'Avant l’envoi' });
+  const singleHtmlLabel = localeLabel({ en: 'Single HTML', ru: 'Один HTML', uk: 'Один HTML', pt: 'HTML único', pl: 'Pojedynczy HTML', fr: 'HTML unique' });
+  const archivePackageLabel = localeLabel({ en: 'Archive package', ru: 'Архивный пакет', uk: 'Архівний пакет', pt: 'Pacote em arquivo', pl: 'Paczka archiwum', fr: 'Archive complète' });
+  const agreeRulesLabel = localeLabel({
+    en: 'I agree to the site rules above.',
+    ru: 'Я согласен с правилами загрузки сайта выше.',
+    uk: 'Я погоджуюсь із правилами завантаження сайту вище.',
+    pt: 'Concordo com as regras de upload do site acima.',
+    pl: 'Akceptuję powyższe zasady przesyłania strony.',
+    fr: 'J’accepte les règles d’envoi du site ci-dessus.'
+  });
+  const rulesLead = caps.operator
+    ? localeLabel({
+        en: 'As an internal operator you can upload archives up to 512 MB through direct binary upload, and the server streams them into a temp file, but the security and content rules still apply.',
+        ru: 'Как внутренний оператор ты можешь загружать архивы до 512 MB через прямую binary-загрузку, а сервер примет их потоково во временный файл, но правила по безопасности и контенту всё равно действуют.',
+        uk: 'Як внутрішній оператор ти можеш завантажувати архіви до 512 MB через пряму binary-загрузку, а сервер приймає їх потоково у тимчасовий файл, але правила безпеки та контенту все одно діють.',
+        pt: 'Como operador interno, você pode enviar arquivos de até 512 MB por upload binário direto; o servidor grava tudo em arquivo temporário, mas as regras de segurança e conteúdo continuam valendo.',
+        pl: 'Jako operator wewnętrzny możesz wysyłać archiwa do 512 MB przez bezpośredni upload binarny; serwer zapisuje je strumieniowo do pliku tymczasowego, ale zasady bezpieczeństwa i treści nadal obowiązują.',
+        fr: 'En tant qu’opérateur interne, vous pouvez envoyer des archives jusqu’à 512 MB via un upload binaire direct ; le serveur les écrit en flux dans un fichier temporaire, mais les règles de sécurité et de contenu restent valables.'
+      })
+    : '';
+  return `<div class="modal-head"><span class="eyebrow">${customSiteLabel}</span><h2>${t('uploadSite')}</h2></div>
     ${renderSiteCreationGuide()}
     <div class="site-upload-rules">
-      <strong>Before you upload</strong>
+      <strong>${beforeUploadLabel}</strong>
       <ul>
-        <li>Either a single <code>.html</code> file (≤ 1 MB) or an archive package (≤ 5 MB) such as <code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code> or <code>.tgz</code> containing an <code>index.html</code>.</li>
-        <li>Static HTML / CSS / inline JS only. Server-side code, unsafe downloads, cryptominers and trackers beyond AdSense are not allowed.</li>
-        <li>No malware, phishing, doxxing, sexual content involving minors, or content that infringes someone else's copyright.</li>
-        <li>Public sites may be reviewed before being listed. Unlisted / private stays out of the directory but is still subject to these rules.</li>
-        <li>By uploading you confirm you own the content and agree to our terms. Violations can result in the site being removed and the account suspended.</li>
+        <li>${localeLabel({ en: 'Either a single', ru: 'Либо один', uk: 'Або один', pt: 'Envie um', pl: 'Wyślij pojedynczy', fr: 'Envoyez soit un' })} <code>.html</code> ${localeLabel({ en: 'file', ru: 'файл', uk: 'файл', pt: 'arquivo', pl: 'plik', fr: 'fichier' })} (${escapeHtml(caps.htmlLabel)}) ${localeLabel({ en: 'or an archive package', ru: 'или архивный пакет', uk: 'або архівний пакет', pt: 'ou um pacote em arquivo', pl: 'albo pakiet archiwum', fr: 'ou une archive complète' })} (${escapeHtml(caps.archiveLabel)}) ${localeLabel({ en: 'such as', ru: 'вроде', uk: 'на кшталт', pt: 'como', pl: 'np.', fr: 'comme' })} <code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code> ${localeLabel({ en: 'or', ru: 'или', uk: 'або', pt: 'ou', pl: 'lub', fr: 'ou' })} <code>.7z</code> ${localeLabel({ en: 'with an', ru: 'с', uk: 'з', pt: 'com', pl: 'z', fr: 'avec' })} <code>index.html</code>.</li>
+        <li>${localeLabel({ en: 'Archive packages are uploaded as raw binary and streamed to a temp file first, so large files do not expand into base64 before reaching the server.', ru: 'Архивные пакеты уходят как raw binary и сначала потоково пишутся во временный файл, поэтому большие файлы не раздуваются в base64 до попадания на сервер.', uk: 'Архівні пакети надсилаються як raw binary і спочатку потоково пишуться у тимчасовий файл, тому великі файли не роздуваються в base64 до потрапляння на сервер.', pt: 'Os pacotes em arquivo são enviados como binário bruto e primeiro gravados em arquivo temporário, então arquivos grandes não viram base64 antes de chegar ao servidor.', pl: 'Pakiety archiwów są wysyłane jako surowy binarny strumień i najpierw trafiają do pliku tymczasowego, więc duże pliki nie są zamieniane na base64 przed dotarciem do serwera.', fr: 'Les archives sont envoyées en binaire brut et écrites d’abord dans un fichier temporaire ; les gros fichiers ne passent donc pas en base64 avant d’atteindre le serveur.' })}</li>
+        <li>${localeLabel({ en: 'Archive imports are served as full static bundles with their own HTML/CSS/JS/assets and downloadable files intact. The platform no longer wraps the imported design.', ru: 'Архивные импорты отдаются как полноценные статические бандлы со своим HTML/CSS/JS/assets и файлами для скачивания. Платформа больше не оборачивает импортированный дизайн.', uk: 'Архівні імпорти віддаються як повноцінні статичні бандли зі своїм HTML/CSS/JS/assets і файлами для завантаження. Платформа більше не обгортає імпортований дизайн.', pt: 'As importações de arquivo são servidas como bundles estáticos completos com HTML/CSS/JS/assets e downloads intactos. A plataforma não envolve mais o design importado.', pl: 'Importowane archiwa są serwowane jako pełne statyczne bundlery z własnym HTML/CSS/JS/assets i plikami do pobrania. Platforma nie owija już importowanego projektu.', fr: 'Les imports d’archives sont servis comme des bundles statiques complets avec leur HTML/CSS/JS/assets et fichiers téléchargeables. La plateforme n’enveloppe plus le design importé.' })}</li>
+        <li>${localeLabel({ en: 'If server-side code, API handlers or dynamic forms are detected, the import still succeeds, but those backend-dependent features stay disabled and are reported back to you as compatibility warnings.', ru: 'Если обнаружатся server-side code, API-обработчики или динамические формы, импорт всё равно завершится, но такие backend-зависимые части останутся отключёнными и вернутся как предупреждения совместимости.', uk: 'Якщо виявляться server-side code, API-обробники або динамічні форми, імпорт все одно завершиться, але такі backend-залежні частини залишаться вимкненими і повернуться як попередження сумісності.', pt: 'Se forem detectados código server-side, handlers de API ou formulários dinâmicos, a importação ainda termina, mas esses recursos dependentes de backend ficam desativados e voltam como avisos de compatibilidade.', pl: 'Jeśli zostanie wykryty kod server-side, handlery API lub dynamiczne formularze, import nadal się powiedzie, ale takie funkcje zależne od backendu pozostaną wyłączone i wrócą jako ostrzeżenia zgodności.', fr: 'Si du code server-side, des handlers API ou des formulaires dynamiques sont détectés, l’import se termine quand même, mais ces fonctions dépendantes du backend restent désactivées et reviennent sous forme d’avertissements de compatibilité.' })}</li>
+        <li>${localeLabel({ en: 'Local images may be compressed automatically for storage when the server can keep the same file path with a smaller output.', ru: 'Локальные изображения могут автоматически сжиматься для хранения, если сервер может сохранить тот же путь файла с меньшим размером.', uk: 'Локальні зображення можуть автоматично стискатися для зберігання, якщо сервер може зберегти той самий шлях файлу з меншим розміром.', pt: 'Imagens locais podem ser comprimidas automaticamente para armazenamento quando o servidor consegue manter o mesmo caminho com um arquivo menor.', pl: 'Lokalne obrazy mogą być automatycznie kompresowane przy zapisie, jeśli serwer może zachować tę samą ścieżkę pliku z mniejszym rozmiarem.', fr: 'Les images locales peuvent être compressées automatiquement si le serveur peut conserver le même chemin avec un fichier plus léger.' })}</li>
+        <li>${localeLabel({ en: 'No malware, phishing, doxxing, sexual content involving minors, or content that infringes someone else\'s copyright.', ru: 'Нельзя malware, phishing, doxxing, sexual content с участием minors и контент, нарушающий чужие авторские права.', uk: 'Заборонені malware, phishing, doxxing, sexual content за участю minors і контент, що порушує чужі авторські права.', pt: 'Sem malware, phishing, doxxing, conteúdo sexual envolvendo menores ou conteúdo que infrinja direitos autorais de terceiros.', pl: 'Bez malware, phishingu, doxxingu, treści seksualnych z udziałem nieletnich oraz treści naruszających cudze prawa autorskie.', fr: 'Pas de malware, phishing, doxxing, contenu sexuel impliquant des mineurs ni contenu violant le droit d’auteur d’autrui.' })}</li>
+        <li>${localeLabel({ en: 'Public sites may be reviewed before being listed. Unlisted / private stays out of the directory but is still subject to these rules.', ru: 'Публичные сайты могут проходить проверку перед публикацией в каталоге. Unlisted / private не попадают в каталог, но правила для них те же.', uk: 'Публічні сайти можуть проходити перевірку перед публікацією в каталозі. Unlisted / private не потрапляють у каталог, але правила для них ті самі.', pt: 'Sites públicos podem passar por revisão antes de entrarem no diretório. Unlisted / private ficam fora da vitrine, mas continuam sujeitos às mesmas regras.', pl: 'Publiczne strony mogą być sprawdzane przed pojawieniem się w katalogu. Unlisted / private nie trafiają do katalogu, ale nadal obowiązują je te same zasady.', fr: 'Les sites publics peuvent être revus avant d’être listés. Les sites unlisted / private restent hors du répertoire, mais les mêmes règles s’appliquent.' })}</li>
+        <li>${localeLabel({ en: 'By uploading you confirm you own the content and agree to our terms. Violations can result in the site being removed and the account suspended.', ru: 'Загружая сайт, ты подтверждаешь, что владеешь контентом и согласен с нашими условиями. Нарушения могут привести к удалению сайта и блокировке аккаунта.', uk: 'Завантажуючи сайт, ти підтверджуєш, що володієш контентом і погоджуєшся з нашими умовами. Порушення можуть призвести до видалення сайту та блокування акаунта.', pt: 'Ao enviar, você confirma que possui o conteúdo e concorda com nossos termos. Violações podem levar à remoção do site e à suspensão da conta.', pl: 'Wysyłając stronę potwierdzasz, że posiadasz prawa do treści i akceptujesz nasze warunki. Naruszenia mogą skończyć się usunięciem strony i zawieszeniem konta.', fr: 'En envoyant ce site, vous confirmez posséder le contenu et accepter nos conditions. En cas de violation, le site peut être supprimé et le compte suspendu.' })}</li>
       </ul>
+      ${rulesLead ? `<p class="site-editor-note" style="margin:10px 0 0">${escapeHtml(rulesLead)}</p>` : ''}
     </div>
     <form class="settings-form" data-form="create-site-upload">
       <label><span>${t('title')}</span><input name="title" required /></label>
@@ -4451,14 +5720,25 @@ function renderSiteUploadModal() {
       </div>
       <label><span>${t('summary')}</span><textarea name="summary" rows="3"></textarea></label>
       <div class="segment-row">
-        <button type="button" class="segment-button ${(state.siteUploadMode || 'html') === 'html' ? 'active' : ''}" data-action="site-upload-mode" data-mode="html">Single HTML</button>
-        <button type="button" class="segment-button ${state.siteUploadMode === 'archive' ? 'active' : ''}" data-action="site-upload-mode" data-mode="archive">Archive package</button>
+        <button type="button" class="segment-button ${(state.siteUploadMode || 'html') === 'html' ? 'active' : ''}" data-action="site-upload-mode" data-mode="html">${singleHtmlLabel}</button>
+        <button type="button" class="segment-button ${state.siteUploadMode === 'archive' ? 'active' : ''}" data-action="site-upload-mode" data-mode="archive">${archivePackageLabel}</button>
       </div>
       ${state.siteUploadMode === 'archive'
-        ? `<label class="upload-field site-drop-zone ${_siteFileCache.archive ? 'has-file' : ''}"><span>${_siteFileCache.archive ? `✓ Archive: <strong>${escapeHtml(_siteFileCache.archive.name)}</strong> · ${(_siteFileCache.archive.size/1024/1024).toFixed(2)} MB — click to replace` : 'Archive ≤ 5 MB (.zip, .tar, .tar.gz, .tgz, .7z) — click to choose'}</span><input type="file" name="archive" accept=".zip,.tar,.tgz,.tar.gz,.7z,application/zip,application/x-tar,application/gzip,application/x-gzip" data-action="site-file-pick" data-kind="archive" /></label>`
-        : `<label class="upload-field site-drop-zone ${_siteFileCache.html ? 'has-file' : ''}"><span>${_siteFileCache.html ? `✓ HTML: <strong>${escapeHtml(_siteFileCache.html.name)}</strong> · ${(_siteFileCache.html.size/1024).toFixed(1)} KB — click to replace` : 'HTML file ≤ 1 MB — click to choose'}</span><input type="file" name="html" accept=".html,.htm,text/html" data-action="site-file-pick" data-kind="html" /></label>`}
-      <label class="inline-check"><input type="checkbox" name="agree" required /> <span>I agree to the site rules above.</span></label>
-      <button class="primary-button" type="submit">${t('create')}</button>
+        ? `<label class="upload-field site-drop-zone ${_siteFileCache.archive ? 'has-file' : ''}"><span>${_siteFileCache.archive ? `✓ ${archivePackageLabel}: <strong>${escapeHtml(_siteFileCache.archive.name)}</strong> · ${(_siteFileCache.archive.size/1024/1024).toFixed(2)} MB — ${localeLabel({ en: 'click to replace', ru: 'нажми, чтобы заменить', uk: 'натисни, щоб замінити', pt: 'clique para trocar', pl: 'kliknij, aby podmienić', fr: 'cliquez pour remplacer' })}` : `${archivePackageLabel} ${escapeHtml(caps.archiveLabel)} (.zip, .tar, .tar.gz, .tgz, .7z) — ${localeLabel({ en: 'click to choose', ru: 'нажми, чтобы выбрать', uk: 'натисни, щоб вибрати', pt: 'clique para escolher', pl: 'kliknij, aby wybrać', fr: 'cliquez pour choisir' })}`}</span><input type="file" name="archive" accept=".zip,.tar,.tgz,.tar.gz,.7z,application/zip,application/x-tar,application/gzip,application/x-gzip,application/x-7z-compressed" data-action="site-file-pick" data-kind="archive" /></label>`
+        : `<label class="upload-field site-drop-zone ${_siteFileCache.html ? 'has-file' : ''}"><span>${_siteFileCache.html ? `✓ ${singleHtmlLabel}: <strong>${escapeHtml(_siteFileCache.html.name)}</strong> · ${(_siteFileCache.html.size/1024).toFixed(1)} KB — ${localeLabel({ en: 'click to replace', ru: 'нажми, чтобы заменить', uk: 'натисни, щоб замінити', pt: 'clique para trocar', pl: 'kliknij, aby podmienić', fr: 'cliquez pour remplacer' })}` : `${singleHtmlLabel} ${escapeHtml(caps.htmlLabel)} — ${localeLabel({ en: 'click to choose', ru: 'нажми, чтобы выбрать', uk: 'натисни, щоб вибрати', pt: 'clique para escolher', pl: 'kliknij, aby wybrać', fr: 'cliquez pour choisir' })}`}</span><input type="file" name="html" accept=".html,.htm,text/html" data-action="site-file-pick" data-kind="html" /></label>`}
+      ${uploadState?.active ? `<div class="site-upload-progress" aria-live="polite">
+        <div class="site-upload-progress-head">
+          <strong>${escapeHtml(uploadState.label || (currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive'))}</strong>
+          <span>${Math.max(0, Math.min(100, Math.round(Number(uploadState.percent || 0))))}%</span>
+        </div>
+        <div class="site-upload-progress-bar"><span style="width:${Math.max(0, Math.min(100, Number(uploadState.percent || 0)))}%"></span></div>
+        <div class="site-upload-progress-meta">
+          <span>${escapeHtml(uploadState.detail || '')}</span>
+          ${uploadState.phase === 'processing' ? '<span class="spinner-dot" aria-hidden="true"></span>' : ''}
+        </div>
+      </div>` : ''}
+      <label class="inline-check"><input type="checkbox" name="agree" required /> <span>${agreeRulesLabel}</span></label>
+      <button class="primary-button" type="submit" ${uploadState?.active ? 'disabled' : ''}>${uploadState?.active ? (currentLang() === 'ru' ? 'Загружаю…' : 'Uploading…') : t('create')}</button>
     </form>`;
 }
 function renderWorkspaceModal() {
@@ -4483,18 +5763,46 @@ function renderGroupModal() {
     </form>`;
 }
 function renderStickerPackModal() {
-  return `<div class="modal-head"><span class="eyebrow">stickers</span><h2>${t('addPack')}</h2></div>
-    <div class="mascot-row">${beaverMascot}<p>Upload your own sticker packs. PNG, JPG and SVG are stored per pack and reused inside chat, comments and feed actions.</p></div>
+  const packs = (state.me?.stickers || []).filter((pack) => Number(pack.userId) === Number(currentUser()?.id || 0));
+  return `<div class="modal-head"><span class="eyebrow">stickers</span><h2>Sticker Studio</h2></div>
+    <div class="mascot-row">${beaverMascot}<p>Create custom sticker packs with titles, descriptions and your own static, vector or short animated stickers. Supported: PNG, JPG, SVG, GIF and WebM up to 1 second.</p></div>
     <form class="settings-form" data-form="create-sticker-pack">
       <label><span>Pack title</span><input name="title" /></label>
+      <label><span>Description</span><textarea name="description" rows="2" placeholder="Mood, theme, use case"></textarea></label>
       <button class="soft-button" type="submit">${t('create')}</button>
     </form>
     <form class="settings-form" data-form="create-sticker">
-      <label><span>Pack</span><select name="packId">${(state.me?.stickers || []).map((pack) => `<option value="${pack.id}">${escapeHtml(pack.title)}</option>`).join('')}</select></label>
+      <label><span>Pack</span><select name="packId">${packs.map((pack) => `<option value="${pack.id}">${escapeHtml(pack.title)}</option>`).join('')}</select></label>
       <label><span>Name</span><input name="name" /></label>
-      <label class="upload-field"><span>Sticker image</span><input type="file" name="sticker" accept="image/*,.svg" /></label>
+      <label class="upload-field"><span>Sticker file</span><input type="file" name="sticker" accept="image/*,.svg,.gif,video/webm,.webm" /></label>
       <button class="primary-button" type="submit">${t('addSticker')}</button>
-    </form>`;
+    </form>
+    <div class="sticker-studio-list">
+      ${packs.map((pack) => `<section class="sticker-studio-pack">
+        <form class="settings-form compact" data-form="update-sticker-pack" data-pack-id="${pack.id}">
+          <div class="sticker-studio-pack-head">
+            <div>
+              <strong>${escapeHtml(pack.title)}</strong>
+              <span>${escapeHtml(pack.description || 'No description yet.')}</span>
+            </div>
+            <button class="icon-button compact danger" type="button" data-action="delete-sticker-pack" data-pack-id="${pack.id}" title="Delete pack">${icons.trash}</button>
+          </div>
+          <label><span>Title</span><input name="title" value="${escapeHtml(pack.title || '')}" /></label>
+          <label><span>Description</span><textarea name="description" rows="2">${escapeHtml(pack.description || '')}</textarea></label>
+          <button class="soft-button compact" type="submit">${t('save')}</button>
+        </form>
+        <div class="sticker-full-grid">
+          ${(pack.stickers || []).map((sticker) => `<div class="sticker-studio-item">
+            <button type="button" class="sticker-full-btn ${Number(pack.coverStickerId) === Number(sticker.id) ? 'active' : ''}" data-action="set-pack-cover" data-pack-id="${pack.id}" data-sticker-id="${sticker.id}" title="Set as cover">
+              <img src="${sticker.previewUrl || sticker.dataUrl}" alt="${escapeHtml(sticker.name)}" />
+            </button>
+            <span>${escapeHtml(sticker.name)}</span>
+            <small>${escapeHtml(sticker.kind === 'animated' ? `animated · ${Math.round((sticker.durationMs || 0) / 100) / 10}s` : sticker.sourceType || 'static')}</small>
+            <button type="button" class="inline-button compact danger" data-action="delete-sticker" data-sticker-id="${sticker.id}">Delete</button>
+          </div>`).join('') || '<p class="muted">No stickers yet.</p>'}
+        </div>
+      </section>`).join('') || '<p class="muted">Create your first pack to start uploading stickers.</p>'}
+    </div>`;
 }
 function renderInviteModal(roomSlug) {
   return `<div class="modal-head"><span class="eyebrow">invite</span><h2>${t('invite')}</h2></div>
@@ -4551,6 +5859,90 @@ function renderGate(copy) {
 
 // Track textarea draft across renders
 let _chatTextareaDraft = '';
+const BACKGROUND_RENDER_EDITABLE_SELECTOR = 'textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]), [contenteditable="true"]';
+
+function escapeSelectorValue(value = '') {
+  const raw = String(value || '');
+  if (window.CSS?.escape) return window.CSS.escape(raw);
+  return raw.replace(/["\\]/g, '\\$&');
+}
+
+function isEditableInteractionTarget(target) {
+  return Boolean(target && typeof target.matches === 'function' && target.matches(BACKGROUND_RENDER_EDITABLE_SELECTOR));
+}
+
+function beginBackgroundRenderHold(ms = 1200) {
+  const holdMs = Math.max(0, Number(ms) || 0);
+  if (!holdMs) return;
+  state.renderHoldUntil = Math.max(Number(state.renderHoldUntil || 0), Date.now() + holdMs);
+}
+
+function isBackgroundRenderBlocked() {
+  if (state.filePickerActive) return true;
+  return Number(state.renderHoldUntil || 0) > Date.now();
+}
+
+function scheduleDeferredBackgroundRender() {
+  if (!state.backgroundRenderQueued) return;
+  if (state.backgroundRenderTimer) clearTimeout(state.backgroundRenderTimer);
+  const delayMs = state.filePickerActive
+    ? 400
+    : Math.max(80, Number(state.renderHoldUntil || 0) - Date.now() + 40);
+  state.backgroundRenderTimer = setTimeout(() => {
+    state.backgroundRenderTimer = null;
+    if (state.backgroundRenderQueued) render({ background: true });
+  }, delayMs);
+}
+
+function queueBackgroundRender() {
+  if (state.backgroundRenderFrame) return;
+  state.backgroundRenderFrame = requestAnimationFrame(() => {
+    state.backgroundRenderFrame = null;
+    render({ background: true });
+  });
+}
+
+function activateFilePickerHold() {
+  state.filePickerActive = true;
+}
+
+function releaseFilePickerHold(delayMs = 180) {
+  if (!state.filePickerActive) return;
+  state.filePickerActive = false;
+  beginBackgroundRenderHold(delayMs);
+  if (state.backgroundRenderQueued) scheduleDeferredBackgroundRender();
+}
+
+function captureInputFocusState() {
+  const active = document.activeElement;
+  if (!active || typeof active.matches !== 'function') return null;
+  if (!active.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), textarea')) return null;
+  let selector = '';
+  if (active.dataset?.input) selector = `[data-input="${escapeSelectorValue(active.dataset.input)}"]`;
+  else if (active.id) selector = `#${escapeSelectorValue(active.id)}`;
+  else if (active.name) {
+    const formName = active.form?.dataset?.form;
+    selector = formName
+      ? `[data-form="${escapeSelectorValue(formName)}"] [name="${escapeSelectorValue(active.name)}"]`
+      : `[name="${escapeSelectorValue(active.name)}"]`;
+  }
+  if (!selector) return null;
+  return {
+    selector,
+    start: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+    end: typeof active.selectionEnd === 'number' ? active.selectionEnd : null
+  };
+}
+
+function restoreInputFocusState(snapshot) {
+  if (!snapshot?.selector) return;
+  const next = document.querySelector(snapshot.selector);
+  if (!next || typeof next.focus !== 'function') return;
+  next.focus({ preventScroll: true });
+  if (typeof snapshot.start === 'number' && typeof snapshot.end === 'number' && typeof next.setSelectionRange === 'function') {
+    next.setSelectionRange(snapshot.start, snapshot.end);
+  }
+}
 
 function renderMobileBottomNav() {
   const path = state.route.name;
@@ -4558,29 +5950,46 @@ function renderMobileBottomNav() {
   if (!currentUser()) return '';
   if (isGuestSession()) {
     return `<nav class="mobile-bottom-nav" aria-label="Navigation">
-      <button class="mobile-nav-btn ${path === 'home' ? 'active' : ''}" data-action="nav" data-path="/">${icons.home}<span>Home</span></button>
-      <button class="mobile-nav-btn ${path === 'feed' ? 'active' : ''}" data-action="nav" data-path="/feed">${icons.feed}<span>Feed</span></button>
-      <button class="mobile-nav-btn ${path === 'discover' ? 'active' : ''}" data-action="nav" data-path="/discover">${icons.search}<span>Explore</span></button>
+      <a class="mobile-nav-btn ${path === 'home' ? 'active' : ''}" ${navAttrs('/')}>${icons.home}<span>Home</span></a>
+      <a class="mobile-nav-btn ${path === 'feed' ? 'active' : ''}" ${navAttrs('/feed')}>${icons.feed}<span>Feed</span></a>
+      <a class="mobile-nav-btn ${path === 'discover' ? 'active' : ''}" ${navAttrs('/discover')}>${icons.search}<span>Explore</span></a>
       <button class="mobile-nav-btn" data-action="open-modal" data-modal="auth">${icons.user}<span>Sign up</span></button>
     </nav>`;
   }
   return `<nav class="mobile-bottom-nav" aria-label="Navigation">
-    <button class="mobile-nav-btn ${path === 'home' ? 'active' : ''}" data-action="nav" data-path="/">${icons.home}<span>Home</span></button>
-    <button class="mobile-nav-btn ${path === 'feed' ? 'active' : ''}" data-action="nav" data-path="/feed">${icons.feed}<span>Feed</span></button>
-    <button class="mobile-nav-btn ${path === 'messages' ? 'active' : ''}" data-action="nav" data-path="/messages">${icons.message}${unread > 0 ? `<span class="nav-badge">${unread > 9 ? '9+' : unread}</span>` : ''}<span>Chat</span></button>
-    <button class="mobile-nav-btn ${path === 'discover' ? 'active' : ''}" data-action="nav" data-path="/discover">${icons.search}<span>Explore</span></button>
-    <button class="mobile-nav-btn ${path === 'mail' ? 'active' : ''}" data-action="nav" data-path="/mail">
-      ${icons.mail}${state.mail.unread > 0 ? `<span class="nav-badge">${state.mail.unread > 9 ? '9+' : state.mail.unread}</span>` : ''}<span>Mail</span>
+    <a class="mobile-nav-btn ${path === 'home' ? 'active' : ''}" ${navAttrs('/')}>${icons.home}<span>Home</span></a>
+    <a class="mobile-nav-btn ${path === 'feed' ? 'active' : ''}" ${navAttrs('/feed')}>${icons.feed}<span>Feed</span></a>
+    <a class="mobile-nav-btn ${path === 'messages' ? 'active' : ''}" ${navAttrs('/messages')}>${icons.message}${unread > 0 ? `<span class="nav-badge">${unread > 9 ? '9+' : unread}</span>` : ''}<span>Chat</span></a>
+    <a class="mobile-nav-btn ${path === 'discover' ? 'active' : ''}" ${navAttrs('/discover')}>${icons.search}<span>Explore</span></a>
+    <button class="mobile-nav-btn ${['mail', 'sites', 'settings', 'admin', 'profile'].includes(path) ? 'active' : ''}" data-action="toggle-drawer">
+      ${icons.menu}
+      ${(state.mail.unread || 0) > 0 ? `<span class="nav-badge">${state.mail.unread > 9 ? '9+' : state.mail.unread}</span>` : ''}
+      <span>Menu</span>
     </button>
-    <button class="mobile-nav-btn" data-action="toggle-drawer">${icons.user}<span>Me</span></button>
   </nav>`;
 }
 
-function render() {
+function render(options = {}) {
+  if (options?.background === true && isBackgroundRenderBlocked()) {
+    state.backgroundRenderQueued = true;
+    scheduleDeferredBackgroundRender();
+    return;
+  }
+  state.backgroundRenderQueued = false;
+  if (state.backgroundRenderTimer) {
+    clearTimeout(state.backgroundRenderTimer);
+    state.backgroundRenderTimer = null;
+  }
+  if (state.backgroundRenderFrame) {
+    cancelAnimationFrame(state.backgroundRenderFrame);
+    state.backgroundRenderFrame = null;
+  }
   setDocMeta();
   document.body.classList.toggle('drawer-open', state.drawerOpen);
   document.body.classList.toggle('modal-open', Boolean(state.modal));
   const root = document.getElementById('app');
+  const focusSnapshot = captureInputFocusState();
+  const prevWindowScrollTop = getWindowScrollTop();
 
   // FIX: save scroll position before innerHTML wipe (prevents chat jump to top)
   const chatScrollEl = document.getElementById('chat-scroll');
@@ -4589,6 +5998,10 @@ function render() {
   const wasNearBottom = chatScrollEl
     ? (chatScrollEl.scrollHeight - chatScrollEl.scrollTop - chatScrollEl.clientHeight < 80)
     : false;
+  const modalScrollEl = document.querySelector('.modal-card');
+  const prevModalScrollTop = modalScrollEl ? modalScrollEl.scrollTop : -1;
+  const drawerScrollEl = document.querySelector('.drawer-panel');
+  const prevDrawerScrollTop = drawerScrollEl ? drawerScrollEl.scrollTop : -1;
 
   const body = state.loading && !state.bootstrap ? renderLoading() : renderRoute();
   const verifyBanner = currentUser() && !currentUser().emailVerified && currentUser().roleInternal !== 'guest'
@@ -4597,7 +6010,8 @@ function render() {
   const guestBanner = state.guest || currentUser()?.roleInternal === 'guest'
     ? `<div class="guest-banner">${iconBadge('eye', 'neutral', 'banner-badge')}<span>You're browsing as a guest.</span><button class="text-link" data-action="open-modal" data-modal="auth" style="font-weight:700;text-decoration:underline">Create an account</button><span>to save everything.</span></div>`
     : '';
-  root.innerHTML = `<div class="app-shell route-${state.route.name}">${renderTopbar()}${verifyBanner}${guestBanner}<main class="page-wrap">${body}</main>${renderSiteFooter()}${renderMobileBottomNav()}${renderDrawer()}${renderModal()}${renderToasts()}${renderHover()}${renderLightbox()}</div>`;
+  root.innerHTML = `<div class="app-shell route-${state.route.name}">${renderTopbar()}${renderGlobalAudioPlayer()}${verifyBanner}${guestBanner}<main class="page-wrap">${body}</main>${renderSiteFooter()}${renderMobileBottomNav()}${renderDrawer()}${renderModal()}${renderToasts()}${renderHover()}${renderLightbox()}</div>`;
+  root.firstElementChild?.classList.toggle('ui-animated', state.initialUiAnimated);
 
   // FIX: restore scroll position after render
   const newChatScrollEl = document.getElementById('chat-scroll');
@@ -4613,6 +6027,10 @@ function render() {
       newChatScrollEl.scrollTop = prevScrollTop + (scrollDelta > 0 && prevScrollTop < 50 ? 0 : scrollDelta);
     }
   }
+  const nextModalScrollEl = document.querySelector('.modal-card');
+  if (nextModalScrollEl && prevModalScrollTop >= 0) nextModalScrollEl.scrollTop = prevModalScrollTop;
+  const nextDrawerScrollEl = document.querySelector('.drawer-panel');
+  if (nextDrawerScrollEl && prevDrawerScrollTop >= 0) nextDrawerScrollEl.scrollTop = prevDrawerScrollTop;
 
   if (state.pendingWindowScroll?.path === location.pathname) {
     const top = Math.max(0, Number(state.pendingWindowScroll.top || 0));
@@ -4620,6 +6038,9 @@ function render() {
     const canFullyRestore = top <= maxScrollTop + 2;
     window.scrollTo(0, canFullyRestore ? top : maxScrollTop);
     if (canFullyRestore || !state.loading) state.pendingWindowScroll = null;
+  } else {
+    const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    window.scrollTo(0, Math.min(prevWindowScrollTop, maxScrollTop));
   }
 
   // Restore textarea draft
@@ -4631,12 +6052,32 @@ function render() {
       ta.style.height = Math.min(ta.scrollHeight, 180) + 'px';
     }
   }
+  restoreInputFocusState(focusSnapshot);
+  syncFastRefreshLoop();
   if (typeof updateJumpToLatest === 'function') {
     requestAnimationFrame(updateJumpToLatest);
   }
   if (typeof pushAdsenseUnits === 'function') {
     requestAnimationFrame(pushAdsenseUnits);
   }
+  syncVoicePlaybackUi();
+  syncVoiceRecordingUi();
+}
+function syncFastRefreshLoop() {
+  const needsCountdown = state.route.name === 'admin'
+    && state.adminTab === 'moderation'
+    && Array.isArray(state.adminDeletionJobs)
+    && state.adminDeletionJobs.length > 0;
+  if (!needsCountdown) {
+    clearInterval(state.fastRefreshTimer);
+    state.fastRefreshTimer = null;
+    return;
+  }
+  if (state.fastRefreshTimer) return;
+  state.fastRefreshTimer = setInterval(() => {
+    if (document.hidden) return;
+    queueBackgroundRender();
+  }, 1000);
 }
 function renderMaintenancePage() {
   return `<div id="maintenance-screen">
@@ -4792,7 +6233,7 @@ function openHover(type, id, element) {
     ];
     const user = candidates.find((item) => item?.handleCanonical === id || item?.handle?.toLowerCase() === id);
     if (!user) return;
-    html = `${avatar(user, 'sm')}<div><strong>${escapeHtml(user.displayName)}</strong><span>@${escapeHtml(user.handle)}</span><p>${escapeHtml(user.bio || '')}</p><div class="badge-row">${badgePills(user)}</div></div>`;
+    html = `${avatar(user, 'sm', '', { link: false })}<div><strong>${escapeHtml(user.displayName)}</strong><span>@${escapeHtml(user.handle)}</span><p>${escapeHtml(user.bio || '')}</p><div class="badge-row">${badgePills(user)}</div></div>`;
   } else {
     const room = state.chat.bootstrap?.rooms?.find((item) => item.slug === id) || state.discover.rooms.find((item) => item.slug === id) || state.home?.openRooms?.find((item) => item.slug === id);
     if (!room) return;
@@ -4912,6 +6353,7 @@ async function buildChatThemePayload(data, fallbackTheme = null, allowImageUploa
     };
     if (file?.size) {
       const compressed = await compressImageFile(file, 1800, 0.84);
+      payload.imageUrl = compressed.dataUrl;
       payload.imageDataUrl = compressed.dataUrl;
     }
     return payload;
@@ -4993,12 +6435,61 @@ async function handleProjectCreate(form) {
   toast(t('projectCreated'), 'success');
 }
 
-async function readFileAsBase64(file) {
+function encodeSiteMetaHeader(meta = {}) {
+  return encodeURIComponent(JSON.stringify(meta));
+}
+
+function formatUploadProgressLabel(loadedBytes = 0, totalBytes = 0) {
+  const loaded = formatByteSize(loadedBytes);
+  const total = totalBytes ? formatByteSize(totalBytes) : '...';
+  return `${loaded} / ${total}`;
+}
+
+async function uploadSiteArchiveBinary(url, meta, file, method = 'POST', options = {}) {
   return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
-    reader.onerror = () => reject(reader.error || new Error('read failed'));
-    reader.readAsDataURL(file);
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url, true);
+    xhr.responseType = 'text';
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.setRequestHeader('X-JB-Archive-Bytes', String(Number(file?.size || 0)));
+    xhr.setRequestHeader('X-JB-Site-Meta', encodeSiteMetaHeader({ ...meta, archiveName: file?.name || meta?.archiveName || '' }));
+    xhr.upload.onprogress = (event) => {
+      if (typeof options.onProgress === 'function') {
+        const total = Number(event.total || file?.size || 0);
+        const loaded = Number(event.loaded || 0);
+        const percent = total > 0 ? (loaded / total) * 100 : 0;
+        options.onProgress({ phase: 'uploading', loaded, total, percent });
+      }
+    };
+    xhr.upload.onload = () => {
+      if (typeof options.onProgress === 'function') {
+        const total = Number(file?.size || 0);
+        options.onProgress({ phase: 'processing', loaded: total, total, percent: 100 });
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network request failed.'));
+    xhr.onload = () => {
+      let data = {};
+      if (xhr.responseText) {
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch {
+          data = { rawText: xhr.responseText };
+        }
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data);
+        return;
+      }
+      const message = data?.error || (xhr.status === 413
+        ? 'Upload request is too large for the server. If the archive is valid, check the reverse proxy body limit (for example nginx client_max_body_size) and restart the server after upload-limit changes.'
+        : 'Request failed.');
+      const error = new Error(message);
+      error.status = xhr.status;
+      Object.assign(error, data || {});
+      reject(error);
+    };
+    xhr.send(file);
   });
 }
 
@@ -5016,29 +6507,63 @@ async function handleSiteTemplate(form) {
 const _siteFileCache = { archive: null, html: null };
 async function handleSiteUpload(form) {
   const data = new FormData(form);
+  const caps = currentSiteUploadCaps();
   if (!data.get('agree')) throw new Error('Please agree to the site rules first.');
   const mode = state.siteUploadMode || 'html';
   const common = { title: data.get('title'), slug: data.get('slug'), summary: data.get('summary'), visibility: data.get('visibility') };
+  let response = null;
   if (mode === 'archive') {
     const formFile = data.get('archive');
     const file = (formFile && formFile.size) ? formFile : _siteFileCache.archive;
     if (!file || !file.size) throw new Error('Choose an archive file.');
-    if (file.size > 5 * 1024 * 1024) throw new Error('Archive must stay under 5 MB.');
-    const archiveBase64 = await readFileAsBase64(file);
-    await api('/api/me/sites/upload-archive', { method: 'POST', body: JSON.stringify({ ...common, archiveBase64, archiveName: file.name }) });
+    if (Number.isFinite(caps.archiveBytes) && file.size > caps.archiveBytes) throw new Error(`Archive must stay under ${caps.archiveLabel.replace('≤ ', '')}.`);
+    if (state.modal?.type === 'site-upload') {
+      state.modal = {
+        ...state.modal,
+        siteUpload: {
+          active: true,
+          phase: 'uploading',
+          percent: 0,
+          label: currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive',
+          detail: formatUploadProgressLabel(0, Number(file.size || 0))
+        }
+      };
+      render();
+    }
+    response = await uploadSiteArchiveBinary('/api/me/sites/upload-archive-binary', common, file, 'POST', {
+      onProgress: ({ phase, loaded, total, percent }) => {
+        if (state.modal?.type !== 'site-upload') return;
+        state.modal = {
+          ...state.modal,
+          siteUpload: {
+            active: true,
+            phase,
+            percent,
+            label: phase === 'processing'
+              ? (currentLang() === 'ru' ? 'Архив загружен, идёт обработка' : 'Archive uploaded, processing')
+              : (currentLang() === 'ru' ? 'Загрузка архива' : 'Uploading archive'),
+            detail: phase === 'processing'
+              ? (currentLang() === 'ru' ? 'Сервер распаковывает файлы и проверяет структуру сайта…' : 'Server is unpacking files and validating the site structure…')
+              : formatUploadProgressLabel(loaded, total)
+          }
+        };
+        render();
+      }
+    });
   } else {
     const formFile = data.get('html');
     const file = (formFile && formFile.size) ? formFile : _siteFileCache.html;
     if (!file || !file.size) throw new Error('Choose an HTML file.');
-    if (file.size > 1024 * 1024) throw new Error('The site file must stay under 1 MB.');
+    if (Number.isFinite(caps.htmlBytes) && file.size > caps.htmlBytes) throw new Error('The site file must stay under 1 MB.');
     const htmlContent = await file.text();
-    await api('/api/me/sites/upload', { method: 'POST', body: JSON.stringify({ ...common, htmlContent }) });
+    response = await api('/api/me/sites/upload', { method: 'POST', body: JSON.stringify({ ...common, htmlContent }) });
   }
   _siteFileCache.archive = null;
   _siteFileCache.html = null;
   closeModal();
   await loadSitesMine();
-  toast(t('siteCreated'), 'success');
+  const importSummary = siteImportSummary(response?.site);
+  toast(importSummary ? `${t('siteCreated')} ${importSummary}` : t('siteCreated'), importSummary ? 'info' : 'success');
 }
 async function handleWorkspaceCreate(form) {
   const data = new FormData(form);
@@ -5089,8 +6614,13 @@ async function handleVerificationRequest(form) {
 }
 async function handleDeleteAccount(form) {
   const data = new FormData(form);
+  const currentId = Number(currentUser()?.id || 0);
   await api('/api/me/account', { method: 'DELETE', body: JSON.stringify({ confirm: data.get('confirm'), password: data.get('password') }) });
   closeModal();
+  if (currentId) {
+    state.savedAccounts = state.savedAccounts.filter((item) => Number(item.id) !== currentId);
+    persistSavedAccounts();
+  }
   state.bootstrap = null; state.me = null; state.meLoaded = false;
   toast(t('accountRemoved'), 'success');
   navigate('/');
@@ -5133,7 +6663,7 @@ async function handleCreateInvite(roomSlug, form) {
 }
 async function handleCreateStickerPack(form) {
   const data = new FormData(form);
-  await api('/api/me/sticker-packs', { method: 'POST', body: JSON.stringify({ title: data.get('title') }) });
+  await api('/api/me/sticker-packs', { method: 'POST', body: JSON.stringify({ title: data.get('title'), description: data.get('description') }) });
   await loadMe(true);
   toast('Pack created.', 'success');
 }
@@ -5141,22 +6671,41 @@ async function handleCreateSticker(form) {
   const data = new FormData(form);
   const file = data.get('sticker');
   if (!file?.size) throw new Error('Choose an image.');
-  let dataUrl;
-  if (file.type.includes('svg')) {
-    dataUrl = await new Promise((resolve) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsDataURL(file); });
-  } else {
-    const compressed = await compressImageFile(file, 512, 0.92);
-    dataUrl = compressed.dataUrl;
-  }
-  await api(`/api/me/sticker-packs/${encodeURIComponent(data.get('packId'))}/stickers`, { method: 'POST', body: JSON.stringify({ name: data.get('name'), dataUrl }) });
+  const prepared = await prepareStickerUpload(file);
+  await api(`/api/me/sticker-packs/${encodeURIComponent(data.get('packId'))}/stickers`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name: data.get('name'),
+      dataUrl: prepared.dataUrl,
+      sourceType: prepared.sourceType,
+      durationMs: prepared.durationMs,
+      width: prepared.width,
+      height: prepared.height
+    })
+  });
   await loadMe(true);
   render();
   toast('Sticker added.', 'success');
+}
+
+async function handleUpdateStickerPack(form) {
+  const data = new FormData(form);
+  const packId = form.dataset.packId;
+  await api(`/api/me/sticker-packs/${encodeURIComponent(packId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title: data.get('title'), description: data.get('description') })
+  });
+  await loadMe(true);
+  render();
+  toast('Pack updated.', 'success');
 }
 let _voiceRecorder = null;
 let _voiceChunks = [];
 let _voiceStartedAt = 0;
 let _voiceStream = null;
+let _voicePlaybackAudio = null;
+let _voicePlaybackTick = null;
+let _voiceRecordTick = null;
 
 async function toggleVoiceRecord() {
   if (!state.chat.room) return;
@@ -5186,6 +6735,10 @@ async function toggleVoiceRecord() {
       try { _voiceStream?.getTracks().forEach((t) => t.stop()); } catch {}
       _voiceStream = null;
       state.chat.recording = false;
+      if (_voiceRecordTick) {
+        clearInterval(_voiceRecordTick);
+        _voiceRecordTick = null;
+      }
       if (!_voiceChunks.length) { toast('Запись пустая — попробуйте ещё раз.', 'error'); render(); return; }
       if (duration < 1) { toast('Запись слишком короткая (<1с).', 'info'); render(); return; }
       const mimeType = _voiceChunks[0]?.type || _voiceRecorder?.mimeType || 'audio/webm';
@@ -5193,7 +6746,7 @@ async function toggleVoiceRecord() {
       try {
         const dataUrl = await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => reject(r.error || new Error('read failed')); r.readAsDataURL(blob); });
         if (!String(dataUrl).startsWith('data:audio/')) { toast('Неподдерживаемый формат записи.', 'error'); render(); return; }
-        state.chat.attachment = { dataUrl, name: `Voice ${duration}s`, width: 0, height: 0, duration, type: 'audio' };
+        state.chat.attachment = { dataUrl, name: `Voice ${duration}s`, width: 0, height: 0, duration, type: 'audio', voice: true, url: dataUrl };
         render();
       } catch (err) {
         toast(err.message || 'Не удалось сохранить запись.', 'error');
@@ -5202,10 +6755,15 @@ async function toggleVoiceRecord() {
     };
     _voiceRecorder.start(250);
     state.chat.recording = true;
+    ensureVoiceRecordingTicker();
     render();
   } catch (err) {
     toast(err.message || 'Microphone permission denied.', 'error');
     state.chat.recording = false;
+    if (_voiceRecordTick) {
+      clearInterval(_voiceRecordTick);
+      _voiceRecordTick = null;
+    }
     render();
   }
 }
@@ -5231,7 +6789,8 @@ async function sendChatMessage(form) {
       type: a.type || 'image',
       width: a.width || 0,
       height: a.height || 0,
-      duration: a.duration || 0
+      duration: a.duration || 0,
+      voice: Boolean(a.voice)
     }));
   } else if (state.chat.attachment) {
     payload.attachmentDataUrl = state.chat.attachment.dataUrl;
@@ -5240,6 +6799,7 @@ async function sendChatMessage(form) {
     payload.attachmentHeight = state.chat.attachment.height;
     if (state.chat.attachment.type) payload.attachmentType = state.chat.attachment.type;
     if (state.chat.attachment.duration) payload.attachmentDuration = state.chat.attachment.duration;
+    if (state.chat.attachment.voice) payload.attachmentVoice = true;
   }
   if (state.chat.pendingStickerId) {
     payload.stickerId = state.chat.pendingStickerId;
@@ -5369,6 +6929,59 @@ function scrollChatToBottom(force = false) {
   });
 }
 
+document.addEventListener('click', (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const directFileInput = target.closest('input[type="file"]');
+  const nestedFileInput = !directFileInput ? target.closest('label')?.querySelector('input[type="file"]') : null;
+  if (directFileInput || nestedFileInput) activateFilePickerHold();
+}, true);
+
+document.addEventListener('focusin', (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  if (target.matches('input[type="file"]')) {
+    activateFilePickerHold();
+    return;
+  }
+  if (isEditableInteractionTarget(target)) beginBackgroundRenderHold(1200);
+});
+
+document.addEventListener('focusout', (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  if (!isEditableInteractionTarget(target)) return;
+  if (state.backgroundRenderQueued) scheduleDeferredBackgroundRender();
+});
+
+document.addEventListener('cancel', (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement) || target.type !== 'file') return;
+  releaseFilePickerHold();
+});
+
+document.addEventListener('paste', async (event) => {
+  if (!isMessagesRouteActive() || !state.chat.room) return;
+  const items = Array.from(event.clipboardData?.items || []);
+  const files = items
+    .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+    .map((item) => item.getAsFile())
+    .filter(Boolean);
+  if (!files.length) return;
+  const active = document.activeElement;
+  if (active && !(active.id === 'chat-textarea' || active.closest?.('.chat-composer'))) return;
+  event.preventDefault();
+  const added = await handleChatImageFiles(files);
+  if (added) toast(`${added} image${added > 1 ? 's' : ''} pasted.`, 'success');
+});
+
+window.addEventListener('focus', () => {
+  if (!state.filePickerActive) return;
+  setTimeout(() => {
+    if (state.filePickerActive) releaseFilePickerHold();
+  }, 160);
+});
+
 document.addEventListener('click', async (event) => {
   const et = event.target;
   if (!et || typeof et.closest !== 'function') return;
@@ -5403,6 +7016,7 @@ document.addEventListener('click', async (event) => {
   try {
     switch (action) {
       case 'nav': {
+        if (!shouldHandleClientNav(event, target)) break;
         event.preventDefault();
         if (state.drawerOpen) {
           state.drawerOpen = false;
@@ -5449,7 +7063,16 @@ document.addEventListener('click', async (event) => {
         }); break;
       }
       case 'close-modal': closeModal(); break;
-      case 'open-profile': navigate(`/@${target.dataset.handle}`); break;
+      case 'open-profile': {
+        if (!shouldHandleClientNav(event, target)) break;
+        event.preventDefault();
+        if (state.drawerOpen) {
+          state.drawerOpen = false;
+          document.body.classList.remove('drawer-open');
+        }
+        navigate(`/@${target.dataset.handle}`);
+        break;
+      }
       case 'open-site-studio': {
         const siteId = Number(target.dataset.id || 0);
         if (!siteId) break;
@@ -5838,7 +7461,7 @@ document.addEventListener('click', async (event) => {
         render(); break;
       }
       case 'send-sticker': state.chat.pendingStickerId = Number(target.dataset.id); state.chat.stickerPicker = false; render(); break;
-      case 'attach-chat-image': document.getElementById('chat-file-input')?.click(); break;
+      case 'attach-chat-image': activateFilePickerHold(); document.getElementById('chat-file-input')?.click(); break;
       case 'clear-chat-attachment': state.chat.attachment = null; render(); break;
       case 'remove-chat-attachment': {
         const idx = Number(target.dataset.index || -1);
@@ -5849,6 +7472,47 @@ document.addEventListener('click', async (event) => {
         break;
       }
       case 'toggle-voice-record': await toggleVoiceRecord(); break;
+      case 'toggle-voice-play':
+        await toggleVoicePlayback(
+          target.dataset.voiceKey || target.dataset.voiceUrl,
+          target.dataset.voiceUrl,
+          Number(target.dataset.voiceDuration || 0),
+          {
+            title: target.dataset.voiceTitle || '',
+            label: target.dataset.voiceLabel || '',
+            kind: target.dataset.voiceKind || 'voice'
+          }
+        );
+        break;
+      case 'set-voice-speed':
+        setVoicePlaybackSpeed(Number(target.dataset.speed || 1));
+        break;
+      case 'seek-voice': {
+        const rect = target.getBoundingClientRect();
+        const progress = rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0;
+        seekVoicePlayback(progress);
+        break;
+      }
+      case 'delete-sticker-pack':
+        if (!confirm('Delete this sticker pack?')) break;
+        await api(`/api/me/sticker-packs/${encodeURIComponent(target.dataset.packId)}`, { method: 'DELETE', body: '{}' });
+        await loadMe(true);
+        render();
+        toast('Pack deleted.', 'success');
+        break;
+      case 'delete-sticker':
+        if (!confirm('Delete this sticker?')) break;
+        await api(`/api/me/stickers/${encodeURIComponent(target.dataset.stickerId)}`, { method: 'DELETE', body: '{}' });
+        await loadMe(true);
+        render();
+        toast('Sticker deleted.', 'success');
+        break;
+      case 'set-pack-cover':
+        await api(`/api/me/sticker-packs/${encodeURIComponent(target.dataset.packId)}`, { method: 'PATCH', body: JSON.stringify({ coverStickerId: Number(target.dataset.stickerId) }) });
+        await loadMe(true);
+        render();
+        toast('Pack cover updated.', 'success');
+        break;
       case 'chat-back': state.chat.mobileView = 'list'; render(); break;
       case 'toggle-room-side':
         setModal({ type: 'chat-room-settings', roomSlug: target.dataset.slug || state.chat.room?.slug });
@@ -5993,7 +7657,33 @@ document.addEventListener('click', async (event) => {
         state.pinnedMessages = pinData.items || [];
         render(); break;
       }
+      case 'report-target': {
+        if (!currentUser() || isGuestSession()) {
+          setModal({ type: 'auth', sub: 'login' });
+          break;
+        }
+        setModal({
+          type: 'report-content',
+          targetType: target.dataset.targetType || 'other',
+          targetId: target.dataset.targetId || '',
+          targetLabel: target.dataset.targetLabel || '',
+          targetUrl: target.dataset.targetUrl || ''
+        });
+        break;
+      }
       case 'admin-tab': state.adminTab = target.dataset.tab; render(); break;
+      case 'admin-moderation-view': state.adminModerationView = target.dataset.view || 'overview'; render(); break;
+      case 'admin-save-plan': {
+        const handle = target.dataset.handle;
+        const select = document.querySelector(`[data-admin-plan-select="${handle}"]`);
+        if (!select) break;
+        await api(`/api/admin/users/${encodeURIComponent(handle)}/billing`, { method: 'PATCH', body: JSON.stringify({ planId: select.value || '' }) });
+        await loadAdminUsers();
+        if (handle === currentUser()?.handleCanonical) await loadBootstrap();
+        render();
+        toast(currentLang() === 'ru' ? 'Подписка обновлена.' : 'Subscription updated.', 'success');
+        break;
+      }
       case 'admin-ban': {
         const reason = prompt(`Ban reason for @${target.dataset.handle}:`);
         if (reason === null) break;
@@ -6003,6 +7693,78 @@ document.addEventListener('click', async (event) => {
       case 'admin-unban':
         await api(`/api/admin/users/${encodeURIComponent(target.dataset.handle)}`, { method: 'PATCH', body: JSON.stringify({ ban: false }) });
         await loadAdminData(); render(); toast('Unbanned.', 'success'); break;
+      case 'admin-delete-account': {
+        const handle = target.dataset.handle;
+        if (!handle) break;
+        const message = currentLang() === 'ru'
+          ? `Поставить аккаунт @${handle} в очередь удаления на 24 часа? За это время удаление можно отменить.`
+          : `Queue @${handle} for deletion in 24 hours? You can restore it before the timer ends.`;
+        if (!confirm(message)) break;
+        await api(`/api/admin/users/${encodeURIComponent(handle)}`, { method: 'DELETE', body: '{}' });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Аккаунт поставлен в 24-часовую очередь удаления.' : 'Account queued for 24-hour deletion.', 'success');
+        break;
+      }
+      case 'admin-delete-post': {
+        const postId = Number(target.dataset.id || 0);
+        if (!postId) break;
+        if (!confirm(currentLang() === 'ru' ? 'Поставить этот пост в очередь удаления на 24 часа?' : 'Queue this post for deletion in 24 hours?')) break;
+        await api(`/api/admin/posts/${postId}`, { method: 'DELETE', body: '{}' });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Пост поставлен в 24-часовую очередь удаления.' : 'Post queued for 24-hour deletion.', 'success');
+        break;
+      }
+      case 'admin-delete-site': {
+        const siteId = Number(target.dataset.id || 0);
+        if (!siteId) break;
+        if (!confirm(currentLang() === 'ru' ? 'Поставить этот сайт в очередь удаления на 24 часа?' : 'Queue this site for deletion in 24 hours?')) break;
+        await api(`/api/admin/sites/${siteId}`, { method: 'DELETE', body: '{}' });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Сайт поставлен в 24-часовую очередь удаления.' : 'Site queued for 24-hour deletion.', 'success');
+        break;
+      }
+      case 'admin-delete-project': {
+        const projectId = Number(target.dataset.id || 0);
+        if (!projectId) break;
+        if (!confirm(currentLang() === 'ru' ? 'Поставить этот проект в очередь удаления на 24 часа?' : 'Queue this project for deletion in 24 hours?')) break;
+        await api(`/api/admin/projects/${projectId}`, { method: 'DELETE', body: '{}' });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Проект поставлен в 24-часовую очередь удаления.' : 'Project queued for 24-hour deletion.', 'success');
+        break;
+      }
+      case 'admin-delete-message': {
+        const messageId = Number(target.dataset.id || 0);
+        if (!messageId) break;
+        if (!confirm(currentLang() === 'ru' ? 'Поставить это сообщение в очередь удаления на 24 часа?' : 'Queue this message for deletion in 24 hours?')) break;
+        await api(`/api/admin/messages/${messageId}`, { method: 'DELETE', body: '{}' });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Сообщение поставлено в 24-часовую очередь удаления.' : 'Message queued for 24-hour deletion.', 'success');
+        break;
+      }
+      case 'admin-confirm-report':
+      case 'admin-resolve-report':
+        await api(`/api/admin/reports/${encodeURIComponent(target.dataset.id)}`, { method: 'PATCH', body: JSON.stringify({ status: 'resolved' }) });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Жалоба подтверждена.' : 'Report confirmed.', 'success');
+        break;
+      case 'admin-dismiss-report':
+        await api(`/api/admin/reports/${encodeURIComponent(target.dataset.id)}`, { method: 'PATCH', body: JSON.stringify({ status: 'dismissed' }) });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Жалоба скрыта.' : 'Report dismissed.', 'success');
+        break;
+      case 'admin-restore-deletion':
+        await api(`/api/admin/deletions/${encodeURIComponent(target.dataset.id)}/restore`, { method: 'POST', body: '{}' });
+        await loadAdminData();
+        render();
+        toast(currentLang() === 'ru' ? 'Удаление отменено.' : 'Deletion restored.', 'success');
+        break;
       // ── Mail actions ─────────────────────────────────────────────────
       case 'compose-mail':
         state.mail.composing = true; render(); break;
@@ -6119,54 +7881,56 @@ document.addEventListener('click', async (event) => {
 document.addEventListener('change', async (event) => {
   const input = event.target;
   if (!input || typeof input.matches !== 'function') return;
-  if (input.matches('#chat-file-input')) {
-    const files = Array.from(input.files || []);
-    if (!files.length) return;
-    const existing = state.chat.attachments || [];
-    const capacity = Math.max(0, 10 - existing.length);
-    if (!capacity) { toast('Max 10 photos per message.', 'info'); input.value = ''; return; }
-    const take = files.slice(0, capacity);
-    const compressed = [];
-    for (const f of take) {
-      try { compressed.push(await compressImageFile(f, 1440, 0.82)); }
-      catch { /* skip bad file */ }
+  const isFileInput = input.matches('input[type="file"]');
+  try {
+    if (input.matches('input[name="chatThemeChoice"]')) {
+      const grid = input.closest('.chat-theme-swatch-grid');
+      if (grid) {
+        grid.querySelectorAll('.chat-theme-swatch').forEach((item) => item.classList.remove('active'));
+        input.closest('.chat-theme-swatch')?.classList.add('active');
+      }
+      const form = input.closest('form');
+      if (form) await updateChatThemePreview(form);
     }
-    if (!compressed.length) { input.value = ''; return; }
-    if (compressed.length === 1 && !existing.length) {
-      state.chat.attachments = [compressed[0]];
-    } else {
-      state.chat.attachments = existing.concat(compressed);
+    if (input.matches('input[name="chatThemeFrom"], input[name="chatThemeTo"], input[name="chatThemeImage"]')) {
+      const form = input.closest('form');
+      if (form) await updateChatThemePreview(form);
     }
-    if (files.length > capacity) toast(`Only ${capacity} photo(s) added (max 10 per message).`, 'info');
-    input.value = '';
-    render();
-  }
-  if (input.matches('input[type="file"][data-action="site-file-pick"]')) {
-    const kind = input.dataset.kind === 'archive' ? 'archive' : 'html';
-    const file = input.files?.[0];
-    if (file) {
-      _siteFileCache[kind] = file;
-      render();
+    if (input.matches('#chat-file-input')) {
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+      await handleChatImageFiles(files);
+      input.value = '';
     }
-    return;
-  }
-  if (input.matches('input[type="file"][data-action="open-crop"]')) {
-    const file = input.files?.[0];
-    if (!file) return;
-    const kind = input.dataset.cropKind || 'avatar';
-    const aspect = Number(input.dataset.cropAspect || (kind === 'banner' ? 3 : 1));
-    const target = input.dataset.cropTarget || '';
-    try {
-      const dataUrl = await readFileAsDataURL(file);
-      state.modal = { type: 'crop-image', kind, aspect, sourceDataUrl: dataUrl, targetInputName: target };
-      render();
-      // Defer canvas binding until DOM settles
-      requestAnimationFrame(() => bindCropStage());
-    } catch (err) {
-      toast('Could not read image.', 'error');
+    if (input.matches('input[type="file"][data-action="site-file-pick"]')) {
+      const kind = input.dataset.kind === 'archive' ? 'archive' : 'html';
+      const file = input.files?.[0];
+      if (file) {
+        _siteFileCache[kind] = file;
+        render();
+      }
+      return;
     }
-    // Reset file input so the same file can trigger again
-    input.value = '';
+    if (input.matches('input[type="file"][data-action="open-crop"]')) {
+      const file = input.files?.[0];
+      if (!file) return;
+      const kind = input.dataset.cropKind || 'avatar';
+      const aspect = Number(input.dataset.cropAspect || (kind === 'banner' ? 3 : 1));
+      const target = input.dataset.cropTarget || '';
+      try {
+        const dataUrl = await readFileAsDataURL(file);
+        state.modal = { type: 'crop-image', kind, aspect, sourceDataUrl: dataUrl, targetInputName: target };
+        render();
+        // Defer canvas binding until DOM settles
+        requestAnimationFrame(() => bindCropStage());
+      } catch (err) {
+        toast('Could not read image.', 'error');
+      }
+      // Reset file input so the same file can trigger again
+      input.value = '';
+    }
+  } finally {
+    if (isFileInput) releaseFilePickerHold();
   }
 });
 
@@ -6254,6 +8018,11 @@ function drawCrop(ctx, canvas, stage) {
 document.addEventListener('input', async (event) => {
   const input = event.target;
   if (!input || typeof input.matches !== 'function') return;
+  if (isEditableInteractionTarget(input)) beginBackgroundRenderHold(1400);
+  if (input.matches('[data-input="global-audio-progress"]')) {
+    seekVoicePlayback(Number(input.value || 0) / 1000);
+    return;
+  }
   if (input.matches('[data-input="feed-search"]')) {
     state.feed.search = input.value;
     await loadFeed();
@@ -6269,13 +8038,14 @@ document.addEventListener('input', async (event) => {
     render();
   }
   if (input.matches('[data-input="media-search"]')) {
+    const query = input.value.trim();
     state.chat.mediaSearch = input.value;
-    if (state.chat.mediaTab === 'gif' && input.value.length > 1) {
+    clearTimeout(window._gifTimer);
+    if (state.chat.mediaTab === 'gif' && query.length >= 1) {
       // Debounced GIF search
-      clearTimeout(window._gifTimer);
       window._gifTimer = setTimeout(async () => {
         try {
-          const r = await api(`/api/gif/search?q=${encodeURIComponent(input.value)}&limit=12`);
+          const r = await api(`/api/gif/search?q=${encodeURIComponent(query)}&limit=12`);
           state.chat.gifResults = r.results || [];
         } catch { state.chat.gifResults = []; }
         render();
@@ -6287,6 +8057,10 @@ document.addEventListener('input', async (event) => {
   }
   if (input.matches('[data-input="admin-search"]')) {
     await loadAdminUsers(input.value);
+    render();
+  }
+  if (input.matches('[data-input="admin-post-search"]')) {
+    await loadAdminPosts(input.value);
     render();
   }
   if (input.matches('[data-input="quick-lang-select"]')) {
@@ -6364,6 +8138,7 @@ document.addEventListener('submit', async (event) => {
       case 'create-invite': await handleCreateInvite(form.dataset.room, form); break;
       case 'create-sticker-pack': await handleCreateStickerPack(form); break;
       case 'create-sticker': await handleCreateSticker(form); break;
+      case 'update-sticker-pack': await handleUpdateStickerPack(form); break;
       case 'send-mail': {
         const d = new FormData(form);
         await api('/api/mail', { method: 'POST', body: JSON.stringify({ to: d.get('to'), subject: d.get('subject'), body: d.get('body') }) });
@@ -6413,40 +8188,40 @@ document.addEventListener('submit', async (event) => {
           summary: d.get('summary'),
           visibility: d.get('visibility')
         };
-        const templateConfig = {
-          indexingMode: d.get('indexingMode'),
-          brandName: d.get('brandName'),
-          tagline: d.get('tagline'),
-          logoUrl: d.get('logoUrl'),
-          faviconUrl: d.get('faviconUrl'),
-          themePreset: d.get('themePreset'),
-          polishMode: d.get('polishMode'),
-          accent: d.get('accent'),
-          bg: d.get('bg'),
-          surface: d.get('surface'),
-          text: d.get('text'),
-          muted: d.get('muted'),
-          font: d.get('font'),
-          radiusStyle: d.get('radiusStyle'),
-          maxWidth: d.get('maxWidth'),
-          seoTitle: d.get('seoTitle'),
-          seoDescription: d.get('seoDescription'),
-          seoKeywords: d.get('seoKeywords'),
-          canonicalUrl: d.get('canonicalUrl'),
-          ogImageUrl: d.get('ogImageUrl'),
-          legalName: d.get('legalName'),
-          schemaType: d.get('schemaType'),
-          supportEmail: d.get('supportEmail'),
-          phone: d.get('phone'),
-          contact: d.get('contact'),
-          address: d.get('address'),
-          privacyUrl: d.get('privacyUrl'),
-          termsUrl: d.get('termsUrl'),
-          ctaLabel: d.get('ctaLabel'),
-          ctaHref: d.get('ctaHref'),
-          customCss: d.get('customCss')
-        };
+        let templateConfig = null;
         if (site.mode === 'template') {
+          templateConfig = {
+            indexingMode: d.get('indexingMode'),
+            brandName: d.get('brandName'),
+            tagline: d.get('tagline'),
+            logoUrl: d.get('logoUrl'),
+            faviconUrl: d.get('faviconUrl'),
+            themePreset: d.get('themePreset'),
+            accent: d.get('accent'),
+            bg: d.get('bg'),
+            surface: d.get('surface'),
+            text: d.get('text'),
+            muted: d.get('muted'),
+            font: d.get('font'),
+            radiusStyle: d.get('radiusStyle'),
+            maxWidth: d.get('maxWidth'),
+            seoTitle: d.get('seoTitle'),
+            seoDescription: d.get('seoDescription'),
+            seoKeywords: d.get('seoKeywords'),
+            canonicalUrl: d.get('canonicalUrl'),
+            ogImageUrl: d.get('ogImageUrl'),
+            legalName: d.get('legalName'),
+            schemaType: d.get('schemaType'),
+            supportEmail: d.get('supportEmail'),
+            phone: d.get('phone'),
+            contact: d.get('contact'),
+            address: d.get('address'),
+            privacyUrl: d.get('privacyUrl'),
+            termsUrl: d.get('termsUrl'),
+            ctaLabel: d.get('ctaLabel'),
+            ctaHref: d.get('ctaHref'),
+            customCss: d.get('customCss')
+          };
           Object.assign(templateConfig, {
             eyebrow: d.get('eyebrow'),
             hero: d.get('hero'),
@@ -6455,13 +8230,20 @@ document.addEventListener('submit', async (event) => {
             gallery: parseSiteGalleryInput(d.get('gallery'))
           });
         }
-        payload.templateConfig = templateConfig;
+        if (templateConfig) payload.templateConfig = templateConfig;
         if (site.mode === 'upload') {
+          const uploadCaps = currentSiteUploadCaps();
           const archiveFile = d.get('archive');
           if (archiveFile?.size) {
-            if (archiveFile.size > 5 * 1024 * 1024) throw new Error('Archive must stay under 5 MB.');
-            payload.archiveBase64 = await readFileAsBase64(archiveFile);
-            payload.archiveName = archiveFile.name;
+            if (Number.isFinite(uploadCaps.archiveBytes) && archiveFile.size > uploadCaps.archiveBytes) throw new Error(`Archive must stay under ${uploadCaps.archiveLabel.replace('≤ ', '')}.`);
+            await uploadSiteArchiveBinary(`/api/me/sites/${form.dataset.siteId}/archive-binary`, { archiveName: archiveFile.name }, archiveFile, 'PUT');
+            const response = await api(`/api/me/sites/${form.dataset.siteId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+            if (response?.site) patchVisibleSites(form.dataset.siteId, () => response.site);
+            closeModal();
+            render();
+            const importSummary = siteImportSummary(response?.site);
+            toast(importSummary ? `${t('settingsUpdated')} ${importSummary}` : t('settingsUpdated'), importSummary ? 'info' : 'success');
+            break;
           } else {
             payload.htmlContent = d.get('htmlContent');
           }
@@ -6470,7 +8252,8 @@ document.addEventListener('submit', async (event) => {
         if (response?.site) patchVisibleSites(form.dataset.siteId, () => response.site);
         closeModal();
         render();
-        toast(t('settingsUpdated'), 'success');
+        const importSummary = siteImportSummary(response?.site);
+        toast(importSummary ? `${t('settingsUpdated')} ${importSummary}` : t('settingsUpdated'), importSummary ? 'info' : 'success');
         break;
       }
       case 'site-studio-file': {
@@ -6534,8 +8317,10 @@ document.addEventListener('submit', async (event) => {
         const payload = {
           title: d.get('title'),
           summary: d.get('summary'),
-          visibility: d.get('visibility'),
-          templateConfig: {
+          visibility: d.get('visibility')
+        };
+        if (site.mode !== 'upload') {
+          payload.templateConfig = {
             brandName: d.get('brandName'),
             tagline: d.get('tagline'),
             logoUrl: d.get('logoUrl'),
@@ -6552,8 +8337,8 @@ document.addEventListener('submit', async (event) => {
             ctaHref: d.get('ctaHref'),
             supportEmail: d.get('supportEmail'),
             customCss: d.get('customCss')
-          }
-        };
+          };
+        }
         state.sites.studio = { ...(state.sites.studio || createEmptySiteStudioState(site.id)), saving: true, error: '' };
         render();
         const response = await api(`/api/me/sites/${form.dataset.siteId}`, { method: 'PATCH', body: JSON.stringify(payload) });
@@ -6575,13 +8360,16 @@ document.addEventListener('submit', async (event) => {
       }
       case 'change-password': {
         const d = new FormData(form);
+        const newPassword = String(d.get('newPassword') || '');
+        const confirmPassword = String(d.get('confirmPassword') || '');
+        if (newPassword !== confirmPassword) throw new Error(currentLang() === 'ru' ? 'Пароли не совпадают.' : 'Passwords do not match.');
         await api('/api/me/password', { method: 'PATCH', body: JSON.stringify({ currentPassword: d.get('currentPassword'), newPassword: d.get('newPassword') }) });
-        closeModal(); toast('Password updated.', 'success'); break;
+        closeModal(); await loadBootstrap(); toast(currentLang() === 'ru' ? 'Пароль обновлён.' : 'Password updated.', 'success'); break;
       }
       case 'change-email': {
         const d = new FormData(form);
         await api('/api/me/email', { method: 'PATCH', body: JSON.stringify({ email: d.get('email'), password: d.get('password') }) });
-        closeModal(); toast('Email updated. Re-verification may be needed.', 'success'); break;
+        closeModal(); await loadBootstrap(); toast(currentLang() === 'ru' ? 'Email обновлён. Может понадобиться повторная верификация.' : 'Email updated. Re-verification may be needed.', 'success'); break;
       }
       case 'create-bot-token': {
         const d = new FormData(form);
@@ -6605,8 +8393,35 @@ document.addEventListener('submit', async (event) => {
         await api('/api/me/handle', { method: 'PATCH', body: JSON.stringify({ handle: d.get('handle') }) });
         closeModal(); await loadBootstrap(); toast('Handle updated.', 'success'); break;
       }
+      case 'report-content': {
+        const d = new FormData(form);
+        await api('/api/reports', {
+          method: 'POST',
+          body: JSON.stringify({
+            targetType: d.get('targetType'),
+            targetId: d.get('targetId') || null,
+            reason: d.get('reason'),
+            details: d.get('details'),
+            targetLabel: state.modal?.targetLabel || '',
+            targetUrl: state.modal?.targetUrl || ''
+          })
+        });
+        closeModal();
+        toast(currentLang() === 'ru' ? 'Жалоба отправлена.' : 'Report sent.', 'success');
+        break;
+      }
     }
   } catch (error) {
+    if (state.modal?.siteUpload?.active) {
+      state.modal = {
+        ...state.modal,
+        siteUpload: {
+          ...state.modal.siteUpload,
+          active: false
+        }
+      };
+      render();
+    }
     toast(error.message, 'error');
   }
 });
@@ -6670,6 +8485,7 @@ document.addEventListener('mouseover', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  if (isEditableInteractionTarget(event.target)) beginBackgroundRenderHold(1200);
   if (state.lightbox) {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
@@ -6716,7 +8532,7 @@ function startRefreshLoop() {
     if (document.hidden || !currentUser()) return;
     try {
       await loadBootstrap();
-      render();
+      queueBackgroundRender();
     } catch {}
   }, 60000); // every 60s is enough with SSE active
 }
@@ -6737,12 +8553,12 @@ function connectSSE() {
 
   es.addEventListener('connected', () => {
     state.sseStatus = 'live';
-    render();
+    queueBackgroundRender();
   });
 
   es.addEventListener('new_message', (e) => {
     const msg = JSON.parse(e.data);
-    if (state.chat.room && msg.roomId === state.chat.room.id) {
+    if (isVisibleChatRoomById(msg.roomId)) {
       const normalized = normalizeMessageForViewer(msg);
       decryptMessage(state.chat.room, normalized).then(displayBody => {
         const scroll = document.getElementById('chat-scroll');
@@ -6759,7 +8575,7 @@ function connectSSE() {
         if (state.typing[state.chat.room.slug]) {
           delete state.typing[state.chat.room.slug][normalized.author?.id];
         }
-        render();
+        queueBackgroundRender();
         scrollChatToBottom(false);
       });
     } else {
@@ -6767,37 +8583,37 @@ function connectSSE() {
       const room = state.chat.bootstrap?.rooms?.find(r => r.id === msg.roomId);
       if (room) {
         state.chat.unread[room.slug] = (state.chat.unread[room.slug] || 0) + 1;
-        render();
+        queueBackgroundRender();
       }
     }
   });
 
   es.addEventListener('message_updated', (e) => {
     const updated = normalizeMessageForViewer(JSON.parse(e.data));
-    if (state.chat.room && updated.roomId === state.chat.room.id) {
+    if (isVisibleChatRoomById(updated.roomId)) {
       const idx = state.chat.messages.findIndex(m => Number(m.id) === Number(updated.id) || (updated.clientNonce && m.clientNonce === updated.clientNonce));
       if (idx >= 0) {
         const displayBody = updated.deleted ? '[deleted]' : (updated.body || state.chat.messages[idx].displayBody);
         state.chat.messages[idx] = { ...updated, displayBody };
-        render();
+        queueBackgroundRender();
       }
     }
   });
 
   es.addEventListener('message_deleted', (e) => {
     const { id, roomSlug } = JSON.parse(e.data);
-    if (state.chat.room?.slug === roomSlug) {
+    if (isVisibleChatRoomBySlug(roomSlug)) {
       const idx = state.chat.messages.findIndex(m => m.id === id);
       if (idx >= 0) {
         state.chat.messages[idx] = { ...state.chat.messages[idx], deleted: true, body: '', displayBody: '[deleted]' };
-        render();
+        queueBackgroundRender();
       }
     }
   });
 
   es.addEventListener('message_pinned', (e) => {
     const data = JSON.parse(e.data);
-    if (state.chat.room?.slug === data.roomSlug) {
+    if (isVisibleChatRoomBySlug(data.roomSlug)) {
       toast(`${data.pinnedBy} pinned a message`, 'info');
     }
   });
@@ -6806,15 +8622,15 @@ function connectSSE() {
 
   es.addEventListener('typing', (e) => {
     const { roomSlug, userId, handle, displayName } = JSON.parse(e.data);
-    if (state.chat.room?.slug === roomSlug && userId !== currentUser()?.id) {
+    if (isVisibleChatRoomBySlug(roomSlug) && userId !== currentUser()?.id) {
       if (!state.typing[roomSlug]) state.typing[roomSlug] = {};
       state.typing[roomSlug][userId] = { handle, displayName, at: Date.now() };
-      render();
+      queueBackgroundRender();
       // Auto-clear after 4 seconds
       setTimeout(() => {
         if (state.typing[roomSlug]) {
           delete state.typing[roomSlug][userId];
-          render();
+          queueBackgroundRender();
         }
       }, 4000);
     }
@@ -6824,28 +8640,28 @@ function connectSSE() {
     const { userId, roomSlug, lastReadMessageId } = JSON.parse(e.data);
     if (!state.readReceipts[roomSlug]) state.readReceipts[roomSlug] = {};
     state.readReceipts[roomSlug][userId] = lastReadMessageId;
-    render();
+    if (isVisibleChatRoomBySlug(roomSlug)) queueBackgroundRender();
   });
 
   es.addEventListener('message_confirmed', (e) => {
     const { roomSlug, messageId, confirmedAt, confirmedByUserId } = JSON.parse(e.data);
-    if (state.chat.room?.slug !== roomSlug) return;
+    if (!isVisibleChatRoomBySlug(roomSlug)) return;
     const idx = state.chat.messages.findIndex(m => Number(m.id) === Number(messageId));
     if (idx >= 0) {
       state.chat.messages[idx] = { ...state.chat.messages[idx], confirmedAt, confirmedByUserId };
-      render();
+      queueBackgroundRender();
     }
   });
 
   es.addEventListener('room_added', (e) => {
     const { room } = JSON.parse(e.data);
     toast(`Added to ${room.title}`, 'success');
-    loadChatBootstrap().then(() => render());
+    loadChatBootstrap().then(() => queueBackgroundRender());
   });
 
   es.addEventListener('room_removed', () => {
     if (state.chat.room) { state.chat.room = null; state.chat.selectedSlug = null; }
-    loadChatBootstrap().then(() => render());
+    loadChatBootstrap().then(() => queueBackgroundRender());
   });
 
   es.onerror = () => {
@@ -6875,6 +8691,10 @@ function setSplashStatus(msg) {
   const el = document.getElementById('splash-status');
   if (el) el.textContent = msg;
 }
+function hidePublicShell() {
+  const el = document.getElementById('public-shell-root');
+  if (el) el.remove();
+}
 function hideSplash() {
   const s = document.getElementById('splash-screen');
   if (s) { s.classList.add('hidden'); setTimeout(() => s.remove(), 450); }
@@ -6884,17 +8704,26 @@ async function boot() {
   try {
     // Restore local-only guest flag (no server profile, purely cached)
     if (localStorage.getItem('jb_guest_mode') === '1') state.guest = true;
+    if (!localStorage.getItem('jb_lang')) {
+      localStorage.setItem('jb_lang', currentLang());
+    }
     await routeLoad();
     render();
+    requestAnimationFrame(() => {
+      state.initialUiAnimated = true;
+      document.querySelector('.app-shell')?.classList.add('ui-animated');
+    });
     startRefreshLoop();
     connectSSE();
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && currentUser() && !isGuestSession()) {
         if (state.sseStatus !== 'live') connectSSE();
-        loadBootstrap().then(() => render()).catch(() => {});
+        loadBootstrap().then(() => queueBackgroundRender()).catch(() => {});
       }
     });
   } catch (error) {
+    setSplashStatus('Unable to load app');
+    hideSplash();
     toast(error.message, 'error');
   }
 }

@@ -187,7 +187,7 @@ crontab -e
 | 502 Bad Gateway | `systemctl status justbreath` — упал сервис |
 | "Site can't be reached" | DNS A-запись не указывает на сервер |
 | SSE обрывается | nginx конфиг для `/api/events` без `proxy_buffering off` |
-| 413 Request Entity Too Large | `client_max_body_size` в nginx < 10m |
+| 413 Request Entity Too Large | `client_max_body_size` в nginx меньше нужного размера архива; для текущего импорта держите `1g` и проверьте `proxy_request_buffering off` на архивных маршрутах |
 | Email не приходят | `journalctl -u justbreath -n 100 \| grep -i smtp` |
 | 429 Too Many Requests | rate-limit сработал — нормальное поведение |
 
@@ -214,3 +214,22 @@ systemctl stop justbreath
 cp /root/justbreath/backups/auto-XXXX.json /root/justbreath/data/store.json
 systemctl start justbreath
 ```
+
+---
+
+## 9. Security and proxy notes
+
+- Для production обязательно держите HTTPS. Только так реально работают `Secure` cookies и `Strict-Transport-Security`.
+- Не вырезайте `Origin` и `Referer` у обычного браузерного трафика на reverse proxy: приложение использует их для блокировки cross-site write-запросов к `/api/`.
+- Если меняете домен или схему, проверьте `X-Forwarded-Proto` и `Host`, потому что от них зависят callback URL и часть защитных проверок.
+- Не пытайтесь "спрятать" безопасность обфускацией фронтенда. Всё критичное должно оставаться на сервере.
+
+## 10. Chat media regression rule
+
+Для чата теперь есть отдельное правило регрессий:
+
+- аудио/голосовые не должны вызывать полный `render()` всего SPA на каждом тике прогресса
+- переключение между чатами не должно насильно останавливать общий playback
+- состояние записи должно быть визуально очевидным: live-индикатор, таймер, понятный stop-state
+
+Если после изменений чат снова начинает визуально перерисовываться во время воспроизведения, это нужно считать release-blocker багом.

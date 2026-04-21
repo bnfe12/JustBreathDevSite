@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
   <!-- Primary meta -->
-  <title>justbreath.life — profiles, creator sites, messaging and collaboration</title>
-  <meta name="description" content="justbreath.life is an open creator platform: build a profile, ship a site, collaborate in workspaces and chat in real time. No frameworks, no tracking, just tools that stay out of your way." />
+  <title>justbreath.life — creator pages, private spaces, and team collaboration</title>
+  <meta name="description" content="Create a public creator page, launch static sites, collaborate with your team, and chat with your audience in one place." />
   <meta name="keywords" content="creator platform, profile, portfolio site, indie web, messaging, chat, workspaces, collaboration, web apps, creator tools" />
   <meta name="author" content="justbreath" />
   <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
@@ -42,8 +42,8 @@
   <meta property="og:locale:alternate" content="pt_PT" />
   <meta property="og:locale:alternate" content="pl_PL" />
   <meta property="og:locale:alternate" content="fr_FR" />
-  <meta property="og:title" content="justbreath.life — profiles, creator sites, messaging and collaboration" />
-  <meta property="og:description" content="An open creator platform: profile, site, workspaces, chat. Build in public, keep your data yours." />
+  <meta property="og:title" content="justbreath.life — creator pages, private spaces, and team collaboration" />
+  <meta property="og:description" content="Create a public creator page, launch static sites, collaborate with your team, and chat with your audience in one place." />
   <meta property="og:url" content="https://justbreath.life/" />
   <meta property="og:image" content="https://justbreath.life/logo.png" />
   <meta property="og:image:alt" content="justbreath logo" />
@@ -52,15 +52,15 @@
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="justbreath.life" />
-  <meta name="twitter:description" content="Profiles, creator sites, messaging, collaboration." />
+  <meta name="twitter:title" content="justbreath.life — creator pages, private spaces, and team collaboration" />
+  <meta name="twitter:description" content="Create a public creator page, launch static sites, collaborate with your team, and chat with your audience in one place." />
   <meta name="twitter:image" content="https://justbreath.life/logo.png" />
   <meta name="twitter:image:alt" content="justbreath logo" />
 
   <!-- Icons & manifest -->
-  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/logo.png" />
   <link rel="shortcut icon" href="/logo.png" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="apple-touch-icon" href="/logo.png" />
   <meta name="application-name" content="justbreath.life" />
   <meta name="apple-mobile-web-app-title" content="justbreath.life" />
@@ -70,11 +70,11 @@
   <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
   <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossorigin />
   <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
-  <link rel="preload" as="style" href="/app.css?v=20260419e" />
-  <link rel="modulepreload" href="/app.js?v=20260419e" />
+  <link rel="preload" as="style" href="/app.css?v=20260421a" />
+  <link rel="modulepreload" href="/app.js?v=20260421a" />
 
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3877248886432419" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/app.css?v=20260419e" />
+  <link rel="stylesheet" href="/app.css?v=20260421a" />
 
   <!-- Structured data: Organization + WebSite + SearchAction -->
   <script type="application/ld+json">
@@ -93,12 +93,12 @@
           "height": 512
         },
         "sameAs": [
-          "https://github.com/justbreath",
+          "https://github.com/bnfe12",
           "https://discord.gg/justbreath"
         ],
         "contactPoint": [{
           "@type": "ContactPoint",
-          "email": "hello@justbreath.life",
+          "email": "justbreath.business.mail@gmail.com",
           "contactType": "customer support",
           "availableLanguage": ["English","Russian","Ukrainian","Portuguese","Polish","French"]
         }]
@@ -108,7 +108,7 @@
         "@id": "https://justbreath.life/#website",
         "url": "https://justbreath.life/",
         "name": "justbreath.life",
-        "description": "Open creator platform — profiles, sites, workspaces and real-time chat.",
+        "description": "Creator pages, static sites, private spaces, and team collaboration.",
         "publisher": { "@id": "https://justbreath.life/#organization" },
         "inLanguage": ["en","ru","uk","pt","pl","fr"],
         "potentialAction": {
@@ -124,9 +124,12 @@
   }
   </script>
 
+  <script>document.documentElement.classList.add('has-js');</script>
+
   <style>
-    /* Inline critical CSS so splash renders instantly */
-    #splash-screen { position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#111;transition:opacity .4s ease,visibility .4s ease; }
+    /* Inline critical CSS so the public shell is readable before the app boots */
+    #splash-screen { position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#111;transition:opacity .4s ease,visibility .4s ease; }
+    html.has-js #splash-screen { display:flex; }
     #splash-screen.hidden { opacity:0;visibility:hidden;pointer-events:none; }
     .splash-logo { width:140px;height:140px;background:transparent;display:flex;align-items:center;justify-content:center; }
     .splash-logo img { width:100%;height:100%;object-fit:contain;display:block; }
@@ -136,9 +139,346 @@
     .splash-bar-fill { height:100%;background:linear-gradient(90deg,#7c3aed,#4f9cf0);border-radius:2px;animation:sload 2s ease forwards; }
     .splash-status { font-family:-apple-system,sans-serif;font-size:11px;color:#555;letter-spacing:.04em; }
     @keyframes sload { from{width:0} 70%{width:70%} to{width:100%} }
-    /* Content visible without JS — plain text fallback for crawlers and broken-JS users */
-    .noscript-seo { position:fixed;inset:0;z-index:1;padding:24px;color:#eee;background:#111;overflow:auto;font-family:-apple-system,Segoe UI,sans-serif;line-height:1.6; }
-    .noscript-seo a { color:#9ab6ff; }
+    #public-shell-root { position:relative;z-index:1; }
+    .public-shell {
+      min-height:100vh;
+      color:#f5f7fb;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(79,156,240,.20), transparent 28%),
+        radial-gradient(circle at 84% 12%, rgba(124,58,237,.18), transparent 26%),
+        linear-gradient(180deg, #0d0f14 0%, #111111 42%, #0e1016 100%);
+    }
+    .public-shell a { color:inherit; }
+    .public-main,
+    .public-footer {
+      width:min(1180px, calc(100vw - 40px));
+      margin:0 auto;
+    }
+    .public-main { padding:28px 0 72px; }
+    .public-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:24px;
+      padding:6px 0 28px;
+      flex-wrap:wrap;
+    }
+    .public-brand {
+      display:inline-flex;
+      align-items:center;
+      gap:12px;
+      text-decoration:none;
+      font-size:1rem;
+      font-weight:700;
+      letter-spacing:-.04em;
+    }
+    .public-brand img {
+      width:36px;
+      height:36px;
+      display:block;
+      object-fit:contain;
+    }
+    .public-brand span span { color:#8f98ae; }
+    .public-nav {
+      display:flex;
+      align-items:center;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+    .public-nav a {
+      text-decoration:none;
+      color:#b8c2d9;
+      font-size:14px;
+      padding:8px 0;
+    }
+    .public-nav a.active,
+    .public-nav a:hover {
+      color:#ffffff;
+    }
+    .public-hero {
+      display:grid;
+      grid-template-columns:minmax(0, 1.15fr) minmax(280px, .85fr);
+      gap:40px;
+      align-items:end;
+      padding:28px 0 8px;
+    }
+    .public-kicker {
+      margin:0 0 14px;
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:#8f98ae;
+    }
+    .public-title,
+    .public-docs-title {
+      margin:0;
+      font-size:clamp(2.9rem, 7vw, 5.8rem);
+      line-height:.94;
+      letter-spacing:-.065em;
+      text-wrap:balance;
+    }
+    .public-docs-title {
+      font-size:clamp(2.4rem, 5vw, 4rem);
+      line-height:1;
+      margin-bottom:12px;
+    }
+    .public-lead {
+      margin:18px 0 0;
+      max-width:36rem;
+      color:#b8c2d9;
+      font-size:1.05rem;
+      line-height:1.7;
+    }
+    .public-actions {
+      display:flex;
+      gap:12px;
+      margin-top:28px;
+      flex-wrap:wrap;
+    }
+    .public-button {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      min-height:46px;
+      padding:0 18px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      text-decoration:none;
+      font-weight:600;
+      transition:transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .public-button:hover {
+      transform:translateY(-1px);
+      border-color:rgba(255,255,255,.24);
+    }
+    .public-button-primary {
+      background:#f5f7fb;
+      color:#0d1117;
+      border-color:#f5f7fb;
+    }
+    .public-button-secondary {
+      background:rgba(255,255,255,.04);
+      color:#f5f7fb;
+    }
+    .public-button-small {
+      min-height:40px;
+      width:fit-content;
+      margin-top:18px;
+    }
+    .public-note {
+      margin:14px 0 0;
+      color:#8f98ae;
+      font-size:13px;
+    }
+    .public-hero-rail {
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:28px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+        linear-gradient(135deg, rgba(124,58,237,.12), rgba(79,156,240,.08));
+      box-shadow:0 24px 70px rgba(0,0,0,.35);
+      padding:24px;
+    }
+    .public-rail-title {
+      margin:0;
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:#9aa5bd;
+    }
+    .public-lane {
+      padding:18px 0;
+      border-top:1px solid rgba(255,255,255,.09);
+    }
+    .public-lane:first-of-type { border-top:0; padding-top:12px; }
+    .public-lane strong {
+      display:block;
+      font-size:1rem;
+      letter-spacing:-.02em;
+      margin-bottom:6px;
+    }
+    .public-lane p,
+    .public-feature p,
+    .public-proof p,
+    .public-compare-copy p,
+    .public-docs-body p,
+    .public-docs-body li {
+      margin:0;
+      color:#b8c2d9;
+    }
+    .public-section {
+      padding-top:32px;
+      margin-top:32px;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+    .public-section h2 {
+      margin:0;
+      font-size:clamp(1.6rem, 3vw, 2.3rem);
+      letter-spacing:-.04em;
+      text-wrap:balance;
+    }
+    .public-grid-three,
+    .public-proof-grid {
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:22px;
+      margin-top:24px;
+    }
+    .public-proof-grid { grid-template-columns:repeat(4, minmax(0, 1fr)); }
+    .public-feature,
+    .public-proof {
+      display:grid;
+      gap:10px;
+      align-content:start;
+    }
+    .public-feature strong,
+    .public-proof strong {
+      font-size:1rem;
+      letter-spacing:-.03em;
+    }
+    .public-compare {
+      display:grid;
+      gap:0;
+      margin-top:20px;
+    }
+    .public-compare-row {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:24px;
+      padding:16px 0;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+    .public-compare-row:first-child { border-top:0; padding-top:0; }
+    .public-compare-copy span {
+      display:block;
+      margin-bottom:6px;
+      color:#8f98ae;
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+    }
+    .public-cta {
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) auto;
+      gap:24px;
+      align-items:end;
+    }
+    .public-docs {
+      display:grid;
+      grid-template-columns:280px minmax(0, 1fr);
+      gap:40px;
+      align-items:start;
+    }
+    .public-docs-nav {
+      position:sticky;
+      top:24px;
+      align-self:start;
+    }
+    .public-docs-list {
+      display:grid;
+      gap:8px;
+      margin-top:20px;
+    }
+    .public-docs-link {
+      display:block;
+      padding:11px 13px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      text-decoration:none;
+      color:#b8c2d9;
+      background:rgba(255,255,255,.03);
+    }
+    .public-docs-link.active,
+    .public-docs-link:hover {
+      color:#ffffff;
+      border-color:rgba(255,255,255,.18);
+      background:rgba(255,255,255,.06);
+    }
+    .public-docs-body {
+      min-width:0;
+      display:grid;
+      gap:18px;
+    }
+    .public-docs-body h2,
+    .public-docs-body h3 {
+      margin:0;
+      letter-spacing:-.03em;
+    }
+    .public-docs-body h3 {
+      font-size:1rem;
+      color:#f5f7fb;
+      margin-top:8px;
+    }
+    .public-docs-body ul,
+    .public-docs-body ol {
+      margin:0;
+      padding-left:18px;
+      display:grid;
+      gap:8px;
+    }
+    .public-code {
+      margin:0;
+      padding:14px 16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      color:#d9e2f2;
+      font:13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space:pre-wrap;
+      overflow:auto;
+    }
+    .public-inline-list {
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:20px;
+    }
+    .public-inline-list a {
+      color:#b8c2d9;
+      text-decoration:none;
+      border-bottom:1px solid rgba(255,255,255,.2);
+    }
+    .public-inline-list a:hover { color:#ffffff; }
+    .public-footer {
+      display:flex;
+      justify-content:space-between;
+      gap:18px;
+      align-items:center;
+      padding:0 0 34px;
+      flex-wrap:wrap;
+      color:#8f98ae;
+      font-size:13px;
+    }
+    .public-footer-links {
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+    .public-footer a {
+      color:#b8c2d9;
+      text-decoration:none;
+    }
+    .public-footer a:hover { color:#ffffff; }
+    @media (max-width: 960px) {
+      .public-main,
+      .public-footer { width:min(1180px, calc(100vw - 28px)); }
+      .public-hero,
+      .public-docs,
+      .public-cta,
+      .public-proof-grid,
+      .public-grid-three,
+      .public-compare-row { grid-template-columns:1fr; }
+      .public-docs-nav { position:static; }
+    }
+    @media (max-width: 640px) {
+      .public-main { padding-top:18px; }
+      .public-header { padding-bottom:18px; }
+      .public-title,
+      .public-docs-title { max-width:11ch; }
+      .public-button { width:100%; }
+      .public-nav { gap:12px; }
+    }
   </style>
 </head>
 <body>
@@ -150,23 +490,164 @@
     <div class="splash-status" id="splash-status">Loading…</div>
   </div>
 
-  <!-- SEO/crawler fallback — visible only when JS fails to bootstrap the app -->
   <noscript>
-    <div class="noscript-seo">
-      <h1>justbreath.life</h1>
-      <p>An open creator platform — profiles, creator sites, workspaces and real-time chat.</p>
-      <p>This page needs JavaScript to run the full app. You can still read our documentation without JavaScript:</p>
-      <ul>
-        <li><a href="/developers">Developers &amp; API</a></li>
-        <li><a href="/privacy">Privacy Policy</a></li>
-        <li><a href="/terms">Terms of Service</a></li>
-        <li><a href="/sitemap.xml">Sitemap</a></li>
-      </ul>
-      <p>Contact: <a href="mailto:hello@justbreath.life">hello@justbreath.life</a></p>
-    </div>
+    <style>#splash-screen{display:none!important}</style>
   </noscript>
 
+  <div id="public-shell-root">
+    <!-- PUBLIC_SHELL_START -->
+    <div class="public-shell">
+      <main class="public-main">
+        <header class="public-header">
+          <a class="public-brand" href="/">
+            <img src="/logo.png" alt="justbreath logo" width="36" height="36" />
+            <span>justbreath<span>.life</span></span>
+          </a>
+          <nav class="public-nav" aria-label="Public">
+            <a href="/developers">Developers</a>
+            <a href="/about">About</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+            <a href="/contact">Contact</a>
+            <a href="https://github.com/bnfe12" target="_blank" rel="noopener">GitHub</a>
+          </nav>
+        </header>
+
+        <section class="public-hero">
+          <div>
+            <p class="public-kicker">Public page + private spaces + team workflow</p>
+            <h1 class="public-title">Create your public creator page, collaborate with your team, and chat with your audience in one place.</h1>
+            <p class="public-lead">justbreath.life combines creator pages, static sites, private rooms, and lightweight workspaces into one product that stays exportable, crawlable, and easy to understand.</p>
+            <div class="public-actions">
+              <a class="public-button public-button-primary" href="/about">See how it works</a>
+              <a class="public-button public-button-secondary" href="/developers">Read the docs</a>
+            </div>
+            <p class="public-note">Public pages and documentation work without JavaScript. Account creation, live chat, and the full app experience use JavaScript. Full site-creation docs and the source repository live at <a href="https://github.com/bnfe12/JustBreathDevSite" target="_blank" rel="noopener">bnfe12/JustBreathDevSite</a>.</p>
+          </div>
+          <aside class="public-hero-rail" aria-label="Platform surfaces">
+            <p class="public-rail-title">One surface, three modes</p>
+            <div class="public-lane">
+              <strong>Public creator page</strong>
+              <p>Links, pinned updates, work showcase, and indexable URLs that can rank and be shared.</p>
+            </div>
+            <div class="public-lane">
+              <strong>Private club and audience chat</strong>
+              <p>Rooms, announcements, gated drops, and a cleaner path from discovery to membership.</p>
+            </div>
+            <div class="public-lane">
+              <strong>Team workspace</strong>
+              <p>Managers, editors, and collaborators can work from the same home instead of scattered tools.</p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="public-section">
+          <h2>Built for creators, freelancers, studios, and small teams who outgrew stitched-together tools.</h2>
+          <div class="public-grid-three">
+            <article class="public-feature">
+              <strong>Creators and artists</strong>
+              <p>Start with one page that introduces your work, points people to the right room, and keeps announcements visible.</p>
+            </article>
+            <article class="public-feature">
+              <strong>Freelancers and creative professionals</strong>
+              <p>Show a portfolio, verified work, contact paths, and a cleaner “hire me” flow without juggling multiple products.</p>
+            </article>
+            <article class="public-feature">
+              <strong>Small product and community teams</strong>
+              <p>Combine public updates, docs, workspace collaboration, and audience conversations without rebuilding your stack.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="public-section">
+          <h2>Why it is stronger than a stack of disconnected tools.</h2>
+          <div class="public-compare">
+            <div class="public-compare-row">
+              <div class="public-compare-copy">
+                <span>Instead of</span>
+                <p>Link-in-bio pages that only point somewhere else.</p>
+              </div>
+              <div class="public-compare-copy">
+                <span>justbreath</span>
+                <p>One public page with real URLs, creator sites, pinned context, and a clear next step.</p>
+              </div>
+            </div>
+            <div class="public-compare-row">
+              <div class="public-compare-copy">
+                <span>Instead of</span>
+                <p>Chat communities that live separately from your public identity and content.</p>
+              </div>
+              <div class="public-compare-copy">
+                <span>justbreath</span>
+                <p>Audience rooms and private spaces tied to the same profile, site, and creator workflow.</p>
+              </div>
+            </div>
+            <div class="public-compare-row">
+              <div class="public-compare-copy">
+                <span>Instead of</span>
+                <p>Docs, sites, and portfolio pages scattered across tools with different rules.</p>
+              </div>
+              <div class="public-compare-copy">
+                <span>justbreath</span>
+                <p>Static creator sites, docs, and profile context inside one platform that still exports cleanly.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="public-section">
+          <h2>Search-friendly, creator-friendly defaults.</h2>
+          <div class="public-proof-grid">
+            <article class="public-proof">
+              <strong>Real links</strong>
+              <p>Public navigation and profile paths render as crawlable URLs, not button-only shells.</p>
+            </article>
+            <article class="public-proof">
+              <strong>Static sites</strong>
+              <p>Creator sites stay plain HTML with a clear entry point and portable assets.</p>
+            </article>
+            <article class="public-proof">
+              <strong>Exportable data</strong>
+              <p>Profiles, content, and settings stay understandable instead of trapped behind opaque layers.</p>
+            </article>
+            <article class="public-proof">
+              <strong>Public docs</strong>
+              <p>Developers, privacy, terms, and contact pages stay readable even before the SPA boots.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="public-section">
+          <div class="public-cta">
+            <div>
+              <h2>Start with a public page. Add private rooms, sites, and team workflow when your audience grows.</h2>
+              <p class="public-lead">Read the docs, inspect the legal pages, or open the full app and use the JavaScript client for the live experience.</p>
+            </div>
+            <div class="public-actions">
+              <a class="public-button public-button-primary" href="/about">See how it works</a>
+              <a class="public-button public-button-secondary" href="/contact">Contact the team</a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="public-footer">
+        <span>justbreath.life — creator pages, private spaces, and team collaboration.</span>
+        <div class="public-footer-links">
+          <a href="/developers">Developers</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="/contact">Contact</a>
+          <a href="mailto:justbreath.business.mail@gmail.com">Email</a>
+          <a href="https://github.com/bnfe12" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/bnfe12/JustBreathDevSite" target="_blank" rel="noopener">Project repo</a>
+        </div>
+      </footer>
+    </div>
+    <!-- PUBLIC_SHELL_END -->
+  </div>
+
   <div id="app"></div>
-  <script type="module" src="/app.js?v=20260419e"></script>
+  <script type="module" src="/app.js?v=20260421a"></script>
 </body>
 </html>

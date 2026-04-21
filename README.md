@@ -20,6 +20,65 @@ node server/index.js
 
 ---
 
+## Documentation Index
+
+Core docs are intentionally split by responsibility so deployment, creator-site work, and security hardening do not get mixed together:
+
+- Platform overview and local runbook: [README.md](README.md)
+- Creator-site imports, archive rules, Site Studio, review prep: [SITE_CREATION_GUIDE.md](SITE_CREATION_GUIDE.md)
+- Production proxy, nginx, TLS, restart, large uploads: [deploy/DEPLOY.md](deploy/DEPLOY.md)
+- Security model, hardening checklist, why secrets must not live in client code: [SECURITY.md](SECURITY.md)
+
+If you mirror the project to GitHub, keep this section near the top of the repository README so docs remain visible immediately instead of getting buried under the feature list.
+
+---
+
+## Site Creation Docs
+
+If you are building or importing creator sites into justbreath, start here:
+
+- In-app guide: `/developers/sites`
+- Project repository: <https://github.com/bnfe12/JustBreathDevSite>
+- Full repo guide: [SITE_CREATION_GUIDE.md](SITE_CREATION_GUIDE.md)
+- Russian examples: [SITE_CREATION_EXAMPLES_RU.md](SITE_CREATION_EXAMPLES_RU.md)
+- SEO / indexing rules for public sites: [SEO_DEVELOPMENT_GUIDE.md](SEO_DEVELOPMENT_GUIDE.md)
+
+Use `Template site` for simple static pages, `Single HTML` only for one-file uploads, and `Archive package` for real exported builds with `css/`, `js/`, `img/`, or extra pages. Archive imports support `zip`, `tar`, `tgz`, `tar.gz`, and `7z` when the server extractor is available. `Site Studio` is for editing uploaded text files after deploy.
+
+Uploaded archive sites open through a launch screen first. That screen explains that the creator site runs in its own isolated surface, shows the creator profile link, and offers a local "remember this decision on this device" checkbox before the site opens directly next time.
+
+Large archive uploads now show a visible client-side progress state during binary upload and then switch into a server-side processing phase, so a 20 MB+ import no longer looks like a silent hang.
+
+---
+
+## Chat Audio / Voice Notes
+
+Recent chat-media changes are important because they change how the UI behaves under load:
+
+- Voice and audio playback no longer drive a full SPA `render()` loop on every progress tick.
+- Playback state is now reflected through targeted DOM updates, which prevents the chat from visually "refreshing" while audio is playing.
+- The active track now lives in a shared top audio block, so playback can continue while you switch chats or move to another screen in the SPA.
+- Voice recording now has an explicit live state with a visible timer and recording banner, so there is no ambiguity about whether the microphone is actually recording.
+- If a future change reintroduces interval-based full renders during media playback, treat that as a regression. Chat playback must stay incremental, not page-wide.
+
+---
+
+## Security Posture
+
+This project should not rely on hiding client code, obfuscating random modules, or "encrypting the frontend" as a security strategy. Real protections live in server behavior and deployment:
+
+- keep secrets, tokens, signing material, and admin checks on the server only
+- enforce secure cookies, TLS, reverse-proxy limits, and CSP headers
+- reject cross-site write requests on cookie-authenticated API routes
+- rate-limit login, registration, telemetry, and heavy archive upload paths
+- isolate uploaded creator sites and review archive imports before approval
+
+The expanded checklist and rationale live in [SECURITY.md](SECURITY.md).
+
+Questions about docs or the repository: `justbreath.business.mail@gmail.com` and <https://github.com/bnfe12>.
+
+---
+
 ## What works
 
 **Without an account** (guest browsing): home page, public feed, discover, public
@@ -39,7 +98,7 @@ verification queue, maintenance mode.
 Guest mode is read-only. Chats, mail, publishing, sites, and settings require
 an account.
 
-Site creation workflow, Site Studio, archive handling, and AI/static-site rules are documented in [SITE_CREATION_GUIDE.md](SITE_CREATION_GUIDE.md).
+Site creation workflow, Site Studio, archive handling, and AI/static-site rules are documented in [SITE_CREATION_GUIDE.md](SITE_CREATION_GUIDE.md). SEO, indexing, metadata, canonical, structured-data, performance, and crawlability rules for future development are documented in [SEO_DEVELOPMENT_GUIDE.md](SEO_DEVELOPMENT_GUIDE.md).
 
 ---
 
@@ -68,6 +127,7 @@ Configure SMTP in `.env` so verification, password-reset, and sign-in codes actu
 - [ ] Put nginx (config in `deploy/`) in front of Node, terminate TLS there
 - [ ] Set `secure: true` on session cookies (search `setSessionCookie` in `server/index.js`)
 - [ ] Issue Let's Encrypt cert: `certbot --nginx -d justbreath.life`
+- [ ] Keep `client_max_body_size 1g` and `proxy_request_buffering off` on archive binary routes if operators need large archive imports
 
 ### 4. Process management
 - [ ] Run via systemd/PM2 with restart-on-failure
@@ -102,6 +162,12 @@ WantedBy=multi-user.target
 - [ ] `GET /api/health` returns `{ok:true,site:...}` — point uptime monitor here
 - [ ] Tail `journalctl -u justbreath -f` for errors
 - [ ] Watch `data/store.json` size — at ~50MB consider migration to SQLite
+
+### 6b. Search visibility
+- [ ] Review `SEO_DEVELOPMENT_GUIDE.md` before shipping public-route or creator-site changes
+- [ ] Verify canonical URLs, robots behavior, and sitemap output after route changes
+- [ ] Verify the property in Google Search Console and Bing Webmaster / IndexNow flows
+- [ ] Recheck Core Web Vitals for critical public pages after layout or media changes
 
 ### 7. Legal (required for EU/Portugal)
 - [ ] Fill in `PRIVACY.md` (GDPR data-controller name, contact, what's stored, retention)
@@ -138,6 +204,17 @@ backups/          — Auto-rotating store.json snapshots
 
 API surface: ~110 endpoints under `/api/` — see `app.get/post/patch/delete`
 declarations in `server/index.js`.
+
+Recent creator-site API additions:
+
+- `GET /api/developers/capabilities`
+- `GET /api/me/sites/import-capabilities`
+- `POST /api/me/sites/import-inspect`
+- `POST /api/me/sites/upload-tar`
+- `POST /api/me/sites/upload-tgz`
+- `POST /api/me/sites/upload-7z`
+- `POST /api/me/sites/upload-bundle`
+- `POST /api/me/sites/upload-bundle-binary`
 
 ---
 
